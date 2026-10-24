@@ -27,7 +27,7 @@ import { initFlock, activateFlockModel, deactivateFlockModel } from "./flock.js?
 import { initRungler, activateRunglerModel, deactivateRunglerModel } from "./rungler.js?v=3";
 import { initKrell, activateKrellModel, deactivateKrellModel } from "./krell.js?v=1";
 import { initLsystem, activateLsystemModel, deactivateLsystemModel, syncLsystemFromRegen } from "./lsystem.js?v=1";
-import { initLotkaVolterra, activateLotkaVolterraModel, deactivateLotkaVolterraModel, syncLotkaVolterraFromRegen } from "./lotka_volterra.js?v=1";
+import { initLotkaVolterra, activateLotkaVolterraModel, deactivateLotkaVolterraModel, syncLotkaVolterraFromRegen, updateLotkaVolterraScaleAndOctave } from "./lotka_volterra.js?v=1";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -298,7 +298,11 @@ export function buildNotesBar() {
       state.lvRootNote = state.rootNote;
       state.lvRootOctave = state.rootOctave;
 
-      scheduleRegen();
+      if (getActiveModel() === "lotka_volterra") {
+        updateLotkaVolterraScaleAndOctave();
+      } else {
+        scheduleRegen();
+      }
     }
   });
 }

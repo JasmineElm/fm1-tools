@@ -23,11 +23,14 @@ import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
 import * as midi from "./midi.js";
+import * as audio from "./audio.js";
 
 // ---- Constants & Pre-allocated Buffers (Zero GC Churn) ----
 const MAX_VOICES = 8;
 const activeVoices = new Map(); // note -> timeoutId
 const voiceSlots = [null, null, null]; // [prey, predator, apex] active notes
+
+let forceRegenRhythm = false;
 
 // Trail history ring buffer for smooth 2D phase portrait rendering
 const TRAIL_LEN = 200;
@@ -186,6 +189,7 @@ function playSpeciesVoice(speciesIdx, note, vel, durMs) {
   const prevNote = voiceSlots[speciesIdx];
   if (prevNote !== null) {
     liveNoteOff(prevNote);
+    audio.noteOff(prevNote);
     activeVoices.delete(prevNote);
     voiceSlots[speciesIdx] = null;
   }
@@ -193,17 +197,24 @@ function playSpeciesVoice(speciesIdx, note, vel, durMs) {
   // Global 8-voice limit enforcement
   if (activeVoices.size >= MAX_VOICES) {
     const oldest = activeVoices.keys().next().value;
-    clearTimeout(activeVoices.get(oldest));
-    liveNoteOff(oldest);
-    activeVoices.delete(oldest);
+    if (oldest !== undefined) {
+      clearTimeout(activeVoices.get(oldest));
+      liveNoteOff(oldest);
+      audio.noteOff(oldest);
+      activeVoices.delete(oldest);
+    }
   }
 
-  liveNoteOn(note, vel, durMs);
+  audio.unlock();
+  liveNoteOn(note, vel);
+  audio.noteOn(note, vel);
   voiceSlots[speciesIdx] = note;
 
   const tid = setTimeout(() => {
     activeVoices.delete(note);
     if (voiceSlots[speciesIdx] === note) voiceSlots[speciesIdx] = null;
+    liveNoteOff(note);
+    audio.noteOff(note);
   }, durMs);
   activeVoices.set(note, tid);
 
@@ -296,6 +307,10 @@ export function generateLotkaVolterraBank(targetState = state) {
   const octSpan = Math.min(4, Math.max(1, state.pitchSpan ?? state.lvSpan ?? 3));
   const intLen = intervals.length || 7;
 
+  const currentBank = getBank();
+  const existingSteps = currentBank?.[0]?.steps || null;
+  const hasExistingRhythm = !forceRegenRhythm && existingSteps && existingSteps.some((st) => (st.notes && st.notes.length > 0) || st._savedNote);
+
   const phrase = {
     length: seqLen,
     rate,
@@ -344,41 +359,82 @@ export function generateLotkaVolterraBank(targetState = state) {
       const preyCross = px <= thX && x > thX;
       const preyCrest = px > ppx && px >= x && px > 0.4;
       if (preyCross || preyCrest) {
-        const note = getNoteFromXY(x, y);
-        stepNotes.push({ note, vel: Math.min(127, Math.max(45, Math.round(x * 100))) });
+        const note = getNoteFromXY(x, y, 0);
+        stepNotes.push({ note, vel: Math.min(127, Math.max(45, Math.round(x * 100))), _octOffset: 0 });
       }
 
       // Species 1: Predator (Mid ostinato) — triggered on threshold upward crossing or population crest
       const predCross = py <= thY && y > thY;
       const predCrest = py > ppy && py >= y && py > 0.15;
       if (predCross || predCrest) {
-        const note = getNoteFromXY(x, y);
-        stepNotes.push({ note, vel: Math.min(127, Math.max(50, Math.round(y * 120))) });
+        const note = getNoteFromXY(x, y, 0);
+        stepNotes.push({ note, vel: Math.min(127, Math.max(50, Math.round(y * 120))), _octOffset: 0 });
       }
 
       // Species 2: Apex (Sub-bass strike) — triggered on threshold upward crossing or population crest
       const apexCross = pz <= thZ && z > thZ;
       const apexCrest = pz > ppz && pz >= z && pz > 7.5;
       if (apexCross || apexCrest) {
-        const note = getNoteFromXY(x, y);
-        stepNotes.push({ note, vel: Math.min(127, Math.max(55, Math.round((z / 12) * 120))) });
+        const note = getNoteFromXY(x, y, -1);
+        stepNotes.push({ note, vel: Math.min(127, Math.max(55, Math.round((z / 12) * 120))), _octOffset: -1 });
       }
 
       ppx = px; ppy = py; ppz = pz;
     }
 
     // Default pitch for resting steps determined by current (X, Y) trajectory
-    const defPitch = getNoteFromXY(x, y);
-
-    // Polyphony budget: maximum 2 notes per step
+    const defPitch = getNoteFromXY(x, y, 0);
     const finalNotes = stepNotes.slice(0, 2);
+
+    let stepActiveNotes = finalNotes;
+    if (hasExistingRhythm && existingSteps[s]) {
+      const wasActive = existingSteps[s].notes && existingSteps[s].notes.length > 0;
+      if (wasActive) {
+        stepActiveNotes = finalNotes.length > 0 ? finalNotes : [{ note: defPitch, vel: 70, _octOffset: 0 }];
+      } else {
+        stepActiveNotes = [];
+      }
+    }
+
     phrase.steps.push({
-      notes: finalNotes,
-      _savedNote: finalNotes[0] || { note: defPitch, vel: 70 }
+      notes: stepActiveNotes,
+      _savedNote: finalNotes[0] || existingSteps?.[s]?._savedNote || { note: defPitch, vel: 70, _octOffset: 0 },
+      _trajX: x,
+      _trajY: y,
+      _trajZ: z
     });
   }
 
   return [phrase];
+}
+
+/**
+ * Re-quantizes pitches for all existing steps in the active bank without altering
+ * sequence step gates, polyphony allocation, or rhythm pattern.
+ */
+export function updateLotkaVolterraScaleAndOctave() {
+  const bank = getBank();
+  const p = bank?.[0];
+  if (!p || !p.steps) return;
+
+  for (let s = 0; s < p.steps.length; s++) {
+    const st = p.steps[s];
+    const x = st._trajX !== undefined ? st._trajX : (state.lvInitX ?? 0.75);
+    const y = st._trajY !== undefined ? st._trajY : (state.lvInitY ?? 0.2);
+
+    if (st.notes && st.notes.length > 0) {
+      for (const n of st.notes) {
+        n.note = getNoteFromXY(x, y, n._octOffset || 0);
+      }
+    }
+    if (st._savedNote) {
+      st._savedNote.note = getNoteFromXY(x, y, st._savedNote._octOffset || 0);
+    }
+  }
+
+  syncRhythmGrid();
+  renderPhaseCanvas();
+  updateHud();
 }
 
 // ---- Procedural Randomizer (Valid & Finite Dynamical Regimes) ----
@@ -431,7 +487,9 @@ export function randomizeLotkaVolterra() {
   if (refs.lvThresholdZ?.setValue) refs.lvThresholdZ.setValue(state.lvThresholdZ, false);
   if (presetSelect) presetSelect.value = "custom";
 
+  forceRegenRhythm = true;
   doGenerate(true);
+  forceRegenRhythm = false;
   renderPhaseCanvas();
   updateHud();
   status(`Lotka-Volterra randomized (${isChaotic ? "Chaotic Attractor" : "Limit Cycle"})`, "ok");
@@ -444,6 +502,10 @@ export function syncLotkaVolterraFromRegen() {
 
 // ---- Live Step & Animation Loops ----
 export function onLotkaVolterraLiveStep(stepIndex) {
+  if (stepIndex === null) {
+    lastLiveStep = -1;
+    return;
+  }
   lastLiveStep = stepIndex;
 
   if (state.lvMode === "sync") {
@@ -461,11 +523,20 @@ export function onLotkaVolterraLiveStep(stepIndex) {
       try { midi.sendControlChange(ccDest, ccVal); } catch (_) {}
     }
 
-    // Flash meters based on active species notes playing on this step
+    // Dynamically derive triggered note pitch from current (X, Y) phase trajectory
     const curBank = getBank();
     const curP = curBank?.[0];
     const st = curP?.steps?.[stepIndex];
     if (st && st.notes && st.notes.length > 0) {
+      const liveNote = getNoteFromXY(simX, simY);
+      st.notes[0].note = liveNote;
+      if (st.notes[1]) {
+        st.notes[1].note = getNoteFromXY(simX, simY, -1);
+      }
+      if (st._savedNote) {
+        st._savedNote.note = liveNote;
+      }
+
       const root = getRootMidi();
       for (const n of st.notes) {
         if (n.note >= root + 12) flashMeter(meterPrey);
@@ -732,7 +803,9 @@ export function initLotkaVolterra() {
       trailCount = 0;
 
       syncControlsFromState();
+      forceRegenRhythm = true;
       doGenerate(true);
+      forceRegenRhythm = false;
       renderPhaseCanvas();
       updateHud();
     }
@@ -786,7 +859,7 @@ export function initLotkaVolterra() {
     value: state.lvSpeed ?? 1.0,
     unit: "x",
     title: "Simulation numerical integration speed factor",
-    onChange: (v) => { state.lvSpeed = v; doGenerate(true); }
+    onChange: (v) => { state.lvSpeed = v; forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
   });
   R("lvSpeed", kSpeed);
 
@@ -796,7 +869,7 @@ export function initLotkaVolterra() {
     value: state.lvA ?? 5.0,
     unit: "a",
     title: "Prey search & attack consumption rate (a)",
-    onChange: (v) => { state.lvA = v; doGenerate(true); }
+    onChange: (v) => { state.lvA = v; forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
   });
   R("lvA", kA);
 
@@ -806,7 +879,7 @@ export function initLotkaVolterra() {
     value: state.lvB1 ?? 3.0,
     unit: "b1",
     title: "Prey handling saturation constant (b1)",
-    onChange: (v) => { state.lvB1 = v; doGenerate(true); }
+    onChange: (v) => { state.lvB1 = v; forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
   });
   R("lvB1", kB1);
 
@@ -816,7 +889,7 @@ export function initLotkaVolterra() {
     value: state.lvC ?? 0.1,
     unit: "c",
     title: "Apex predator predation rate (c)",
-    onChange: (v) => { state.lvC = v; doGenerate(true); }
+    onChange: (v) => { state.lvC = v; forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
   });
   R("lvC", kC);
 
@@ -826,7 +899,7 @@ export function initLotkaVolterra() {
     value: state.lvD2 ?? 0.01,
     unit: "d2",
     title: "Apex predator natural mortality rate (d2)",
-    onChange: (v) => { state.lvD2 = v; doGenerate(true); }
+    onChange: (v) => { state.lvD2 = v; forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
   });
   R("lvD2", kD2);
 
@@ -836,7 +909,7 @@ export function initLotkaVolterra() {
     value: state.lvThresholdX ?? 0.55,
     unit: "",
     title: "Poincaré section threshold for Prey note trigger",
-    onChange: (v) => { state.lvThresholdX = v; renderPhaseCanvas(); doGenerate(true); }
+    onChange: (v) => { state.lvThresholdX = v; renderPhaseCanvas(); forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
   });
   R("lvThresholdX", kThX);
 
@@ -846,7 +919,7 @@ export function initLotkaVolterra() {
     value: state.lvThresholdY ?? 0.20,
     unit: "",
     title: "Poincaré section threshold for Predator note trigger",
-    onChange: (v) => { state.lvThresholdY = v; renderPhaseCanvas(); doGenerate(true); }
+    onChange: (v) => { state.lvThresholdY = v; renderPhaseCanvas(); forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
   });
   R("lvThresholdY", kThY);
 
@@ -912,28 +985,34 @@ export function initLotkaVolterra() {
 
     renderPhaseCanvas();
     updateHud();
-    if (state.lvMode === "sync") doGenerate(true);
+
+    // If live in sync mode, immediately update the current playing step to match the dragged XY position
+    if (isLive() && lastLiveStep >= 0) {
+      const curBank = getBank();
+      const st = curBank?.[0]?.steps?.[lastLiveStep];
+      if (st && st.notes && st.notes.length > 0) {
+        const liveNote = getNoteFromXY(simX, simY);
+        st.notes[0].note = liveNote;
+        if (st._savedNote) st._savedNote.note = liveNote;
+      }
+    }
   };
 
   phaseCanvas.addEventListener("pointerdown", (e) => {
     isDraggingCanvas = true;
     phaseCanvas.setPointerCapture(e.pointerId);
     handleCanvasCoord(e);
-    if (!isLive()) {
-      const note = getNoteFromXY(simX, simY);
-      playSpeciesVoice(0, note, 95, 180);
-    }
+    const note = getNoteFromXY(simX, simY);
+    playSpeciesVoice(0, note, 95, 180);
   });
 
   phaseCanvas.addEventListener("pointermove", (e) => {
     if (isDraggingCanvas) {
       const prevNote = getNoteFromXY(simX, simY);
       handleCanvasCoord(e);
-      if (!isLive()) {
-        const newNote = getNoteFromXY(simX, simY);
-        if (newNote !== prevNote) {
-          playSpeciesVoice(0, newNote, 90, 140);
-        }
+      const newNote = getNoteFromXY(simX, simY);
+      if (newNote !== prevNote) {
+        playSpeciesVoice(0, newNote, 90, 140);
       }
     }
   });
@@ -941,6 +1020,13 @@ export function initLotkaVolterra() {
   phaseCanvas.addEventListener("pointerup", (e) => {
     isDraggingCanvas = false;
     try { phaseCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    if (!isLive()) {
+      // Synchronize offline bank starting position while preserving all step gates and rhythm pattern
+      forceRegenRhythm = false;
+      doGenerate(false);
+      renderPhaseCanvas();
+      updateHud();
+    }
   });
 
   canvasCard.append(canvasHeader, phaseCanvas);
@@ -970,7 +1056,14 @@ export function activateLotkaVolterraModel() {
   setModelRandomizer(randomizeLotkaVolterra);
   setModelStepHandler(onLotkaVolterraLiveStep);
 
+  const curBank = getBank();
+  const hasExistingSteps = curBank?.[0]?.steps?.some((st) => (st.notes && st.notes.length > 0) || st._savedNote);
+  if (!hasExistingSteps) {
+    forceRegenRhythm = true;
+  }
   doGenerate(true);
+  forceRegenRhythm = false;
+
   syncRhythmGrid();
   renderPhaseCanvas();
   updateHud();
@@ -983,6 +1076,7 @@ export function activateLotkaVolterraModel() {
 
 export function deactivateLotkaVolterraModel() {
   panicPreview();
+  audio.allOff();
   setModelStepHandler(null);
   activeVoices.clear();
   voiceSlots[0] = null;
