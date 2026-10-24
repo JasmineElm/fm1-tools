@@ -219,45 +219,61 @@ function playSpeciesVoice(speciesIdx, note, vel, durMs) {
   }
 }
 
+// ---- 2D (X, Y) Phase Space Position to Pitch Mapping ----
+/**
+ * Maps the 2D (X, Y) phase space trajectory position directly to a scale-quantized MIDI note.
+ * X (Prey population in [0, 1.2]) controls horizontal pitch degree span.
+ * Y (Predator population in [0, 0.6]) controls vertical elevation.
+ */
+export function getNoteFromXY(x, y, octaveOffset = 0) {
+  const normX = Math.max(0, Math.min(1, (x ?? 0) / 1.2));
+  const normY = Math.max(0, Math.min(1, (y ?? 0) / 0.6));
+  const norm = Math.max(0, Math.min(1, 0.55 * normX + 0.45 * normY));
+
+  const root = getRootMidi();
+  const intervals = getActiveScaleIntervals();
+  const octSpan = Math.min(4, Math.max(1, state.pitchSpan ?? state.lvSpan ?? 3));
+
+  const baseNote = mapNormalizedToNote({
+    norm,
+    root,
+    scale: intervals,
+    octaveSpread: octSpan,
+    spreadDirection: state.octaveMode || "up",
+    octChance: ((state.octave ?? 0) / 100),
+    quantStrength: ((state.quantSteps ?? 100) / 100),
+    rng: () => 0
+  });
+
+  const finalNote = baseNote + octaveOffset * 12;
+  return Math.max(12, Math.min(108, Math.round(finalNote)));
+}
+
 // ---- Poincaré Section Trigger Check ----
 function checkPoincareTriggers(durMs = 180) {
-  const intervals = getActiveScaleIntervals();
-  const root = getRootMidi();
-  const octSpan = Math.min(4, Math.max(1, state.pitchSpan ?? state.lvSpan ?? 3));
-  const intLen = intervals.length || 7;
-
   const thX = state.lvThresholdX ?? 0.55;
   const thY = state.lvThresholdY ?? 0.20;
   const thZ = state.lvThresholdZ ?? 8.8;
 
-  // Species 0: Prey (Treble flutter)
+  // Species 0: Prey (Treble flutter) — pitch determined by XY trajectory
   if (prevX <= thX && simX > thX) {
-    const deg = Math.floor(simX * 14) % intLen;
-    const oct = Math.min(octSpan - 1, 1);
-    const rawPitch = root + oct * 12 + (intervals[deg] || 0);
-    const note = quantize(rawPitch, intervals, root);
-    const vel = Math.min(127, Math.max(40, Math.round(simX * 90)));
+    const note = getNoteFromXY(simX, simY);
+    const vel = Math.min(127, Math.max(40, Math.round(simX * 100)));
     playSpeciesVoice(0, note, vel, durMs);
     flashMeter(meterPrey);
   }
 
-  // Species 1: Predator (Mid-range ostinato)
+  // Species 1: Predator (Mid-range ostinato) — pitch determined by XY trajectory
   if (prevY <= thY && simY > thY) {
-    const deg = Math.floor(simY * 18) % intLen;
-    const oct = 0;
-    const rawPitch = root + oct * 12 + (intervals[deg] || 0);
-    const note = quantize(rawPitch, intervals, root);
-    const vel = Math.min(127, Math.max(45, Math.round(simY * 110)));
+    const note = getNoteFromXY(simX, simY);
+    const vel = Math.min(127, Math.max(45, Math.round(simY * 120)));
     playSpeciesVoice(1, note, vel, durMs + 40);
     flashMeter(meterPred);
   }
 
-  // Species 2: Apex Predator (Sub-bass strike)
+  // Species 2: Apex Predator (Sub-bass strike) — pitch determined by XY trajectory
   if (prevZ <= thZ && simZ > thZ) {
-    const deg = Math.floor(simZ * 2) % intLen;
-    const oct = -1;
-    const rawPitch = root + oct * 12 + (intervals[deg] || 0);
-    const note = quantize(rawPitch, intervals, root);
+    const note = getNoteFromXY(simX, simY);
     const vel = Math.min(127, Math.max(50, Math.round((simZ / 12) * 120)));
     playSpeciesVoice(2, note, vel, durMs + 80);
     flashMeter(meterApex);
@@ -328,8 +344,7 @@ export function generateLotkaVolterraBank(targetState = state) {
       const preyCross = px <= thX && x > thX;
       const preyCrest = px > ppx && px >= x && px > 0.4;
       if (preyCross || preyCrest) {
-        const deg = Math.floor(x * 14) % intLen;
-        const note = quantize(root + 12 + (intervals[deg] || 0), intervals, root);
+        const note = getNoteFromXY(x, y);
         stepNotes.push({ note, vel: Math.min(127, Math.max(45, Math.round(x * 100))) });
       }
 
@@ -337,8 +352,7 @@ export function generateLotkaVolterraBank(targetState = state) {
       const predCross = py <= thY && y > thY;
       const predCrest = py > ppy && py >= y && py > 0.15;
       if (predCross || predCrest) {
-        const deg = Math.floor(y * 18) % intLen;
-        const note = quantize(root + (intervals[deg] || 0), intervals, root);
+        const note = getNoteFromXY(x, y);
         stepNotes.push({ note, vel: Math.min(127, Math.max(50, Math.round(y * 120))) });
       }
 
@@ -346,16 +360,15 @@ export function generateLotkaVolterraBank(targetState = state) {
       const apexCross = pz <= thZ && z > thZ;
       const apexCrest = pz > ppz && pz >= z && pz > 7.5;
       if (apexCross || apexCrest) {
-        const deg = Math.floor(z * 2) % intLen;
-        const note = quantize(root - 12 + (intervals[deg] || 0), intervals, root);
+        const note = getNoteFromXY(x, y);
         stepNotes.push({ note, vel: Math.min(127, Math.max(55, Math.round((z / 12) * 120))) });
       }
 
       ppx = px; ppy = py; ppz = pz;
     }
 
-    // Default pitch for resting steps if user enables them manually in rhythm grid
-    const defPitch = quantize(root + (intervals[Math.floor(x * 12) % intLen] || 0), intervals, root);
+    // Default pitch for resting steps determined by current (X, Y) trajectory
+    const defPitch = getNoteFromXY(x, y);
 
     // Polyphony budget: maximum 2 notes per step
     const finalNotes = stepNotes.slice(0, 2);
@@ -594,7 +607,8 @@ export function renderPhaseCanvas() {
   ctx.fillStyle = colFg;
   ctx.font = "9.5px monospace";
   ctx.textAlign = "left";
-  ctx.fillText(`PREY: ${simX.toFixed(2)} · PRED: ${simY.toFixed(2)} · APEX: ${simZ.toFixed(2)}`, pad, 18);
+  const curNote = getNoteFromXY(simX, simY);
+  ctx.fillText(`XY PITCH: ${midiName(curNote)} · PREY: ${simX.toFixed(2)} · PRED: ${simY.toFixed(2)} · APEX: ${simZ.toFixed(2)}`, pad, 18);
 
   ctx.textAlign = "right";
   ctx.fillStyle = colAccent;
@@ -905,10 +919,23 @@ export function initLotkaVolterra() {
     isDraggingCanvas = true;
     phaseCanvas.setPointerCapture(e.pointerId);
     handleCanvasCoord(e);
+    if (!isLive()) {
+      const note = getNoteFromXY(simX, simY);
+      playSpeciesVoice(0, note, 95, 180);
+    }
   });
 
   phaseCanvas.addEventListener("pointermove", (e) => {
-    if (isDraggingCanvas) handleCanvasCoord(e);
+    if (isDraggingCanvas) {
+      const prevNote = getNoteFromXY(simX, simY);
+      handleCanvasCoord(e);
+      if (!isLive()) {
+        const newNote = getNoteFromXY(simX, simY);
+        if (newNote !== prevNote) {
+          playSpeciesVoice(0, newNote, 90, 140);
+        }
+      }
+    }
   });
 
   phaseCanvas.addEventListener("pointerup", (e) => {
