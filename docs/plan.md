@@ -40,7 +40,7 @@ The models are ordered first by the **fundamental algorithmic, mathematical, and
 | Step | Model ID | Model Name | Primary Domain | Core Primitives Satisfied / Reused | Complexity | Status |
 |---|---|---|---|---|---|---|
 | **01** | `lsystem` | **L-System Morphogenetic Grammar** | Evolutionary / Formal Grammar | Recursive string rewriting, stack-based sub-motif branching (`[`, `]`) | Low (1/5) | ✅ Complete |
-| **02** | `lotka_volterra` | **Lotka-Volterra Predator-Prey** | Non-Linear Dynamics | Runge-Kutta 4th Order (RK4), Poincaré cutting plane triggers, phase loops | Low (1.5/5) | Pending |
+| **02** | `lotka_volterra` | **Lotka-Volterra Predator-Prey** | Non-Linear Dynamics | Runge-Kutta 4th Order (RK4), Poincaré cutting plane triggers, phase loops | Low (1.5/5) | ✅ Complete |
 | **03** | `orbital` | **Keplerian Orbital Resonance** | Celestial Mechanics | Symplectic Velocity-Verlet, periapsis transit detection, angular conjunctions | Moderate (2/5) | Pending |
 | **04** | `hanenbow` | **Electroplankton Hanenbow Ballistics** | Physical Toy / Ballistics | 2D circle-to-line segment projection, specular momentum rebound, leaf springs | Moderate (2.5/5) | Pending |
 | **05** | `sandpile` | **Abelian Sandpile (SOC)** | Statistical Physics / Avalanches | 2D integer lattice, relaxation queue, center-of-mass pitch, $1/f$ pink noise | Moderate (3/5) | Pending |
@@ -184,7 +184,7 @@ export class LSystemModel {
 
 ---
 
-### Model 02 (Step 2): Lotka-Volterra Predator-Prey Ecological Phase Space
+### Model 02 (Step 2): Lotka-Volterra Predator-Prey Ecological Phase Space — [COMPLETED]
 - **Model ID**: `lotka_volterra`
 - **Category**: Population Dynamics / Non-Linear Differential Equations / Chaotic Attractors.
 - **Why Second**: Establishes the 4th-Order Runge-Kutta (RK4) integrator and continuous Poincaré section event-triggering, which are reused in orbital mechanics.

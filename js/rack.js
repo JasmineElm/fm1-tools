@@ -27,6 +27,7 @@ import { initFlock, activateFlockModel, deactivateFlockModel } from "./flock.js?
 import { initRungler, activateRunglerModel, deactivateRunglerModel } from "./rungler.js?v=3";
 import { initKrell, activateKrellModel, deactivateKrellModel } from "./krell.js?v=1";
 import { initLsystem, activateLsystemModel, deactivateLsystemModel, syncLsystemFromRegen } from "./lsystem.js?v=1";
+import { initLotkaVolterra, activateLotkaVolterraModel, deactivateLotkaVolterraModel, syncLotkaVolterraFromRegen } from "./lotka_volterra.js?v=1";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -45,6 +46,8 @@ onRegen(() => {
     syncRhythmGrid();
   } else if (getActiveModel() === "lsystem") {
     syncLsystemFromRegen();
+  } else if (getActiveModel() === "lotka_volterra") {
+    syncLotkaVolterraFromRegen();
   }
 });
 
@@ -267,6 +270,7 @@ export function buildNotesBar() {
       state.runglerSpan = state.pitchSpan;
       state.krellSpan = state.pitchSpan;
       state.lsystemSpan = state.pitchSpan;
+      state.lvSpan = state.pitchSpan;
       if (refs.turingSpan?.setValue) refs.turingSpan.setValue(state.pitchSpan, false);
       if (refs.runglerSpan?.setValue) refs.runglerSpan.setValue(state.pitchSpan, false);
       if (refs.krellSpan?.setValue) refs.krellSpan.setValue(state.pitchSpan, false);
@@ -288,6 +292,11 @@ export function buildNotesBar() {
       state.lsystemRoot = state.root;
       state.lsystemRootNote = state.rootNote;
       state.lsystemRootOctave = state.rootOctave;
+      state.lvScale = state.scale;
+      state.lvCustomScale = state.customScale;
+      state.lvRoot = state.root;
+      state.lvRootNote = state.rootNote;
+      state.lvRootOctave = state.rootOctave;
 
       scheduleRegen();
     }
@@ -525,6 +534,7 @@ initFlock();
 initRungler();
 initKrell();
 initLsystem();
+initLotkaVolterra();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -544,6 +554,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       fitSteps();
@@ -558,6 +569,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateCellularModel();
@@ -569,6 +581,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateTuringModel();
@@ -580,6 +593,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateParticlesModel();
@@ -591,6 +605,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activatePendulumModel();
@@ -602,6 +617,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       if (isLive()) stopLive();
@@ -614,6 +630,7 @@ initModes({
       deactivateFlockModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateRunglerModel();
@@ -625,6 +642,7 @@ initModes({
       deactivateFlockModel();
       deactivateRunglerModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       if (isLive()) stopLive();
@@ -638,6 +656,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateLibrarian();
       if (isLive()) stopLive();
       activateDxPatch();
@@ -650,6 +669,7 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       if (isLive()) stopLive();
       activateLibrarian();
@@ -661,9 +681,25 @@ initModes({
       deactivateFlockModel();
       deactivateRunglerModel();
       deactivateKrellModel();
+      deactivateLotkaVolterraModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateLsystemModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "lotka_volterra") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateLotkaVolterraModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -684,6 +720,8 @@ initModes({
     try { deactivateFlockModel(); } catch (e) { console.warn("Error deactivating flock model:", e); }
     try { deactivateRunglerModel(); } catch (e) { console.warn("Error deactivating rungler model:", e); }
     try { deactivateKrellModel(); } catch (e) { console.warn("Error deactivating krell model:", e); }
+    try { deactivateLsystemModel(); } catch (e) { console.warn("Error deactivating lsystem model:", e); }
+    try { deactivateLotkaVolterraModel(); } catch (e) { console.warn("Error deactivating lotka_volterra model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

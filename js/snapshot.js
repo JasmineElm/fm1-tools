@@ -55,6 +55,7 @@ const PREFIX = {
   rungler: /^rungler[A-Z]/,
   krell: /^krell[A-Z]/,
   lsystem: /^lsystem[A-Z]/,
+  lotka_volterra: /^lv[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

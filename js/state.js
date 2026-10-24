@@ -172,6 +172,27 @@ export const DEFAULT = {
   lsystemCcDest: 74,
   lsystemCcDepth: 80,
   lsystemGateLen: 180,
+
+  // Lotka-Volterra Predator-Prey Ecological Phase Space parameters
+  lvInitX: 0.8,
+  lvInitY: 0.2,
+  lvInitZ: 8.0,
+  lvA: 5.0,
+  lvB1: 3.0,
+  lvB2: 0.1,
+  lvC: 0.1,
+  lvD1: 0.4,
+  lvD2: 0.01,
+  lvSpeed: 1.0,
+  lvThresholdX: 0.5,
+  lvThresholdY: 0.3,
+  lvThresholdZ: 6.0,
+  lvPreset: "limcycle",
+  lvMode: "sync",
+  lvSpan: 3,
+  lvCcDest: 74,
+  lvCcDepth: 85,
+  lvGateLen: 180,
 };
 
 export const state = { ...DEFAULT };

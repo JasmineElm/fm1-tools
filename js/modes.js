@@ -134,6 +134,21 @@ export const MODELS = [
       <circle cx="15" cy="3" r="1.5" fill="currentColor" />
       <circle cx="20" cy="3" r="1.5" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "lotka_volterra",
+    name: "Lotka-Volterra Attractor",
+    kicker: "3-Species Food Chain · RK4 Integrator · Poincaré Polyphony",
+    available: true,
+    desc: "Non-linear population dynamics and chaotic phase attractor based on the 3-species Hastings-Powell food chain. Runge-Kutta 4th-order integration simulates Prey flutters, Predator ostinatos, and Apex sub-bass strikes triggered as continuous trajectories pierce Poincaré cutting planes.",
+    tags: ["Hastings-Powell", "RK4 Integrator", "Poincaré Triggers", "Chaotic Attractor", "3-Species Polyphony", "Continuous Phase"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="12" cy="12" rx="9" ry="5" transform="rotate(-30 12 12)" />
+      <ellipse cx="12" cy="12" rx="6" ry="3" transform="rotate(30 12 12)" stroke-dasharray="2 2" />
+      <circle cx="7" cy="10" r="1.5" fill="currentColor" />
+      <circle cx="16" cy="15" r="1.8" fill="currentColor" />
+      <circle cx="12" cy="7" r="1.2" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -285,6 +300,7 @@ export function showLanding(updateHash = true) {
   const modelRungler = document.getElementById("model-rungler");
   const modelKrell = document.getElementById("model-krell");
   const modelLsystem = document.getElementById("model-lsystem");
+  const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -308,6 +324,7 @@ export function showLanding(updateHash = true) {
   if (modelRungler) modelRungler.style.display = "none";
   if (modelKrell) modelKrell.style.display = "none";
   if (modelLsystem) modelLsystem.style.display = "none";
+  if (modelLotkaVolterra) modelLotkaVolterra.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
 
@@ -317,7 +334,7 @@ export function showLanding(updateHash = true) {
 }
 
 export function showModel(id, updateHash = true) {
-  if (id !== "mene311" && id !== "cellular" && id !== "turing" && id !== "particles" && id !== "pendulum" && id !== "flock" && id !== "rungler" && id !== "krell" && id !== "lsystem" && id !== "dxpatch" && id !== "librarian") return;
+  if (id !== "mene311" && id !== "cellular" && id !== "turing" && id !== "particles" && id !== "pendulum" && id !== "flock" && id !== "rungler" && id !== "krell" && id !== "lsystem" && id !== "lotka_volterra" && id !== "dxpatch" && id !== "librarian") return;
 
   const viewLanding = document.getElementById("view-landing");
   const viewWorkspace = document.getElementById("view-workspace") || document.getElementById("view-mene311");
@@ -332,6 +349,7 @@ export function showModel(id, updateHash = true) {
   const modelRungler = document.getElementById("model-rungler");
   const modelKrell = document.getElementById("model-krell");
   const modelLsystem = document.getElementById("model-lsystem");
+  const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -387,6 +405,7 @@ export function showModel(id, updateHash = true) {
     if (modelRungler) modelRungler.style.display = id === "rungler" ? "block" : "none";
     if (modelKrell) modelKrell.style.display = id === "krell" ? "block" : "none";
     if (modelLsystem) modelLsystem.style.display = id === "lsystem" ? "block" : "none";
+    if (modelLotkaVolterra) modelLotkaVolterra.style.display = id === "lotka_volterra" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -402,6 +421,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "rungler") modeTag.textContent = "Rob Hordijk Rungler";
       else if (id === "krell") modeTag.textContent = "Buchla Krell Patch";
       else if (id === "lsystem") modeTag.textContent = "L-System Grammar";
+      else if (id === "lotka_volterra") modeTag.textContent = "Lotka-Volterra Attractor";
       modeTag.style.display = "inline-block";
     }
   }
@@ -472,6 +492,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "krell") showModel("krell", false);
     } else if (h === "#lsystem") {
       if (activeModelId !== "lsystem") showModel("lsystem", false);
+    } else if (h === "#lotka_volterra" || h === "#lotka-volterra" || h === "#lv") {
+      if (activeModelId !== "lotka_volterra") showModel("lotka_volterra", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -502,6 +524,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("krell", false);
   } else if (initialHash === "#lsystem") {
     showModel("lsystem", false);
+  } else if (initialHash === "#lotka_volterra" || initialHash === "#lotka-volterra" || initialHash === "#lv") {
+    showModel("lotka_volterra", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {
