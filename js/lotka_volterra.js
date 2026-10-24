@@ -65,45 +65,45 @@ export const LV_PRESETS = [
     id: "limcycle",
     name: "Stable Limit Cycle",
     desc: "Periodic closed orbit: hypnotic 3-way polyrhythm with steady repeating cycles",
-    x: 0.8, y: 0.2, z: 8.0,
-    a: 5.0, b1: 3.0, b2: 0.1, c: 0.1, d1: 0.4, d2: 0.01,
-    thX: 0.5, thY: 0.3, thZ: 6.0,
+    x: 0.75, y: 0.2, z: 8.5,
+    a: 5.0, b1: 3.0, b2: 2.0, c: 0.1, d1: 0.4, d2: 0.01,
+    thX: 0.55, thY: 0.20, thZ: 8.8,
     speed: 1.0
   },
   {
     id: "teacup",
     name: "Chaotic Tea Cup",
     desc: "Hastings-Powell classic chaotic attractor: folding loops that never repeat",
-    x: 0.75, y: 0.22, z: 8.5,
-    a: 5.0, b1: 2.8, b2: 0.1, c: 0.1, d1: 0.38, d2: 0.01,
-    thX: 0.48, thY: 0.28, thZ: 7.0,
+    x: 0.7, y: 0.22, z: 9.0,
+    a: 5.0, b1: 2.8, b2: 2.0, c: 0.1, d1: 0.4, d2: 0.01,
+    thX: 0.50, thY: 0.18, thZ: 9.0,
     speed: 1.1
   },
   {
     id: "outbreak",
     name: "Predator Outbreak",
     desc: "Sparse prey grazing building up to explosive predatory chord crescendos",
-    x: 0.9, y: 0.15, z: 6.5,
-    a: 4.5, b1: 2.5, b2: 0.12, c: 0.15, d1: 0.35, d2: 0.015,
-    thX: 0.55, thY: 0.32, thZ: 5.5,
+    x: 0.8, y: 0.15, z: 8.0,
+    a: 4.8, b1: 2.6, b2: 2.2, c: 0.12, d1: 0.38, d2: 0.012,
+    thX: 0.52, thY: 0.16, thZ: 8.5,
     speed: 1.2
   },
   {
     id: "apex",
     name: "Apex Resonance",
     desc: "Slow grounding sub-bass pulses with rapid shimmering treble prey ostinatos",
-    x: 0.85, y: 0.18, z: 9.0,
-    a: 5.2, b1: 3.2, b2: 0.09, c: 0.08, d1: 0.42, d2: 0.008,
-    thX: 0.52, thY: 0.26, thZ: 7.5,
+    x: 0.75, y: 0.25, z: 9.5,
+    a: 5.2, b1: 3.2, b2: 1.8, c: 0.09, d1: 0.42, d2: 0.009,
+    thX: 0.58, thY: 0.22, thZ: 9.4,
     speed: 0.9
   },
   {
     id: "phasing",
     name: "Micro-Pulse Phasing",
     desc: "Fast, syncopated three-species polyphonic phasing loops",
-    x: 0.65, y: 0.25, z: 7.2,
-    a: 3.8, b1: 2.0, b2: 0.15, c: 0.2, d1: 0.3, d2: 0.02,
-    thX: 0.45, thY: 0.35, thZ: 6.2,
+    x: 0.65, y: 0.2, z: 8.2,
+    a: 4.6, b1: 2.4, b2: 2.4, c: 0.14, d1: 0.36, d2: 0.015,
+    thX: 0.48, thY: 0.18, thZ: 8.4,
     speed: 1.4
   }
 ];
@@ -128,12 +128,12 @@ function evalDerivatives(x, y, z, a, b1, b2, c, d1, d2) {
 function rk4Step(dt) {
   const a = state.lvA ?? 5.0;
   const b1 = state.lvB1 ?? 3.0;
-  const b2 = state.lvB2 ?? 0.1;
+  const b2 = state.lvB2 ?? 2.0;
   const c = state.lvC ?? 0.1;
   const d1 = state.lvD1 ?? 0.4;
   const d2 = state.lvD2 ?? 0.01;
   const speed = state.lvSpeed ?? 1.0;
-  const h = Math.min(0.1, Math.max(0.005, dt * speed));
+  const h = Math.min(0.2, Math.max(0.005, dt * speed));
 
   const [k1x, k1y, k1z] = evalDerivatives(simX, simY, simZ, a, b1, b2, c, d1, d2);
   const [k2x, k2y, k2z] = evalDerivatives(
@@ -226,9 +226,9 @@ function checkPoincareTriggers(durMs = 180) {
   const octSpan = Math.min(4, Math.max(1, state.pitchSpan ?? state.lvSpan ?? 3));
   const intLen = intervals.length || 7;
 
-  const thX = state.lvThresholdX ?? 0.5;
-  const thY = state.lvThresholdY ?? 0.3;
-  const thZ = state.lvThresholdZ ?? 6.0;
+  const thX = state.lvThresholdX ?? 0.55;
+  const thY = state.lvThresholdY ?? 0.20;
+  const thZ = state.lvThresholdZ ?? 8.8;
 
   // Species 0: Prey (Treble flutter)
   if (prevX <= thX && simX > thX) {
@@ -287,21 +287,23 @@ export function generateLotkaVolterraBank(targetState = state) {
   };
 
   // Clone local state to simulate clean reproducible 64-step phrase
-  let x = state.lvInitX ?? 0.8;
+  let x = state.lvInitX ?? 0.75;
   let y = state.lvInitY ?? 0.2;
-  let z = state.lvInitZ ?? 8.0;
+  let z = state.lvInitZ ?? 8.5;
   const a = state.lvA ?? 5.0;
   const b1 = state.lvB1 ?? 3.0;
-  const b2 = state.lvB2 ?? 0.1;
+  const b2 = state.lvB2 ?? 2.0;
   const c = state.lvC ?? 0.1;
   const d1 = state.lvD1 ?? 0.4;
   const d2 = state.lvD2 ?? 0.01;
   const speed = state.lvSpeed ?? 1.0;
-  const dt = 0.04 * speed;
+  const dt = 0.22 * speed;
 
-  const thX = state.lvThresholdX ?? 0.5;
-  const thY = state.lvThresholdY ?? 0.3;
-  const thZ = state.lvThresholdZ ?? 6.0;
+  const thX = state.lvThresholdX ?? 0.55;
+  const thY = state.lvThresholdY ?? 0.20;
+  const thZ = state.lvThresholdZ ?? 8.8;
+
+  let ppx = x, ppy = y, ppz = z;
 
   for (let s = 0; s < 64; s++) {
     const stepNotes = [];
@@ -322,35 +324,44 @@ export function generateLotkaVolterraBank(targetState = state) {
       if (y < 0.01) y = 0.02;
       if (z < 0.1) z = 0.5;
 
-      // Check Poincaré triggers
-      if (px <= thX && x > thX) {
+      // Species 0: Prey (Treble flutter) — triggered on threshold upward crossing or population crest
+      const preyCross = px <= thX && x > thX;
+      const preyCrest = px > ppx && px >= x && px > 0.4;
+      if (preyCross || preyCrest) {
         const deg = Math.floor(x * 14) % intLen;
         const note = quantize(root + 12 + (intervals[deg] || 0), intervals, root);
-        stepNotes.push({ note, vel: Math.min(127, Math.max(40, Math.round(x * 90))) });
+        stepNotes.push({ note, vel: Math.min(127, Math.max(45, Math.round(x * 100))) });
       }
-      if (py <= thY && y > thY) {
+
+      // Species 1: Predator (Mid ostinato) — triggered on threshold upward crossing or population crest
+      const predCross = py <= thY && y > thY;
+      const predCrest = py > ppy && py >= y && py > 0.15;
+      if (predCross || predCrest) {
         const deg = Math.floor(y * 18) % intLen;
         const note = quantize(root + (intervals[deg] || 0), intervals, root);
-        stepNotes.push({ note, vel: Math.min(127, Math.max(45, Math.round(y * 110))) });
+        stepNotes.push({ note, vel: Math.min(127, Math.max(50, Math.round(y * 120))) });
       }
-      if (pz <= thZ && z > thZ) {
+
+      // Species 2: Apex (Sub-bass strike) — triggered on threshold upward crossing or population crest
+      const apexCross = pz <= thZ && z > thZ;
+      const apexCrest = pz > ppz && pz >= z && pz > 7.5;
+      if (apexCross || apexCrest) {
         const deg = Math.floor(z * 2) % intLen;
         const note = quantize(root - 12 + (intervals[deg] || 0), intervals, root);
-        stepNotes.push({ note, vel: Math.min(127, Math.max(50, Math.round((z / 12) * 120))) });
+        stepNotes.push({ note, vel: Math.min(127, Math.max(55, Math.round((z / 12) * 120))) });
       }
+
+      ppx = px; ppy = py; ppz = pz;
     }
 
-    // Default grounding note if no species crossed this step
-    if (stepNotes.length === 0 && s % 4 === 0) {
-      const deg = Math.floor(x * 7) % intLen;
-      stepNotes.push({ note: quantize(root + (intervals[deg] || 0), intervals, root), vel: 55 });
-    }
+    // Default pitch for resting steps if user enables them manually in rhythm grid
+    const defPitch = quantize(root + (intervals[Math.floor(x * 12) % intLen] || 0), intervals, root);
 
-    // Cap to 2 notes per step to stay within polyphony budget
+    // Polyphony budget: maximum 2 notes per step
     const finalNotes = stepNotes.slice(0, 2);
     phrase.steps.push({
       notes: finalNotes,
-      _savedNote: finalNotes[0] || null
+      _savedNote: finalNotes[0] || { note: defPitch, vel: 70 }
     });
   }
 
@@ -361,32 +372,32 @@ export function generateLotkaVolterraBank(targetState = state) {
 export function randomizeLotkaVolterra() {
   const isChaotic = Math.random() < 0.5;
 
-  state.lvInitX = 0.4 + Math.random() * 0.6;
-  state.lvInitY = 0.1 + Math.random() * 0.25;
-  state.lvInitZ = 5.0 + Math.random() * 5.0;
+  state.lvInitX = 0.3 + Math.random() * 0.6;
+  state.lvInitY = 0.1 + Math.random() * 0.3;
+  state.lvInitZ = 7.0 + Math.random() * 3.5;
 
   if (isChaotic) {
     // Hastings-Powell chaotic regime
-    state.lvA = 4.8 + Math.random() * 0.6;
+    state.lvA = 4.8 + Math.random() * 0.5;
     state.lvB1 = 2.6 + Math.random() * 0.4;
-    state.lvB2 = 0.08 + Math.random() * 0.04;
-    state.lvC = 0.08 + Math.random() * 0.04;
-    state.lvD1 = 0.36 + Math.random() * 0.06;
-    state.lvD2 = 0.008 + Math.random() * 0.006;
+    state.lvB2 = 1.9 + Math.random() * 0.5;
+    state.lvC = 0.09 + Math.random() * 0.05;
+    state.lvD1 = 0.38 + Math.random() * 0.04;
+    state.lvD2 = 0.009 + Math.random() * 0.005;
   } else {
     // Periodic limit cycle
-    state.lvA = 4.5 + Math.random() * 1.0;
-    state.lvB1 = 2.8 + Math.random() * 0.5;
-    state.lvB2 = 0.1 + Math.random() * 0.05;
-    state.lvC = 0.1 + Math.random() * 0.08;
-    state.lvD1 = 0.38 + Math.random() * 0.05;
-    state.lvD2 = 0.01 + Math.random() * 0.005;
+    state.lvA = 4.7 + Math.random() * 0.6;
+    state.lvB1 = 2.9 + Math.random() * 0.4;
+    state.lvB2 = 1.8 + Math.random() * 0.4;
+    state.lvC = 0.1 + Math.random() * 0.06;
+    state.lvD1 = 0.39 + Math.random() * 0.04;
+    state.lvD2 = 0.01 + Math.random() * 0.004;
   }
 
-  state.lvSpeed = 0.8 + Math.random() * 0.6;
-  state.lvThresholdX = 0.45 + Math.random() * 0.15;
-  state.lvThresholdY = 0.25 + Math.random() * 0.1;
-  state.lvThresholdZ = 5.5 + Math.random() * 2.5;
+  state.lvSpeed = 0.9 + Math.random() * 0.6;
+  state.lvThresholdX = 0.48 + Math.random() * 0.14;
+  state.lvThresholdY = 0.16 + Math.random() * 0.08;
+  state.lvThresholdZ = 8.2 + Math.random() * 1.2;
   state.lvPreset = "custom";
 
   // Re-seed simulation position
@@ -423,11 +434,32 @@ export function onLotkaVolterraLiveStep(stepIndex) {
   lastLiveStep = stepIndex;
 
   if (state.lvMode === "sync") {
-    // Advance simulation along transport clock
+    // Advance visual simulation along transport clock
     rk4Step(0.04);
-    checkPoincareTriggers(state.lvGateLen ?? 180);
     renderPhaseCanvas();
     updateHud();
+
+    // Modulate FM-1 CC #74 Brightness with predator-prey intensity
+    const ccDest = state.lvCcDest ?? 74;
+    const ccDepth = state.lvCcDepth ?? 85;
+    if (ccDepth > 0) {
+      const ratio = Math.min(1, Math.max(0, simY / (simX + 0.1)));
+      const ccVal = Math.min(127, Math.max(15, Math.round(ratio * ccDepth + (127 - ccDepth) * 0.25)));
+      try { midi.sendControlChange(ccDest, ccVal); } catch (_) {}
+    }
+
+    // Flash meters based on active species notes playing on this step
+    const curBank = getBank();
+    const curP = curBank?.[0];
+    const st = curP?.steps?.[stepIndex];
+    if (st && st.notes && st.notes.length > 0) {
+      const root = getRootMidi();
+      for (const n of st.notes) {
+        if (n.note >= root + 12) flashMeter(meterPrey);
+        else if (n.note < root) flashMeter(meterApex);
+        else flashMeter(meterPred);
+      }
+    }
   }
 }
 
@@ -787,7 +819,7 @@ export function initLotkaVolterra() {
   const kThX = knob({
     label: "TH PREY",
     min: 0.1, max: 1.0, step: 0.05,
-    value: state.lvThresholdX ?? 0.5,
+    value: state.lvThresholdX ?? 0.55,
     unit: "",
     title: "Poincaré section threshold for Prey note trigger",
     onChange: (v) => { state.lvThresholdX = v; renderPhaseCanvas(); doGenerate(true); }
@@ -797,7 +829,7 @@ export function initLotkaVolterra() {
   const kThY = knob({
     label: "TH PRED",
     min: 0.05, max: 0.6, step: 0.05,
-    value: state.lvThresholdY ?? 0.3,
+    value: state.lvThresholdY ?? 0.20,
     unit: "",
     title: "Poincaré section threshold for Predator note trigger",
     onChange: (v) => { state.lvThresholdY = v; renderPhaseCanvas(); doGenerate(true); }
