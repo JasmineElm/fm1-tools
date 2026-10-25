@@ -184,7 +184,7 @@ export const DEFAULT = {
   lvD1: 0.4,
   lvD2: 0.01,
   lvSpeed: 1.0,
-  lvThresholdX: 0.55,
+  lvThresholdX: 0.54,
   lvThresholdY: 0.20,
   lvThresholdZ: 8.8,
   lvPreset: "limcycle",

@@ -70,7 +70,7 @@ export const LV_PRESETS = [
     desc: "Periodic closed orbit: hypnotic 3-way polyrhythm with steady repeating cycles",
     x: 0.75, y: 0.2, z: 8.5,
     a: 5.0, b1: 3.0, b2: 2.0, c: 0.1, d1: 0.4, d2: 0.01,
-    thX: 0.55, thY: 0.20, thZ: 8.8,
+    thX: 0.54, thY: 0.20, thZ: 8.8,
     speed: 1.0
   },
   {
@@ -233,13 +233,24 @@ function playSpeciesVoice(speciesIdx, note, vel, durMs) {
 // ---- 2D (X, Y) Phase Space Position to Pitch Mapping ----
 /**
  * Maps the 2D (X, Y) phase space trajectory position directly to a scale-quantized MIDI note.
- * X (Prey population in [0, 1.2]) controls horizontal pitch degree span.
- * Y (Predator population in [0, 0.6]) controls vertical elevation.
+ * Uses a logarithmic scale mapping centered around TH-X (0.54):
+ * The closer the X trajectory is to TH-X, the closer together the scale notes are.
+ * As X diverges from TH-X, scale notes space further apart across the octave spread.
  */
 export function getNoteFromXY(x, y, octaveOffset = 0) {
-  const normX = Math.max(0, Math.min(1, (x ?? 0) / 1.2));
+  const thX = state.lvThresholdX ?? 0.54;
+  const xMax = 1.2;
+  const dX = (x ?? 0) - thX;
+  const maxDX = dX >= 0 ? Math.max(0.001, xMax - thX) : Math.max(0.001, thX);
+  const ratioX = Math.min(1, Math.max(0, Math.abs(dX) / maxDX));
+
+  // Logarithmic scale mapping: closer to TH-X = 0.54, scale notes are closer together
+  const kX = 3.5;
+  const logDistX = Math.log(1 + kX * ratioX) / Math.log(1 + kX);
+  const normX = Math.max(0, Math.min(1, 0.5 + 0.5 * Math.sign(dX) * logDistX));
+
   const normY = Math.max(0, Math.min(1, (y ?? 0) / 0.6));
-  const norm = Math.max(0, Math.min(1, 0.55 * normX + 0.45 * normY));
+  const norm = Math.max(0, Math.min(1, 0.65 * normX + 0.35 * normY));
 
   const root = getRootMidi();
   const intervals = getActiveScaleIntervals();
@@ -262,7 +273,7 @@ export function getNoteFromXY(x, y, octaveOffset = 0) {
 
 // ---- Poincaré Section Trigger Check ----
 function checkPoincareTriggers(durMs = 180) {
-  const thX = state.lvThresholdX ?? 0.55;
+  const thX = state.lvThresholdX ?? 0.54;
   const thY = state.lvThresholdY ?? 0.20;
   const thZ = state.lvThresholdZ ?? 8.8;
 
@@ -330,7 +341,7 @@ export function generateLotkaVolterraBank(targetState = state) {
   const speed = state.lvSpeed ?? 1.0;
   const dt = 0.22 * speed;
 
-  const thX = state.lvThresholdX ?? 0.55;
+  const thX = state.lvThresholdX ?? 0.54;
   const thY = state.lvThresholdY ?? 0.20;
   const thZ = state.lvThresholdZ ?? 8.8;
 
@@ -611,8 +622,8 @@ export function renderPhaseCanvas() {
   ctx.stroke();
 
   // Poincaré cutting planes (X threshold and Y threshold)
-  const thX = state.lvThresholdX ?? 0.5;
-  const thY = state.lvThresholdY ?? 0.3;
+  const thX = state.lvThresholdX ?? 0.54;
+  const thY = state.lvThresholdY ?? 0.20;
 
   ctx.strokeStyle = colLine;
   ctx.setLineDash([3, 3]);
@@ -906,7 +917,7 @@ export function initLotkaVolterra() {
   const kThX = knob({
     label: "TH PREY",
     min: 0.1, max: 1.0, step: 0.05,
-    value: state.lvThresholdX ?? 0.55,
+    value: state.lvThresholdX ?? 0.54,
     unit: "",
     title: "Poincaré section threshold for Prey note trigger",
     onChange: (v) => { state.lvThresholdX = v; renderPhaseCanvas(); forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
