@@ -153,18 +153,22 @@ function buildVoice(c, t, f, vel, id) {
 
 export function noteOn(note, vel = 100) {
   if (muted) return;
+  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
   const c = ensure();
   if (!c) return;
   noteOff(note);                              // retrigger cleanly
   const t = c.currentTime;
   const f = hz(note);
+  if (typeof f !== "number" || !isFinite(f) || isNaN(f)) return;
 
-  const voice = buildVoice(c, t, f, vel, sound);
+  const v = typeof vel === "number" && isFinite(vel) ? vel : 100;
+  const voice = buildVoice(c, t, f, v, sound);
   for (const o of voice.oscs) o.start(t);
   voices.set(note, voice);
 }
 
 export function noteOff(note) {
+  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
   const v = voices.get(note);
   if (!v || !ctx) return;
   const t = ctx.currentTime;

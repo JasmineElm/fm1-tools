@@ -14,12 +14,11 @@ import {
   setModelGenerator, setModelRandomizer
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
-import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, getRootMidi, getActiveScaleIntervals } from "./scale.js?v=1";
+import { isLive, liveNoteOn, liveNoteOff, panicPreview, setModelTransportHandler } from "./player.js?v=1";
+import * as audio from "./audio.js";
+import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, getRootMidi, getActiveScaleIntervals, quantize, midiName, SCALES } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
-import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
 import * as midi from "./midi.js";
 
@@ -86,6 +85,7 @@ export class KrellVoice {
   triggerNewCycle() {
     if (this.currentNote !== null) {
       liveNoteOff(this.currentNote);
+      audio.noteOff(this.currentNote);
       this.currentNote = null;
     }
 
@@ -116,8 +116,9 @@ export class KrellVoice {
     // 4. Trigger Note On if audio/preview is active
     this.currentVel = Math.min(127, Math.max(35, 60 + Math.round(this.sampledRandV * 55)));
     const estDurationMs = (this.curRise + this.curFall) * 1000;
-    if (isLive()) {
+    if (isLive() && typeof this.currentNote === "number" && isFinite(this.currentNote)) {
       liveNoteOn(this.currentNote, this.currentVel, estDurationMs);
+      audio.noteOn(this.currentNote, this.currentVel);
     }
 
     this.stage = "RISE";
@@ -138,6 +139,7 @@ export class KrellVoice {
         this.rawEnv = 0.0;
         if (this.currentNote !== null) {
           liveNoteOff(this.currentNote);
+          audio.noteOff(this.currentNote);
           this.currentNote = null;
         }
 
@@ -179,6 +181,7 @@ export class KrellVoice {
   stop() {
     if (this.currentNote !== null) {
       liveNoteOff(this.currentNote);
+      audio.noteOff(this.currentNote);
       this.currentNote = null;
     }
     this.stage = "REST";
@@ -382,24 +385,63 @@ export function randomizeKrell() {
   status(`Krell randomized · Rise: ${state.krellRise}s · Fall: ${state.krellFall}s`);
 }
 
-export function generateKrellBank() {
+// ---- Transport & Autonomous Playback Handlers ----
+let isKrellPlaying = false;
+
+export function isKrellRunning() {
+  return isKrellPlaying;
+}
+
+export function startKrell() {
+  if (isKrellPlaying) return;
+  isKrellPlaying = true;
+  audio.unlock();
+  const numVoices = Math.min(MAX_VOICES, Math.max(1, state.krellVoices ?? 2));
+  for (let i = 0; i < numVoices; i++) {
+    krellVoices[i].dwellTimer = i * 0.35;
+    krellVoices[i].stage = "REST";
+  }
+  status("Buchla Krell patch playing · Continuous envelope generation", "ok");
+}
+
+export function stopKrell() {
+  isKrellPlaying = false;
+  krellVoices.forEach(v => v.stop());
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
+  status("stopped");
+}
+
+export function toggleKrellRunning() {
+  if (isKrellPlaying) {
+    stopKrell();
+    return false;
+  } else {
+    startKrell();
+    return true;
+  }
+}
+
+export function generateKrellBank(targetState = state) {
   const steps = [];
   const root = getRootMidi();
-  const intervals = getActiveScaleIntervals(state.scale || state.krellScale);
-  const octaves = state.pitchSpan ?? state.krellSpan ?? 3;
+  const intervals = getActiveScaleIntervals(targetState.scale || targetState.krellScale);
+  const octaves = targetState.pitchSpan ?? targetState.krellSpan ?? 3;
+  const seqLen = Math.min(64, Math.max(1, targetState.length || 64));
+  const rate = targetState.rate ?? 6;
 
   for (let s = 0; s < 64; s++) {
     const rand = Math.random();
     const rawMidi = root + Math.round(rand * octaves * 12);
     const note = quantize(rawMidi, intervals, root);
+    const vel = Math.min(127, Math.max(35, 60 + Math.round(rand * 50)));
     steps.push({
-      notes: [note],
-      velocity: 60 + Math.round(rand * 50),
-      gate: 0.8
+      notes: s < seqLen ? [{ note, vel }] : [],
+      rate
     });
   }
 
-  const bank = [{ length: 64, steps, rate: state.rate ?? 6 }];
+  const bank = [{ length: seqLen, steps, rate }];
   setBank(bank);
   return bank;
 }
@@ -408,9 +450,16 @@ export function activateKrellModel() {
   setSelected(0);
   setModelGenerator(generateKrellBank);
   setModelRandomizer(randomizeKrell);
+  setModelTransportHandler({
+    toggle: toggleKrellRunning,
+    stop: stopKrell,
+    start: startKrell,
+    isRunning: isKrellRunning
+  });
 
   isRunning = true;
   lastFrameTime = 0;
+  isKrellPlaying = false;
 
   // Stagger voice starts
   const numVoices = Math.min(MAX_VOICES, Math.max(1, state.krellVoices ?? 2));
@@ -422,9 +471,11 @@ export function activateKrellModel() {
   animFrameId = requestAnimationFrame(krellTick);
   doGenerate(false);
   renderKrellVisualizer();
+  status("Buchla Krell Patch: Ready (Press Play to start)", "ok");
 }
 
 export function deactivateKrellModel() {
+  stopKrell();
   isRunning = false;
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);
@@ -432,8 +483,10 @@ export function deactivateKrellModel() {
   }
   krellVoices.forEach(v => v.stop());
   panicPreview();
+  try { audio.allOff(); } catch (_) {}
   setModelGenerator(null);
   setModelRandomizer(null);
+  setModelTransportHandler(null);
 }
 
 // ---- UI Panel Construction ----

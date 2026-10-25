@@ -40,11 +40,13 @@ export function swingFrac() {
 
 // Live note out — routes to BLE when it is connected (play-only), USB otherwise.
 export function liveNoteOn(note, vel) {
+  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
   if (midi.bleConnected()) { midi.bleSendNoteOn(note, vel); return; }
   midi.sendNoteOn(note, vel);
 }
 
 export function liveNoteOff(note) {
+  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
   if (midi.bleConnected()) { midi.bleSendNoteOff(note); return; }
   midi.sendNoteOff(note);
 }
@@ -77,11 +79,26 @@ export async function playOnce(index) {
     const sDur = Math.max(10, stepMs - late);
     const playDelay = Math.max(0, late + humJitter);
     if (playDelay) await sleep(playDelay);
-    if (st.notes.length) {
-      for (const n of st.notes) { previewHeld.add(n.note); liveNoteOn(n.note, n.vel); audio.noteOn(n.note, n.vel); }
+    if (st.notes && Array.isArray(st.notes) && st.notes.length) {
+      for (const n of st.notes) {
+        const pitch = typeof n === "number" ? n : n?.note;
+        const vel = typeof n === "number" ? 100 : (n?.vel ?? 100);
+        if (typeof pitch === "number" && isFinite(pitch)) {
+          previewHeld.add(pitch);
+          liveNoteOn(pitch, vel);
+          audio.noteOn(pitch, vel);
+        }
+      }
       await sleep(Math.max(12, sDur * gate));
       if (token !== onceToken || live) return;
-      for (const n of st.notes) { previewHeld.delete(n.note); liveNoteOff(n.note); audio.noteOff(n.note); }
+      for (const n of st.notes) {
+        const pitch = typeof n === "number" ? n : n?.note;
+        if (typeof pitch === "number" && isFinite(pitch)) {
+          previewHeld.delete(pitch);
+          liveNoteOff(pitch);
+          audio.noteOff(pitch);
+        }
+      }
       await sleep(Math.max(3, sDur * (1 - gate)));
     } else await sleep(sDur);
   }
@@ -211,11 +228,24 @@ export async function liveLoop(token) {
       let w = startAt - performance.now();
       if (w > 0) await sleep(w);
       markStep(i);
-      if (st.notes.length) {
-        for (const n of st.notes) { liveNoteOn(n.note, n.vel); audio.noteOn(n.note, n.vel); }
+      if (st.notes && Array.isArray(st.notes) && st.notes.length) {
+        for (const n of st.notes) {
+          const pitch = typeof n === "number" ? n : n?.note;
+          const vel = typeof n === "number" ? 100 : (n?.vel ?? 100);
+          if (typeof pitch === "number" && isFinite(pitch)) {
+            liveNoteOn(pitch, vel);
+            audio.noteOn(pitch, vel);
+          }
+        }
         const offAt = startAt + Math.max(12, sDur * gate);
         w = offAt - performance.now(); if (w > 0) await sleep(w);
-        for (const n of st.notes) { liveNoteOff(n.note); audio.noteOff(n.note); }
+        for (const n of st.notes) {
+          const pitch = typeof n === "number" ? n : n?.note;
+          if (typeof pitch === "number" && isFinite(pitch)) {
+            liveNoteOff(pitch);
+            audio.noteOff(pitch);
+          }
+        }
       }
       w = (t0 + elapsed + stepMs) - performance.now();
       if (w > 0) await sleep(w);

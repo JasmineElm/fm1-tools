@@ -1,5 +1,6 @@
 // scale.js — Unified Musical Scale & Root Note/Octave management for FM-1 Pulses.
 import { SCALES, NOTE_NAMES, midiName, quantize } from "./generator.js";
+export { quantize, midiName, NOTE_NAMES, SCALES };
 import { state, refs, R, status } from "./state.js";
 import { dropdown, fader } from "./controls.js";
 
