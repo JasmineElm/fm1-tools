@@ -149,6 +149,21 @@ export const MODELS = [
       <circle cx="16" cy="15" r="1.8" fill="currentColor" />
       <circle cx="12" cy="7" r="1.2" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "orbital",
+    name: "Orbital Resonance",
+    kicker: "Keplerian Celestial Mechanics · Symplectic Verlet · Conjunction Polyphony",
+    available: true,
+    desc: "Multi-body celestial mechanics simulator driven by Symplectic Velocity-Verlet numerical integration. Up to 8 orbiting planets navigate elliptical Keplerian orbits around a central star, triggering melodic chimes at periapsis velocity transits and polyphonic alignment chords during angular celestial conjunctions.",
+    tags: ["Celestial Mechanics", "Velocity-Verlet", "Periapsis Triggers", "Angular Conjunctions", "8-Voice Polyphony", "Kepler's 3rd Law"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+      <ellipse cx="12" cy="12" rx="7" ry="4" stroke="currentColor" fill="none" />
+      <ellipse cx="12" cy="12" rx="10" ry="7" stroke="currentColor" stroke-dasharray="2 2" fill="none" transform="rotate(-25 12 12)" />
+      <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="5" cy="9" r="1.2" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -301,6 +316,7 @@ export function showLanding(updateHash = true) {
   const modelKrell = document.getElementById("model-krell");
   const modelLsystem = document.getElementById("model-lsystem");
   const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
+  const modelOrbital = document.getElementById("model-orbital");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -325,6 +341,7 @@ export function showLanding(updateHash = true) {
   if (modelKrell) modelKrell.style.display = "none";
   if (modelLsystem) modelLsystem.style.display = "none";
   if (modelLotkaVolterra) modelLotkaVolterra.style.display = "none";
+  if (modelOrbital) modelOrbital.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
 
@@ -334,7 +351,7 @@ export function showLanding(updateHash = true) {
 }
 
 export function showModel(id, updateHash = true) {
-  if (id !== "mene311" && id !== "cellular" && id !== "turing" && id !== "particles" && id !== "pendulum" && id !== "flock" && id !== "rungler" && id !== "krell" && id !== "lsystem" && id !== "lotka_volterra" && id !== "dxpatch" && id !== "librarian") return;
+  if (id !== "mene311" && id !== "cellular" && id !== "turing" && id !== "particles" && id !== "pendulum" && id !== "flock" && id !== "rungler" && id !== "krell" && id !== "lsystem" && id !== "lotka_volterra" && id !== "orbital" && id !== "dxpatch" && id !== "librarian") return;
 
   const viewLanding = document.getElementById("view-landing");
   const viewWorkspace = document.getElementById("view-workspace") || document.getElementById("view-mene311");
@@ -350,6 +367,7 @@ export function showModel(id, updateHash = true) {
   const modelKrell = document.getElementById("model-krell");
   const modelLsystem = document.getElementById("model-lsystem");
   const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
+  const modelOrbital = document.getElementById("model-orbital");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -406,6 +424,7 @@ export function showModel(id, updateHash = true) {
     if (modelKrell) modelKrell.style.display = id === "krell" ? "block" : "none";
     if (modelLsystem) modelLsystem.style.display = id === "lsystem" ? "block" : "none";
     if (modelLotkaVolterra) modelLotkaVolterra.style.display = id === "lotka_volterra" ? "block" : "none";
+    if (modelOrbital) modelOrbital.style.display = id === "orbital" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -422,6 +441,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "krell") modeTag.textContent = "Buchla Krell Patch";
       else if (id === "lsystem") modeTag.textContent = "L-System Grammar";
       else if (id === "lotka_volterra") modeTag.textContent = "Lotka-Volterra Attractor";
+      else if (id === "orbital") modeTag.textContent = "Orbital Resonance";
       modeTag.style.display = "inline-block";
     }
   }

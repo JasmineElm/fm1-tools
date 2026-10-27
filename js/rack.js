@@ -28,6 +28,7 @@ import { initRungler, activateRunglerModel, deactivateRunglerModel } from "./run
 import { initKrell, activateKrellModel, deactivateKrellModel } from "./krell.js?v=1";
 import { initLsystem, activateLsystemModel, deactivateLsystemModel, syncLsystemFromRegen } from "./lsystem.js?v=1";
 import { initLotkaVolterra, activateLotkaVolterraModel, deactivateLotkaVolterraModel, syncLotkaVolterraFromRegen, updateLotkaVolterraScaleAndOctave } from "./lotka_volterra.js?v=1";
+import { initOrbital, activateOrbitalModel, deactivateOrbitalModel, syncOrbitalFromRegen } from "./orbital.js?v=1";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -48,6 +49,8 @@ onRegen(() => {
     syncLsystemFromRegen();
   } else if (getActiveModel() === "lotka_volterra") {
     syncLotkaVolterraFromRegen();
+  } else if (getActiveModel() === "orbital") {
+    syncOrbitalFromRegen();
   }
 });
 
@@ -539,6 +542,7 @@ initRungler();
 initKrell();
 initLsystem();
 initLotkaVolterra();
+initOrbital();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -701,9 +705,26 @@ initModes({
       deactivateRunglerModel();
       deactivateKrellModel();
       deactivateLsystemModel();
+      deactivateOrbitalModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateLotkaVolterraModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "orbital") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateOrbitalModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -726,6 +747,7 @@ initModes({
     try { deactivateKrellModel(); } catch (e) { console.warn("Error deactivating krell model:", e); }
     try { deactivateLsystemModel(); } catch (e) { console.warn("Error deactivating lsystem model:", e); }
     try { deactivateLotkaVolterraModel(); } catch (e) { console.warn("Error deactivating lotka_volterra model:", e); }
+    try { deactivateOrbitalModel(); } catch (e) { console.warn("Error deactivating orbital model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

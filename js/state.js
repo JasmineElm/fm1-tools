@@ -193,6 +193,27 @@ export const DEFAULT = {
   lvCcDest: 74,
   lvCcDepth: 85,
   lvGateLen: 180,
+
+  // Keplerian Orbital Resonance model parameters
+  orbitalBodies: 5,
+  orbitalSpeed: 1.0,
+  orbitalEccentricity: 0.25,
+  orbitalGravity: 1.0,
+  orbitalConjunction: true,
+  orbitalConjThresh: 0.08,
+  orbitalTriggerMode: "both",
+  orbitalPitchMap: "orbit-rank",
+  orbitalPreset: "laplace",
+  orbitalMode: "sync",
+  orbitalSpan: 3,
+  orbitalScale: "pentMinor",
+  orbitalCustomScale: [0, 3, 5, 7, 10],
+  orbitalRoot: 48,
+  orbitalRootNote: 0,
+  orbitalRootOctave: 3,
+  orbitalCcDest: 74,
+  orbitalCcDepth: 80,
+  orbitalGateLen: 220,
 };
 
 export const state = { ...DEFAULT };

@@ -119,6 +119,9 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 │   ├── flock.js        # Autonomous Flocking Swarm chord engine
 │   ├── rungler.js      # Rob Hordijk Rungler / chaotic stepped shift register model
 │   ├── krell.js        # Buchla 266 Krell Patch autonomous generative engine
+│   ├── lsystem.js      # L-System Morphogenetic Grammar sequencer model
+│   ├── lotka_volterra.js # Lotka-Volterra Predator-Prey Ecological Phase Space model
+│   ├── orbital.js      # Keplerian Orbital Resonance & N-Body Chimes model
 │   ├── rhythm.js       # 64-step grid & Euclidean rhythm generator
 │   ├── scale.js        # Scale quantizer & pitch controls
 │   ├── humanise.js     # Micro-timing jitter & swing engine

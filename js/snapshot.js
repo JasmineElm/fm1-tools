@@ -56,6 +56,7 @@ const PREFIX = {
   krell: /^krell[A-Z]/,
   lsystem: /^lsystem[A-Z]/,
   lotka_volterra: /^lv[A-Z]/,
+  orbital: /^orbital[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {
