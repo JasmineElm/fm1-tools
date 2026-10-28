@@ -60,6 +60,7 @@ const PREFIX = {
   hanenbow: /^hanenbow[A-Z]/,
   sandpile: /^sandpile[A-Z]/,
   percolation: /^percolation[A-Z]/,
+  dla: /^dla[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

@@ -12,7 +12,8 @@ export const POLYPHONIC_MODELS = new Set([
   "orbital",
   "hanenbow",
   "sandpile",
-  "percolation"
+  "percolation",
+  "dla"
 ]);
 
 export const MODELS = [
@@ -227,6 +228,23 @@ export const MODELS = [
       <rect x="14.5" y="14.5" width="2.5" height="2.5" fill="currentColor" />
       <path d="M9.5 8.25h5M8.25 9.5v5M12 9.5v5M15.75 9.5v5" stroke-dasharray="1 1" />
     </svg>`
+  },
+  {
+    id: "dla",
+    name: "DLA Dendritic Crystal",
+    kicker: "Fractal Growth · Brownian Walkers · Witten-Sander Df ≈ 1.71",
+    available: true,
+    desc: "Diffusion-Limited Aggregation (DLA) fractal crystallization engine. Brownian particles diffuse through a 2D field and adhere to aggregate seed clusters with variable stickiness, producing delicate mineral snowflakes and columnar coral branches. Polar radial distance maps to octave spread while polar anomaly angles quantize to scale degrees.",
+    tags: ["DLA Fractal", "Brownian Motion", "Witten-Sander (Df=1.71)", "Polar Quantization", "Crystal Dendrites", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 12v-8m0 8v8m0-8h-8m8 0h8" />
+      <path d="M12 8l4-4m-4 8l-4-4m4 8l4 4m-4-8l-4 4" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+      <circle cx="12" cy="4" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="20" r="1.2" fill="currentColor" />
+      <circle cx="4" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="20" cy="12" r="1.2" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -383,6 +401,7 @@ export function showLanding(updateHash = true) {
   const modelHanenbow = document.getElementById("model-hanenbow");
   const modelSandpile = document.getElementById("model-sandpile");
   const modelPercolation = document.getElementById("model-percolation");
+  const modelDla = document.getElementById("model-dla");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -417,6 +436,7 @@ export function showLanding(updateHash = true) {
   if (modelHanenbow) modelHanenbow.style.display = "none";
   if (modelSandpile) modelSandpile.style.display = "none";
   if (modelPercolation) modelPercolation.style.display = "none";
+  if (modelDla) modelDla.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -448,6 +468,7 @@ export function showModel(id, updateHash = true) {
   const modelHanenbow = document.getElementById("model-hanenbow");
   const modelSandpile = document.getElementById("model-sandpile");
   const modelPercolation = document.getElementById("model-percolation");
+  const modelDla = document.getElementById("model-dla");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -518,6 +539,7 @@ export function showModel(id, updateHash = true) {
     if (modelHanenbow) modelHanenbow.style.display = id === "hanenbow" ? "block" : "none";
     if (modelSandpile) modelSandpile.style.display = id === "sandpile" ? "block" : "none";
     if (modelPercolation) modelPercolation.style.display = id === "percolation" ? "block" : "none";
+    if (modelDla) modelDla.style.display = id === "dla" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -538,6 +560,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "hanenbow") modeTag.textContent = "Hanenbow Ballistics";
       else if (id === "sandpile") modeTag.textContent = "Abelian Sandpile";
       else if (id === "percolation") modeTag.textContent = "Percolation Clusters";
+      else if (id === "dla") modeTag.textContent = "DLA Dendritic Crystal";
       modeTag.style.display = "inline-block";
     }
   }

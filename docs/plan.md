@@ -45,7 +45,7 @@ The models are ordered first by the **fundamental algorithmic, mathematical, and
 | **04** | `hanenbow` | **Electroplankton Hanenbow Ballistics** | Physical Toy / Ballistics | 2D circle-to-line segment projection, specular momentum rebound, leaf springs | Moderate (2.5/5) | ✅ Complete |
 | **05** | `sandpile` | **Abelian Sandpile (SOC)** | Statistical Physics / Avalanches | 2D integer lattice, relaxation queue, center-of-mass pitch, $1/f$ pink noise | Moderate (3/5) | ✅ Complete |
 | **06** | `percolation` | **Percolation Cluster Phase Transition** | Fluid Porosity / Criticality | Disjoint Set Union (DSU / Union-Find), cluster scaling, conductive wave fronts | Mod-High (3.5/5) | ✅ Complete |
-| **07** | `dla` | **Diffusion-Limited Aggregation (DLA)** | Fractal Growth / Brownian Walks | 2D Brownian motion, perimeter boundary kill zones, sticky bitmask lookup | High (4/5) | Pending |
+| **07** | `dla` | **Diffusion-Limited Aggregation (DLA)** | Fractal Growth / Brownian Walks | 2D Brownian motion, perimeter boundary kill zones, sticky bitmask lookup | High (4/5) | ✅ Complete |
 | **08** | `epidemic` | **SIR Epidemic Network Dynamics** | Population / Epidemiology | Spatial contact proximity graphs, multi-state Markov transitions, $R_0$ density | High (4/5) | Pending |
 | **09** | `physarum` | **Physarum Slime Mould Network** | Biological Foraging / Transport | 3-sensor agent steering, 2D Float32Array pheromone diffusion/decay, flux tubes | Highest (5/5) | Pending |
 
@@ -562,7 +562,7 @@ export class PercolationModel {
 
 ---
 
-### Model 07 (Step 7): Diffusion-Limited Aggregation (DLA) Dendritic Crystal
+### Model 07 (Step 7): Diffusion-Limited Aggregation (DLA) Dendritic Crystal — [COMPLETED]
 - **Model ID**: `dla`
 - **Category**: Physical Growth / Fractal Branching / Brownian Aleatoric Mechanics.
 - **Why Seventh**: Combines 2D lattice occupancy tests with Brownian random walks to construct evolving fractal growth networks.
