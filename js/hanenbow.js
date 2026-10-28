@@ -153,11 +153,11 @@ export const HANENBOW_PRESETS = [
     leaves: 5,
     cannon: { x: 75, y: 470, angle: -1.26, speed: 750 },
     leafData: [
-      { x: 195, y: 325, len: 115, angle: -0.22, pitch: 0 },
-      { x: 340, y: 250, len: 110, angle: -0.20, pitch: 2 },
-      { x: 485, y: 220, len: 110, angle: -0.15, pitch: 4 },
-      { x: 625, y: 280, len: 110, angle: 0.35,  pitch: 5 },
-      { x: 480, y: 410, len: 120, angle: 0.20,  pitch: 7 }
+      { x: 195, y: 325, len: 170, angle: -0.22, pitch: 0 },
+      { x: 340, y: 250, len: 140, angle: -0.20, pitch: 2 },
+      { x: 485, y: 220, len: 115, angle: -0.15, pitch: 4 },
+      { x: 625, y: 280, len: 90,  angle: 0.35,  pitch: 5 },
+      { x: 480, y: 410, len: 65,  angle: 0.20,  pitch: 7 }
     ],
     gravity: 860,
     elasticity: 0.98,
@@ -170,12 +170,12 @@ export const HANENBOW_PRESETS = [
     leaves: 6,
     cannon: { x: 390, y: 490, angle: -1.68, speed: 720 },
     leafData: [
-      { x: 270, y: 250, len: 120, angle: 0.45,  pitch: 4 },
-      { x: 530, y: 250, len: 120, angle: -0.45, pitch: 4 },
-      { x: 180, y: 360, len: 115, angle: 0.25,  pitch: 1 },
-      { x: 620, y: 360, len: 115, angle: -0.25, pitch: 1 },
-      { x: 330, y: 420, len: 110, angle: -0.18, pitch: 6 },
-      { x: 470, y: 420, len: 110, angle: 0.18,  pitch: 6 }
+      { x: 270, y: 250, len: 160, angle: 0.45,  pitch: 4 },
+      { x: 530, y: 250, len: 160, angle: -0.45, pitch: 4 },
+      { x: 180, y: 360, len: 110, angle: 0.25,  pitch: 1 },
+      { x: 620, y: 360, len: 110, angle: -0.25, pitch: 1 },
+      { x: 330, y: 420, len: 75,  angle: -0.18, pitch: 6 },
+      { x: 470, y: 420, len: 75,  angle: 0.18,  pitch: 6 }
     ],
     gravity: 920,
     elasticity: 0.96,
@@ -188,13 +188,13 @@ export const HANENBOW_PRESETS = [
     leaves: 7,
     cannon: { x: 90, y: 480, angle: -1.18, speed: 730 },
     leafData: [
-      { x: 210, y: 250, len: 110, angle: 0.40,  pitch: 0 },
-      { x: 380, y: 200, len: 100, angle: -0.45, pitch: 2 },
-      { x: 550, y: 260, len: 105, angle: 0.38,  pitch: 4 },
-      { x: 680, y: 370, len: 100, angle: -0.60, pitch: 6 },
-      { x: 510, y: 380, len: 110, angle: -0.30, pitch: 3 },
-      { x: 340, y: 390, len: 100, angle: 0.25,  pitch: 1 },
-      { x: 200, y: 440, len: 110, angle: -0.15, pitch: 5 }
+      { x: 210, y: 250, len: 170, angle: 0.40,  pitch: 0 },
+      { x: 380, y: 200, len: 145, angle: -0.45, pitch: 2 },
+      { x: 550, y: 260, len: 125, angle: 0.38,  pitch: 4 },
+      { x: 680, y: 370, len: 105, angle: -0.60, pitch: 6 },
+      { x: 510, y: 380, len: 90,  angle: -0.30, pitch: 3 },
+      { x: 340, y: 390, len: 75,  angle: 0.25,  pitch: 1 },
+      { x: 200, y: 440, len: 60,  angle: -0.15, pitch: 5 }
     ],
     gravity: 920,
     elasticity: 0.96,
@@ -207,12 +207,12 @@ export const HANENBOW_PRESETS = [
     leaves: 6,
     cannon: { x: 120, y: 500, angle: -1.25, speed: 720 },
     leafData: [
-      { x: 240, y: 380, len: 120, angle: -0.22, pitch: 0 },
-      { x: 360, y: 300, len: 115, angle: -0.25, pitch: 1 },
-      { x: 480, y: 230, len: 110, angle: -0.22, pitch: 2 },
-      { x: 600, y: 200, len: 100, angle: 0.30,  pitch: 3 },
-      { x: 440, y: 150, len: 95,  angle: 0.35,  pitch: 5 },
-      { x: 280, y: 220, len: 100, angle: -0.28, pitch: 7 }
+      { x: 240, y: 380, len: 180, angle: -0.22, pitch: 0 },
+      { x: 360, y: 300, len: 155, angle: -0.25, pitch: 1 },
+      { x: 480, y: 230, len: 130, angle: -0.22, pitch: 2 },
+      { x: 600, y: 200, len: 105, angle: 0.30,  pitch: 3 },
+      { x: 440, y: 150, len: 80,  angle: 0.35,  pitch: 5 },
+      { x: 280, y: 220, len: 60,  angle: -0.28, pitch: 7 }
     ],
     gravity: 880,
     elasticity: 0.98,
@@ -225,10 +225,10 @@ export const HANENBOW_PRESETS = [
     leaves: 4,
     cannon: { x: 100, y: 460, angle: -1.22, speed: 680 },
     leafData: [
-      { x: 240, y: 340, len: 135, angle: -0.22, pitch: 0 },
-      { x: 430, y: 280, len: 130, angle: -0.18, pitch: 2 },
-      { x: 620, y: 330, len: 125, angle: 0.28,  pitch: 4 },
-      { x: 400, y: 430, len: 130, angle: 0.15,  pitch: 7 }
+      { x: 240, y: 340, len: 180, angle: -0.22, pitch: 0 },
+      { x: 430, y: 280, len: 140, angle: -0.18, pitch: 2 },
+      { x: 620, y: 330, len: 100, angle: 0.28,  pitch: 4 },
+      { x: 400, y: 430, len: 70,  angle: 0.15,  pitch: 7 }
     ],
     gravity: 780,
     elasticity: 0.95,
@@ -344,6 +344,7 @@ function playLeafVoice(leafIdx, note, vel, durMs) {
 }
 
 // Resolves a scale-quantized pitch for leaf `i`.
+// Base pitch is inversely proportional to leaf size: larger leaves are pitched lower.
 // If `advance` is true and hit within `hanenbowTimingPeriod`, cycles upward through the scale.
 export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.001) {
   const intervals = getActiveScaleIntervals();
@@ -363,21 +364,28 @@ export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.0
     leafLastHitTime[i] = nowSec;
   }
 
-  // Base pitch mapping from leaf pond position
-  const normHeight = 1.0 - Math.min(1.0, Math.max(0.0, (leafY[i] - 140) / 360));
-  const baseOctave = Math.floor(normHeight * (span - 1));
-  const baseDeg = (leafPitchIdx[i] ?? i);
+  // Base pitch mapping: larger leaves are pitched lower!
+  // Length ranges from 45 (smallest/highest) to 225 (largest/lowest)
+  const MIN_LEN = 45;
+  const MAX_LEN = 225;
+  const len = Math.max(MIN_LEN, Math.min(MAX_LEN, leafLength[i]));
+  const normSize = (len - MIN_LEN) / (MAX_LEN - MIN_LEN); // 0.0 (smallest) to 1.0 (largest)
+
+  // Map inverse size across the available pitch span:
+  // normPitch: 1.0 = smallest leaf (highest note), 0.0 = largest leaf (lowest note)
+  const totalDegrees = Math.max(1, span * intervals.length);
+  const normPitch = 1.0 - normSize;
+  const sizeDeg = Math.round(normPitch * (totalDegrees - 1));
 
   // If not advancing, check if timing period has expired for display readout
   const activeCycle = (advance || (nowSec - leafLastHitTime[i] <= period)) ? leafCycleCount[i] : 0;
-  const totalDeg = baseDeg + activeCycle;
+  const totalDeg = sizeDeg + activeCycle;
 
   const numIntervals = Math.max(1, intervals.length);
   const octShift = Math.floor(totalDeg / numIntervals);
   const deg = ((totalDeg % numIntervals) + numIntervals) % numIntervals;
-  const targetOctave = baseOctave + octShift;
 
-  return quantize(Math.min(127, Math.max(0, root + targetOctave * 12 + (intervals[deg] || 0))));
+  return quantize(Math.min(127, Math.max(0, root + octShift * 12 + (intervals[deg] || 0))));
 }
 
 // Helper: Compute outward surface normal for leaf collision
@@ -415,7 +423,6 @@ function stepBallistics(dt) {
   const rest = state.hanenbowElasticity ?? 0.96;
   const subSteps = 5;
   const sdt = dt / subSteps;
-  const hitDist = pRadius + 5.0;
 
   for (let sub = 0; sub < subSteps; sub++) {
     // 1. Advance plankton projectiles
@@ -453,6 +460,7 @@ function stepBallistics(dt) {
         const closeX = segP1x + u * segDx;
         const closeY = segP1y + u * segDy;
         const dist = Math.hypot(pX[p] - closeX, pY[p] - closeY);
+        const hitDist = pRadius + Math.max(3.0, Math.min(8.0, len * 0.045));
 
         if (dist < hitDist) {
           const { nx, ny } = getLeafNormal(pX[p], pY[p], closeX, closeY, ang, u, dist);
@@ -655,8 +663,9 @@ function renderPondCanvas() {
     const bCol = Math.round(94 + bloom * (94 - 94));
     const leafFillColor = `rgb(${rCol}, ${gCol}, ${bCol})`;
 
-    // Draw leaf body (flat rounded leaf segment)
-    ctx.lineWidth = 8 * scaleY;
+    // Draw leaf body (flat rounded leaf segment with thickness proportional to length)
+    const leafThick = Math.max(5, Math.min(13, (len / 100.0) * 8)) * scaleY;
+    ctx.lineWidth = leafThick;
     ctx.lineCap = "round";
     ctx.strokeStyle = leafFillColor;
     ctx.beginPath();
@@ -669,7 +678,7 @@ function renderPondCanvas() {
     ctx.strokeStyle = isSelected ? "#ffffff" : colLineFocus;
     ctx.stroke();
 
-    // Leaf center pivot node
+    // Leaf center pivot node (for translation)
     ctx.fillStyle = isSelected ? "#ffffff" : colBg;
     ctx.beginPath();
     ctx.arc(lx, ly, 4 * scaleX, 0, Math.PI * 2);
@@ -678,13 +687,22 @@ function renderPondCanvas() {
     ctx.strokeStyle = colLineFocus;
     ctx.stroke();
 
-    // Rotation handle at outer tip (p2)
-    ctx.fillStyle = isSelected ? colAccent : colPanel2;
+    // Outer tip (p2) resize & rotation handle
+    ctx.fillStyle = (isSelected || (isDragging && isDragging.idx === i)) ? colAccent : colPanel2;
     ctx.beginPath();
-    ctx.arc(p2x, p2y, 5 * scaleX, 0, Math.PI * 2);
+    ctx.arc(p2x, p2y, 5.5 * scaleX, 0, Math.PI * 2);
     ctx.fill();
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = isSelected ? "#ffffff" : colLineFocus;
+    ctx.strokeStyle = (isSelected || (isDragging && isDragging.idx === i)) ? "#ffffff" : colLineFocus;
+    ctx.stroke();
+
+    // Inner tip (p1) resize & rotation handle
+    ctx.fillStyle = (isSelected || (isDragging && isDragging.idx === i)) ? colAccent : colPanel2;
+    ctx.beginPath();
+    ctx.arc(p1x, p1y, 4.5 * scaleX, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = (isSelected || (isDragging && isDragging.idx === i)) ? "#ffffff" : colLineFocus;
     ctx.stroke();
 
     // Leaf pitch & index label with scale cycling status
@@ -699,7 +717,7 @@ function renderPondCanvas() {
     ctx.font = `bold ${Math.round(9 * scaleX)}px monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(cycleLabel, lx, ly - 14 * scaleY);
+    ctx.fillText(cycleLabel, lx, ly - (12 + leafThick * 0.5) * scaleY);
   }
 
   // 3. Draw Cannon launcher
@@ -1084,7 +1102,7 @@ export function initHanenbow() {
   canvasHeader.style.marginBottom = "6px";
   canvasHeader.innerHTML = `
     <span style="font-size:10px; font-weight:700; color:var(--fg); letter-spacing:1px; text-transform:uppercase;">Pond Ballistics &amp; Leaf Ricochet Matrix</span>
-    <span style="font-size:9px; color:var(--dim);">Drag leaf tips to rotate · Drag stems to move</span>
+    <span style="font-size:9px; color:var(--dim);">Drag tips to resize &amp; rotate (larger = lower pitch) · Drag center to move</span>
   `;
 
   pondCanvas = document.createElement("canvas");
@@ -1118,24 +1136,37 @@ export function initHanenbow() {
       return;
     }
 
-    // Check hit test on leaf rotation tip handle or leaf center
+    // Check hit test on leaf rotation/resize tip handles or leaf center
     for (let i = 0; i < num; i++) {
       const lx = leafX[i];
       const ly = leafY[i];
       const len = leafLength[i];
       const ang = leafAngle[i];
-      const tipX = lx + Math.cos(ang) * len * 0.5;
-      const tipY = ly + Math.sin(ang) * len * 0.5;
+      const cosA = Math.cos(ang);
+      const sinA = Math.sin(ang);
+      const halfL = len * 0.5;
 
-      // Handle tip rotation
-      if (Math.hypot(mx - tipX, my - tipY) < 20) {
-        isDragging = { type: "leaf-angle", idx: i };
+      const p2x = lx + cosA * halfL;
+      const p2y = ly + sinA * halfL;
+      const p1x = lx - cosA * halfL;
+      const p1y = ly - sinA * halfL;
+
+      // Handle tip 2 (outer tip) resize & rotate
+      if (Math.hypot(mx - p2x, my - p2y) < 22) {
+        isDragging = { type: "leaf-tip2", idx: i };
+        pondCanvas.setPointerCapture(e.pointerId);
+        return;
+      }
+
+      // Handle tip 1 (inner tip) resize & rotate
+      if (Math.hypot(mx - p1x, my - p1y) < 22) {
+        isDragging = { type: "leaf-tip1", idx: i };
         pondCanvas.setPointerCapture(e.pointerId);
         return;
       }
 
       // Handle leaf center translation
-      if (Math.hypot(mx - lx, my - ly) < 22) {
+      if (Math.hypot(mx - lx, my - ly) < 24) {
         isDragging = { type: "leaf-pos", idx: i };
         pondCanvas.setPointerCapture(e.pointerId);
         return;
@@ -1148,9 +1179,20 @@ export function initHanenbow() {
     const num = Math.min(MAX_LEAVES, Math.max(2, state.hanenbowLeaves ?? 5));
 
     if (isDragging) {
-      if (isDragging.type === "leaf-angle") {
+      if (isDragging.type === "leaf-tip2") {
         const i = isDragging.idx;
-        leafAngle[i] = Math.atan2(my - leafY[i], mx - leafX[i]);
+        const dx = mx - leafX[i];
+        const dy = my - leafY[i];
+        const dist = Math.hypot(dx, dy);
+        leafLength[i] = Math.max(45, Math.min(240, dist * 2));
+        leafAngle[i] = Math.atan2(dy, dx);
+      } else if (isDragging.type === "leaf-tip1") {
+        const i = isDragging.idx;
+        const dx = mx - leafX[i];
+        const dy = my - leafY[i];
+        const dist = Math.hypot(dx, dy);
+        leafLength[i] = Math.max(45, Math.min(240, dist * 2));
+        leafAngle[i] = Math.atan2(dy, dx) + Math.PI;
       } else if (isDragging.type === "leaf-pos") {
         const i = isDragging.idx;
         leafX[i] = Math.max(60, Math.min(740, mx));
@@ -1160,14 +1202,37 @@ export function initHanenbow() {
       }
       renderPondCanvas();
     } else {
-      // Hover detection
+      // Hover detection & dynamic cursor
       hoveredLeaf = -1;
-      for (let i = 0; i < num; i++) {
-        if (Math.hypot(mx - leafX[i], my - leafY[i]) < 30) {
-          hoveredLeaf = i;
-          break;
+      let cursor = "crosshair";
+      if (Math.hypot(mx - cannonX, my - cannonY) < 28) {
+        cursor = "pointer";
+      } else {
+        for (let i = 0; i < num; i++) {
+          const lx = leafX[i];
+          const ly = leafY[i];
+          const len = leafLength[i];
+          const ang = leafAngle[i];
+          const halfL = len * 0.5;
+          const p2x = lx + Math.cos(ang) * halfL;
+          const p2y = ly + Math.sin(ang) * halfL;
+          const p1x = lx - Math.cos(ang) * halfL;
+          const p1y = ly - Math.sin(ang) * halfL;
+
+          if (Math.hypot(mx - p2x, my - p2y) < 20 || Math.hypot(mx - p1x, my - p1y) < 20) {
+            hoveredLeaf = i;
+            cursor = "ew-resize";
+            break;
+          } else if (Math.hypot(mx - lx, my - ly) < 24) {
+            hoveredLeaf = i;
+            cursor = "move";
+            break;
+          } else if (Math.hypot(mx - lx, my - ly) < len * 0.55) {
+            hoveredLeaf = i;
+          }
         }
       }
+      pondCanvas.style.cursor = cursor;
       renderPondCanvas();
     }
   });
