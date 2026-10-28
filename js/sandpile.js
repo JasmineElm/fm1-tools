@@ -63,6 +63,16 @@ let rippleHead = 0;
 // Active topple flashes for visual sparkle
 const flashLife = new Float32Array(MAX_CELLS);
 
+// Avalanche sweep cell tracking & voice allocation (zero GC churn)
+const toppleSites = new Int32Array(MAX_CELLS);
+const toppleCounts = new Int16Array(MAX_CELLS);
+let toppleSiteCount = 0;
+
+const sortIndices = new Int32Array(MAX_CELLS);
+const sortMetrics = new Float32Array(MAX_CELLS);
+const chosenCellIndices = new Int32Array(MAX_VOICES);
+const chosenPitches = new Int32Array(MAX_VOICES);
+
 // 8-Voice FIFO polyphony manager
 const activeVoices = new Map(); // voiceKey -> note
 let voiceCounter = 0;
@@ -283,11 +293,7 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
   let topples = 0;
   let sumX = 0;
   let sumY = 0;
-
-  // Quadrant topple counts for polyphonic chord mapping
-  let q0 = 0, q1 = 0, q2 = 0, q3 = 0;
-  const cx = Math.floor(S / 2);
-  const cy = Math.floor(S / 2);
+  toppleSiteCount = 0;
 
   while (qHead < qTail && topples < maxStepBudget) {
     const idx = toppleQueue[qHead & Q_MASK];
@@ -306,11 +312,11 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
     sumY += y * numTopples;
     flashLife[idx] = 1.0;
 
-    // Track quadrants
-    if (x < cx && y < cy) q0 += numTopples;
-    else if (x >= cx && y < cy) q1 += numTopples;
-    else if (x >= cx && y >= cy) q2 += numTopples;
-    else q3 += numTopples;
+    if (toppleSiteCount < MAX_CELLS) {
+      toppleSites[toppleSiteCount] = idx;
+      toppleCounts[toppleSiteCount] = numTopples;
+      toppleSiteCount++;
+    }
 
     // Cardinal Neighbors: (x+1, y), (x-1, y), (x, y+1), (x, y-1)
     const neighbors = [
@@ -365,7 +371,7 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
     comAlpha = 1.0;
 
     if (dispatchAudio) {
-      dispatchAvalancheAudio(topples, currentComX, currentComY, q0, q1, q2, q3, S);
+      dispatchAvalancheAudio(topples, currentComX, currentComY, toppleSiteCount, S);
     }
   }
 
@@ -373,7 +379,7 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
 }
 
 let lastAudioTriggerTime = 0;
-let voiceRotator = 0;
+const VOICE_COLORS = ["#00f0ff", "#ff007f", "#ffb700", "#39ff14", "#a855f7", "#38bdf8", "#f43f5e", "#eab308"];
 
 function playDropletPing(x, y, S) {
   const root = getRootMidi();
@@ -382,7 +388,7 @@ function playDropletPing(x, y, S) {
   const cx = Math.floor(S / 2);
   const cy = Math.floor(S / 2);
   const r = Math.hypot(x - cx, y - cy);
-  const normR = Math.min(1.0, r / (S / 2));
+  const normR = Math.min(1.0, r / Math.max(1, S / 2));
   const totalNotes = intervals.length * span;
   const noteIdx = Math.min(totalNotes - 1, Math.floor(normR * totalNotes));
   const octave = Math.floor(noteIdx / intervals.length);
@@ -393,8 +399,168 @@ function playDropletPing(x, y, S) {
   spawnRipple(x, y, 16, "#38bdf8");
 }
 
+// Extract scale-quantized pitches based on polyphony, mapping, and picker rule
+function extractSandpilePitches(siteCount, S, root, intervals, span, polyphony, mapping, rule) {
+  let uniqueCount = 0;
+  const cx = Math.floor(S / 2);
+  const cy = Math.floor(S / 2);
+
+  for (let i = 0; i < siteCount && uniqueCount < 256; i++) {
+    const idx = toppleSites[i];
+    if (toppleMark[idx] === 0) {
+      toppleMark[idx] = 1;
+      sortIndices[uniqueCount] = idx;
+      uniqueCount++;
+    }
+  }
+  for (let i = 0; i < uniqueCount; i++) {
+    toppleMark[sortIndices[i]] = 0;
+  }
+
+  if (uniqueCount === 0) {
+    sortIndices[0] = cy * S + cx;
+    uniqueCount = 1;
+  }
+
+  // Calculate spatial metric m in [0, 1] per unique cell
+  for (let i = 0; i < uniqueCount; i++) {
+    const idx = sortIndices[i];
+    const x = idx % S;
+    const y = Math.floor(idx / S);
+    let m = 0.5;
+
+    switch (mapping) {
+      case "x-axis":
+        m = S > 1 ? x / (S - 1) : 0.5;
+        break;
+      case "y-axis":
+        m = S > 1 ? 1.0 - (y / (S - 1)) : 0.5;
+        break;
+      case "radial":
+        m = Math.min(1.0, Math.hypot(x - cx, y - cy) / Math.max(1, S / 2));
+        break;
+      case "height":
+        m = Math.min(1.0, (grid[idx] + 1) / 5);
+        break;
+      case "diagonal":
+        m = S > 1 ? (x + (S - 1 - y)) / (2 * (S - 1)) : 0.5;
+        break;
+      default:
+        m = S > 1 ? x / (S - 1) : 0.5;
+        break;
+    }
+    sortMetrics[i] = m;
+  }
+
+  const voiceCount = Math.min(polyphony, uniqueCount);
+
+  if (rule === "extrema" || rule === "strum") {
+    // Sort ascending by metric
+    for (let i = 0; i < uniqueCount - 1; i++) {
+      let minIdx = i;
+      for (let j = i + 1; j < uniqueCount; j++) {
+        if (sortMetrics[j] < sortMetrics[minIdx]) minIdx = j;
+      }
+      if (minIdx !== i) {
+        const tIdx = sortIndices[i]; sortIndices[i] = sortIndices[minIdx]; sortIndices[minIdx] = tIdx;
+        const tM = sortMetrics[i]; sortMetrics[i] = sortMetrics[minIdx]; sortMetrics[minIdx] = tM;
+      }
+    }
+
+    if (voiceCount === 1) {
+      chosenCellIndices[0] = sortIndices[Math.floor(uniqueCount / 2)];
+    } else if (voiceCount === 2) {
+      chosenCellIndices[0] = sortIndices[0];
+      chosenCellIndices[1] = sortIndices[uniqueCount - 1];
+    } else if (voiceCount === 3) {
+      chosenCellIndices[0] = sortIndices[0];
+      chosenCellIndices[1] = sortIndices[Math.floor(uniqueCount / 2)];
+      chosenCellIndices[2] = sortIndices[uniqueCount - 1];
+    } else {
+      for (let v = 0; v < voiceCount; v++) {
+        const sel = Math.round(v * (uniqueCount - 1) / (voiceCount - 1));
+        chosenCellIndices[v] = sortIndices[sel];
+      }
+    }
+  } else if (rule === "centroid") {
+    for (let i = 0; i < uniqueCount; i++) {
+      const idx = sortIndices[i];
+      const x = idx % S;
+      const y = Math.floor(idx / S);
+      sortMetrics[i] = Math.hypot(x - currentComX, y - currentComY);
+    }
+    for (let i = 0; i < uniqueCount - 1; i++) {
+      let minIdx = i;
+      for (let j = i + 1; j < uniqueCount; j++) {
+        if (sortMetrics[j] < sortMetrics[minIdx]) minIdx = j;
+      }
+      if (minIdx !== i) {
+        const tIdx = sortIndices[i]; sortIndices[i] = sortIndices[minIdx]; sortIndices[minIdx] = tIdx;
+        const tM = sortMetrics[i]; sortMetrics[i] = sortMetrics[minIdx]; sortMetrics[minIdx] = tM;
+      }
+    }
+    chosenCellIndices[0] = sortIndices[0];
+    for (let v = 1; v < voiceCount; v++) {
+      chosenCellIndices[v] = sortIndices[uniqueCount - v];
+    }
+  } else if (rule === "peak-energy") {
+    for (let i = 0; i < uniqueCount; i++) {
+      const idx = sortIndices[i];
+      sortMetrics[i] = grid[idx];
+    }
+    for (let i = 0; i < uniqueCount - 1; i++) {
+      let maxIdx = i;
+      for (let j = i + 1; j < uniqueCount; j++) {
+        if (sortMetrics[j] > sortMetrics[maxIdx]) maxIdx = j;
+      }
+      if (maxIdx !== i) {
+        const tIdx = sortIndices[i]; sortIndices[i] = sortIndices[maxIdx]; sortIndices[maxIdx] = tIdx;
+        const tM = sortMetrics[i]; sortMetrics[i] = sortMetrics[maxIdx]; sortMetrics[maxIdx] = tM;
+      }
+    }
+    for (let v = 0; v < voiceCount; v++) {
+      chosenCellIndices[v] = sortIndices[v];
+    }
+  }
+
+  // Musical quantization across span octaves with harmonic voice spreading
+  const totalNotes = intervals.length * span;
+  for (let v = 0; v < voiceCount; v++) {
+    const idx = chosenCellIndices[v];
+    const x = idx % S;
+    const y = Math.floor(idx / S);
+    let cellM = 0.5;
+    switch (mapping) {
+      case "x-axis": cellM = S > 1 ? x / (S - 1) : 0.5; break;
+      case "y-axis": cellM = S > 1 ? 1.0 - (y / (S - 1)) : 0.5; break;
+      case "radial": cellM = Math.min(1.0, Math.hypot(x - cx, y - cy) / Math.max(1, S / 2)); break;
+      case "height": cellM = Math.min(1.0, (grid[idx] + 1) / 5); break;
+      case "diagonal": cellM = S > 1 ? (x + (S - 1 - y)) / (2 * (S - 1)) : 0.5; break;
+      default: cellM = S > 1 ? x / (S - 1) : 0.5; break;
+    }
+
+    const noteIdx = Math.min(totalNotes - 1, Math.max(0, Math.floor(cellM * totalNotes)));
+    const octave = Math.floor(noteIdx / intervals.length);
+    const deg = noteIdx % intervals.length;
+    const targetPitch = root + octave * 12 + (intervals[deg] || 0);
+    let note = quantize(targetPitch, intervals, root);
+
+    // Spread voices if pitch collides with lower voice
+    if (v > 0 && note <= chosenPitches[v - 1]) {
+      const nextIdx = Math.min(totalNotes - 1, noteIdx + v);
+      const nextOct = Math.floor(nextIdx / intervals.length);
+      const nextDeg = nextIdx % intervals.length;
+      const nextPitch = root + nextOct * 12 + (intervals[nextDeg] || 0);
+      note = quantize(nextPitch, intervals, root);
+    }
+    chosenPitches[v] = note;
+  }
+
+  return voiceCount;
+}
+
 // Dispatch scale-quantized audio events based on avalanche topology
-function dispatchAvalancheAudio(toppleCount, comX, comY, q0, q1, q2, q3, S) {
+function dispatchAvalancheAudio(toppleCount, comX, comY, siteCount, S) {
   const now = performance.now();
   if (now - lastAudioTriggerTime < 35) return;
   lastAudioTriggerTime = now;
@@ -402,80 +568,37 @@ function dispatchAvalancheAudio(toppleCount, comX, comY, q0, q1, q2, q3, S) {
   const root = getRootMidi();
   const intervals = getActiveScaleIntervals();
   const span = Math.min(4, Math.max(1, state.sandpileSpan ?? state.pitchSpan ?? 2));
-  const mapping = state.sandpilePitchMapping || "radial";
+  const mapping = state.sandpilePitchMapping || "x-axis";
+  const rule = state.sandpileCellRule || "extrema";
+  const polyphony = Math.min(MAX_VOICES, Math.max(1, state.sandpilePolyphony ?? 3));
   const gateLen = state.sandpileGateLen ?? 180;
   const baseVel = state.sandpileVelocity ?? 90;
 
   // Kinetic velocity scaling: log2 of avalanche intensity
-  const vel = Math.min(127, Math.max(35, Math.round(baseVel * 0.65 + Math.log2(toppleCount + 1) * 9)));
+  const vel = Math.min(127, Math.max(35, Math.round(baseVel * 0.7 + Math.log2(toppleCount + 1) * 8)));
 
-  const cx = Math.floor(S / 2);
-  const cy = Math.floor(S / 2);
-  const r = Math.hypot(comX - cx, comY - cy);
-  const normR = Math.min(1.0, r / (S / 2));
+  const voiceCount = extractSandpilePitches(siteCount, S, root, intervals, span, polyphony, mapping, rule);
+  const isStrum = rule === "strum";
 
-  if (mapping === "radial") {
-    // Pitch derived from center-of-mass radial distance
-    const totalNotes = intervals.length * span;
-    const noteIdx = Math.min(totalNotes - 1, Math.floor(normR * totalNotes));
-    const octave = Math.floor(noteIdx / intervals.length);
-    const deg = noteIdx % intervals.length;
-    const targetPitch = root + octave * 12 + (intervals[deg] || 0);
-    const note = quantize(targetPitch, intervals, root);
+  for (let v = 0; v < voiceCount; v++) {
+    const note = chosenPitches[v];
+    const vSlot = v % MAX_VOICES;
+    const vVel = Math.min(127, Math.max(30, vel - v * 4));
+    const delay = isStrum ? v * 24 : 0;
+    const cidx = chosenCellIndices[v];
+    const cxCell = cidx % S;
+    const cyCell = Math.floor(cidx / S);
+    const col = VOICE_COLORS[v % VOICE_COLORS.length];
 
-    const vSlot = (voiceRotator++) % MAX_VOICES;
-    playSandpileVoice(vSlot, note, vel, gateLen);
-    spawnRipple(comX, comY, 20 + normR * 40, "#00f0ff");
-  } else if (mapping === "quadrant") {
-    // 4-voice spatial chords reflecting avalanche distribution across quadrants
-    const quadCounts = [q0, q1, q2, q3];
-
-    for (let q = 0; q < 4; q++) {
-      if (quadCounts[q] >= 1) {
-        const qVel = Math.min(127, Math.max(40, Math.round(vel * Math.min(1.0, quadCounts[q] / Math.max(1, toppleCount)) * 1.5)));
-        const totalNotes = intervals.length * span;
-        const noteIdx = Math.min(totalNotes - 1, Math.floor((normR * 0.5 + q * 0.25) * totalNotes));
-        const octave = Math.floor(noteIdx / intervals.length);
-        const deg = noteIdx % intervals.length;
-        const targetPitch = root + octave * 12 + (intervals[deg] || 0);
-        const note = quantize(targetPitch, intervals, root);
-
-        playSandpileVoice(q, note, qVel, gateLen);
-      }
-    }
-    spawnRipple(comX, comY, 30, "#39ff14");
-  } else if (mapping === "cluster") {
-    // Arpeggio cascade: split large avalanches into cascading voice bursts
-    const numVoices = Math.min(MAX_VOICES, Math.max(1, Math.floor(Math.log2(toppleCount + 1))));
-    for (let v = 0; v < numVoices; v++) {
-      const totalNotes = intervals.length * span;
-      const stepOffset = (v / numVoices) * totalNotes;
-      const noteIdx = Math.min(totalNotes - 1, Math.floor(normR * (totalNotes / 2) + stepOffset));
-      const octave = Math.floor(noteIdx / intervals.length);
-      const deg = noteIdx % intervals.length;
-      const targetPitch = root + octave * 12 + (intervals[deg] || 0);
-      const note = quantize(targetPitch, intervals, root);
-      const subVel = Math.min(127, Math.max(35, vel - v * 6));
-
+    if (delay > 0) {
       setTimeout(() => {
-        playSandpileVoice(v, note, subVel, Math.round(gateLen * 0.8));
-      }, v * 35);
+        playSandpileVoice(vSlot, note, vVel, Math.round(gateLen * 0.85));
+        spawnRipple(cxCell, cyCell, 16 + v * 6, col);
+      }, delay);
+    } else {
+      playSandpileVoice(vSlot, note, vVel, gateLen);
+      spawnRipple(cxCell, cyCell, 16 + v * 6, col);
     }
-    spawnRipple(comX, comY, 35, "#ff007f");
-  } else if (mapping === "avalanche-size") {
-    // Pitch mapped to log2 avalanche magnitude
-    const logSize = Math.log2(toppleCount + 1);
-    const normSize = Math.min(1.0, logSize / 8);
-    const totalNotes = intervals.length * span;
-    const noteIdx = Math.min(totalNotes - 1, Math.floor((1.0 - normSize) * totalNotes)); // larger = deeper bass
-    const octave = Math.floor(noteIdx / intervals.length);
-    const deg = noteIdx % intervals.length;
-    const targetPitch = root + octave * 12 + (intervals[deg] || 0);
-    const note = quantize(targetPitch, intervals, root);
-
-    const vSlot = (voiceRotator++) % MAX_VOICES;
-    playSandpileVoice(vSlot, note, vel, gateLen);
-    spawnRipple(comX, comY, 25 + normSize * 45, "#ffb700");
   }
 
   // MIDI CC #74 Brightness Modulation
@@ -742,16 +865,19 @@ export function generateSandpileBank(s = state) {
       dropGrains(dropX, dropY, amount);
       const topples = runAvalancheCascade(150, false);
 
-      const normR = Math.min(1.0, Math.hypot(currentComX - cx, currentComY - cy) / (S / 2));
-      const totalNotes = intervals.length * span;
-      const noteIdx = Math.min(totalNotes - 1, Math.floor(normR * totalNotes));
-      const octave = Math.floor(noteIdx / intervals.length);
-      const deg = noteIdx % intervals.length;
-      const note = quantize(root + octave * 12 + (intervals[deg] || 0));
+      const mapping = s.sandpilePitchMapping || "x-axis";
+      const rule = s.sandpileCellRule || "extrema";
+      const polyphony = Math.min(MAX_VOICES, Math.max(1, s.sandpilePolyphony ?? 3));
+      const voiceCount = extractSandpilePitches(toppleSiteCount, S, root, intervals, span, polyphony, mapping, rule);
+
+      const stepNotes = [];
+      for (let v = 0; v < voiceCount; v++) {
+        stepNotes.push(chosenPitches[v]);
+      }
       const vel = Math.min(127, Math.max(40, 70 + Math.round(Math.log2(topples + 1) * 10)));
 
       steps.push({
-        notes: [note],
+        notes: stepNotes,
         velocity: vel,
         gate: s.sandpileGateLen ? Math.min(100, Math.max(10, Math.round(s.sandpileGateLen / 3))) : 50,
         rate: safeRate
@@ -781,9 +907,14 @@ export function randomizeSandpile() {
   state.sandpilePreset = chosenPreset;
   state.sandpileDropRate = Math.round(4 + Math.random() * 20);
   state.sandpileDropAmount = Math.round(1 + Math.random() * 3);
+  state.sandpilePolyphony = Math.floor(1 + Math.random() * 4);
   state.sandpileBoundary = Math.random() > 0.3 ? "open" : "closed";
   const patterns = ["center", "corners", "cross", "random", "spiral"];
   state.sandpileDropPattern = patterns[Math.floor(Math.random() * patterns.length)];
+  const mappings = ["x-axis", "y-axis", "radial", "height", "diagonal"];
+  state.sandpilePitchMapping = mappings[Math.floor(Math.random() * mappings.length)];
+  const rules = ["extrema", "centroid", "peak-energy", "strum"];
+  state.sandpileCellRule = rules[Math.floor(Math.random() * rules.length)];
 
   initSandpileGrid(chosenPreset);
   syncControlsFromState();
@@ -795,13 +926,15 @@ function syncControlsFromState() {
   if (refs.sandpileGridSize?.setValue) refs.sandpileGridSize.setValue(state.sandpileGridSize, false);
   if (refs.sandpileDropRate?.setValue) refs.sandpileDropRate.setValue(state.sandpileDropRate, false);
   if (refs.sandpileDropAmount?.setValue) refs.sandpileDropAmount.setValue(state.sandpileDropAmount, false);
+  if (refs.sandpilePolyphony?.setValue) refs.sandpilePolyphony.setValue(state.sandpilePolyphony ?? 3, false);
   if (refs.sandpileSpan?.setValue) refs.sandpileSpan.setValue(String(state.sandpileSpan ?? 2), false);
   if (refs.sandpileGateLen?.setValue) refs.sandpileGateLen.setValue(state.sandpileGateLen, false);
   if (refs.sandpileVelocity?.setValue) refs.sandpileVelocity.setValue(state.sandpileVelocity, false);
   if (refs.sandpileCcDepth?.setValue) refs.sandpileCcDepth.setValue(state.sandpileCcDepth, false);
   if (refs.sandpileDropPattern?.setValue) refs.sandpileDropPattern.setValue(state.sandpileDropPattern || "center", false);
   if (refs.sandpileBoundary?.setValue) refs.sandpileBoundary.setValue(state.sandpileBoundary || "open", false);
-  if (refs.sandpilePitchMapping?.setValue) refs.sandpilePitchMapping.setValue(state.sandpilePitchMapping || "radial", false);
+  if (refs.sandpilePitchMapping?.setValue) refs.sandpilePitchMapping.setValue(state.sandpilePitchMapping || "x-axis", false);
+  if (refs.sandpileCellRule?.setValue) refs.sandpileCellRule.setValue(state.sandpileCellRule || "extrema", false);
   if (presetSelect) presetSelect.value = state.sandpilePreset || "empty";
 }
 
@@ -980,6 +1113,18 @@ export function initSandpile() {
   });
   R("sandpileDropAmount", kAmount);
 
+  const kVoices = knob({
+    label: "VOICES",
+    min: 1, max: 8, step: 1,
+    value: state.sandpilePolyphony ?? 3,
+    unit: "",
+    title: "Polyphony: Number of simultaneous voices sounded per avalanche (1-8)",
+    onChange: (v) => {
+      state.sandpilePolyphony = Math.round(v);
+    }
+  });
+  R("sandpilePolyphony", kVoices);
+
   const kSpan = knob({
     label: "SPAN",
     min: 1, max: 4, step: 1,
@@ -1029,12 +1174,12 @@ export function initSandpile() {
   });
   R("sandpileCcDepth", kCc);
 
-  paramGrid.append(kSize, kRate, kAmount, kSpan, kGate, kVel, kCc);
+  paramGrid.append(kSize, kRate, kAmount, kVoices, kSpan, kGate, kVel, kCc);
 
-  // Dropdown Row: Pattern, Boundary, Pitch Mapping
+  // Dropdown Row: Pattern, Boundary, Pitch Mapping, Cell Picker Rule
   const dropdownRow = document.createElement("div");
   dropdownRow.style.display = "grid";
-  dropdownRow.style.gridTemplateColumns = "repeat(3, 1fr)";
+  dropdownRow.style.gridTemplateColumns = "repeat(4, 1fr)";
   dropdownRow.style.gap = "6px";
   dropdownRow.style.marginTop = "8px";
 
@@ -1070,18 +1215,33 @@ export function initSandpile() {
   const pMapping = R("sandpilePitchMapping", dropdown({
     label: "MAPPING",
     options: [
-      { v: "radial", t: "Radial (CoM)" },
-      { v: "quadrant", t: "Quadrant Chords" },
-      { v: "cluster", t: "Arpeggio Cascades" },
-      { v: "avalanche-size", t: "Scale Magnitude" }
+      { v: "x-axis", t: "X-Axis (L → R)" },
+      { v: "y-axis", t: "Y-Axis (B → T)" },
+      { v: "radial", t: "Radial (Center Out)" },
+      { v: "height", t: "Grain Density" },
+      { v: "diagonal", t: "Diagonal Wave" }
     ],
-    value: state.sandpilePitchMapping || "radial",
+    value: state.sandpilePitchMapping || "x-axis",
     onInput: (v) => {
       state.sandpilePitchMapping = v;
     }
   }));
 
-  dropdownRow.append(pPattern, pBoundary, pMapping);
+  const pRule = R("sandpileCellRule", dropdown({
+    label: "PICKER",
+    options: [
+      { v: "extrema", t: "Min · Mid · Max" },
+      { v: "centroid", t: "Centroid + Outliers" },
+      { v: "peak-energy", t: "Peak Hotspots" },
+      { v: "strum", t: "Arpeggio Strum" }
+    ],
+    value: state.sandpileCellRule || "extrema",
+    onInput: (v) => {
+      state.sandpileCellRule = v;
+    }
+  }));
+
+  dropdownRow.append(pPattern, pBoundary, pMapping, pRule);
   paramCard.append(paramGrid, dropdownRow);
 
   // Card 3: Notes & Musical Scale Bar
@@ -1250,6 +1410,8 @@ registerModel({
       pattern: state.sandpileDropPattern,
       boundary: state.sandpileBoundary,
       mapping: state.sandpilePitchMapping,
+      rule: state.sandpileCellRule,
+      polyphony: state.sandpilePolyphony,
       span: state.sandpileSpan,
       gateLen: state.sandpileGateLen,
       velocity: state.sandpileVelocity,
@@ -1265,6 +1427,8 @@ registerModel({
     if (h.pattern) state.sandpileDropPattern = h.pattern;
     if (h.boundary) state.sandpileBoundary = h.boundary;
     if (h.mapping) state.sandpilePitchMapping = h.mapping;
+    if (h.rule) state.sandpileCellRule = h.rule;
+    if (h.polyphony) state.sandpilePolyphony = h.polyphony;
     if (h.span) state.sandpileSpan = h.span;
     if (h.gateLen) state.sandpileGateLen = h.gateLen;
     if (h.velocity) state.sandpileVelocity = h.velocity;
