@@ -38,6 +38,8 @@ const CRITICAL_P = 0.592746;
 const grid = new Uint8Array(MAX_CELLS);
 const sparkLife = new Float32Array(MAX_CELLS);
 const clusterTouched = new Uint8Array(MAX_CELLS);
+const cellFatigue = new Float32Array(MAX_CELLS); // Refractory fatigue (0.0 to 1.0)
+const cellAge = new Uint16Array(MAX_CELLS);     // Inactive cycles for sedimentation
 
 // DSU Buffers
 const parent = new Int32Array(MAX_CELLS);
@@ -298,6 +300,8 @@ export function reseedPercolation(customPreset = null) {
   }
 
   sparkLife.fill(0);
+  cellFatigue.fill(0);
+  cellAge.fill(0);
   scanPhase = 0;
   initFluidFrontier();
   recomputePercolationClusters();
@@ -428,14 +432,24 @@ function triggerConductionStep() {
   const baseGate = Math.min(600, Math.max(60, state.percolationGateLen ?? 180));
   const intervals = getActiveScaleIntervals();
   const rootMidi = getRootMidi();
+  const restAmount = Math.min(1.0, Math.max(0.0, (state.percolationRest ?? 40) / 100));
+  const evoRate = Math.min(1.0, Math.max(0.0, (state.percolationEvo ?? 25) / 100));
 
   let candidateCount = 0;
+
+  function candidatePassesFatigue(idx) {
+    if (restAmount <= 0) return true;
+    const f = cellFatigue[idx];
+    if (f <= 0.05) return true;
+    const fireChance = 1.0 - (f * restAmount * 0.85);
+    return Math.random() < fireChance;
+  }
 
   if (scanMode === "top-down") {
     const y = scanPhase % H;
     for (let x = 0; x < W; x++) {
       const idx = y * W + x;
-      if (grid[idx]) {
+      if (grid[idx] && candidatePassesFatigue(idx)) {
         activeCandidates[candidateCount++] = idx;
       }
     }
@@ -444,7 +458,7 @@ function triggerConductionStep() {
     const x = scanPhase % W;
     for (let y = 0; y < H; y++) {
       const idx = y * W + x;
-      if (grid[idx]) {
+      if (grid[idx] && candidatePassesFatigue(idx)) {
         activeCandidates[candidateCount++] = idx;
       }
     }
@@ -460,7 +474,7 @@ function triggerConductionStep() {
         const idx = y * W + x;
         if (!grid[idx]) continue;
         const dist = Math.hypot(x - cx, y - cy);
-        if (Math.abs(dist - r) < 1.0) {
+        if (Math.abs(dist - r) < 1.0 && candidatePassesFatigue(idx)) {
           activeCandidates[candidateCount++] = idx;
         }
       }
@@ -553,12 +567,64 @@ function triggerConductionStep() {
     const vel = Math.min(127, Math.max(30, velBase + Math.floor((Math.random() - 0.5) * 10)));
     const gateDur = spans ? Math.round(baseGate * 1.35) : (cSize <= 2 ? Math.round(baseGate * 0.65) : baseGate);
 
-    // Spark visual life
+    // Spark visual life & set refractory fatigue
     sparkLife[cellIdx] = 1.0;
+    cellFatigue[cellIdx] = 1.0;
+    cellAge[cellIdx] = 0;
 
     // Disperse voice key across polyphony slots
     const vKey = (voiceCounter++) % maxPoly;
     playPercolationVoice(vKey, note, vel, gateDur);
+  }
+
+  // Evolutionary Erosion & Sedimentation Dynamics
+  if (evoRate > 0) {
+    let latticeMutated = false;
+
+    // 1. Hydraulic Erosion: energetic discharge erodes closed neighbor wall
+    for (let i = 0; i < selectedCount; i++) {
+      if (Math.random() < evoRate * 0.16) {
+        const cIdx = chosenVoices[i];
+        const cx = cIdx % W;
+        const cy = Math.floor(cIdx / W);
+        const dir = Math.floor(Math.random() * 4);
+        let nx = cx, ny = cy;
+        if (dir === 0 && cx > 0) nx--;
+        else if (dir === 1 && cx < W - 1) nx++;
+        else if (dir === 2 && cy > 0) ny--;
+        else if (dir === 3 && cy < H - 1) ny++;
+
+        const nIdx = ny * W + nx;
+        // Erode wall into open channel if lattice isn't oversaturated
+        if (!grid[nIdx] && totalOpenCells < total * 0.72) {
+          grid[nIdx] = 1;
+          cellFatigue[nIdx] = 0.5;
+          latticeMutated = true;
+        }
+      }
+    }
+
+    // 2. Sedimentation: stagnant channels silt up over scan cycles
+    if (scanPhase === 0) {
+      for (let i = 0; i < total; i++) {
+        if (grid[i]) {
+          cellAge[i]++;
+          if (cellAge[i] > 12 && Math.random() < evoRate * 0.12) {
+            // Silt up if lattice has enough open channels
+            if (totalOpenCells > total * 0.30) {
+              grid[i] = 0;
+              cellFatigue[i] = 0;
+              cellAge[i] = 0;
+              latticeMutated = true;
+            }
+          }
+        }
+      }
+    }
+
+    if (latticeMutated) {
+      recomputePercolationClusters();
+    }
   }
 
   // MIDI CC #74 Brightness Modulation based on conduction energy
@@ -621,13 +687,19 @@ function percolationLoop(timestamp) {
     }
   }
 
-  // Decay spark visual highlights
+  // Decay spark visual highlights & recover cell refractory fatigue
   const total = getGridW() * getGridH();
+  const restAmount = Math.min(1.0, Math.max(0.0, (state.percolationRest ?? 40) / 100));
+  const recoveryRate = Math.max(0.12, (1.6 - restAmount * 1.25)) * speedMult;
+
   for (let i = 0; i < total; i++) {
     if (sparkLife[i] > 0.02) {
       sparkLife[i] *= 0.88;
     } else {
       sparkLife[i] = 0;
+    }
+    if (cellFatigue[i] > 0.01) {
+      cellFatigue[i] = Math.max(0, cellFatigue[i] - dt * recoveryRate);
     }
   }
 
@@ -686,7 +758,9 @@ function updateReadoutMetrics() {
   const pVal = (state.percolationProb ?? 0.593).toFixed(3);
   const spanStr = hasSpanningCluster ? `YES (${spanningClusterSize} cells)` : "NO";
   const condPct = Math.round(currentConduction * 100);
-  statReadoutEl.textContent = `Lattice: ${W}×${H} · p: ${pVal} (pc ≈ 0.593) · Clusters: ${totalClusters} · Spanning: ${spanStr} · Conduction: ${condPct}% · Voices: ${activeVoices.size}/${state.percolationPolyphony ?? 4}`;
+  const restVal = state.percolationRest ?? 40;
+  const evoVal = state.percolationEvo ?? 25;
+  statReadoutEl.textContent = `Lattice: ${W}×${H} · p: ${pVal} (pc ≈ 0.593) · Clusters: ${totalClusters} · Spanning: ${spanStr} · Rest: ${restVal}% · Evo: ${evoVal}% · Voices: ${activeVoices.size}/${state.percolationPolyphony ?? 4}`;
 }
 
 // ---- Canvas Rendering (Flat Workbench Aesthetic, Zero Gradients) ----
@@ -733,13 +807,15 @@ function renderPercolationCanvas() {
         ctx.fillStyle = colPanel2;
         ctx.globalAlpha = 0.5;
       } else if (spans) {
-        // Spanning infinite cluster: vibrant accent2
+        // Spanning infinite cluster: vibrant accent2 (modulated by fatigue)
+        const f = cellFatigue[idx];
         ctx.fillStyle = colAccent2;
-        ctx.globalAlpha = 0.95;
+        ctx.globalAlpha = f > 0.05 ? Math.max(0.35, 0.95 - f * 0.55) : 0.95;
       } else {
-        // Open local cluster cell: solid accent
+        // Open local cluster cell: solid accent (modulated by fatigue)
+        const f = cellFatigue[idx];
         ctx.fillStyle = colAccent;
-        ctx.globalAlpha = 0.65;
+        ctx.globalAlpha = f > 0.05 ? Math.max(0.25, 0.65 - f * 0.40) : 0.65;
       }
 
       ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
@@ -856,6 +932,8 @@ function syncControlsFromState() {
   if (refs.percolationPolyphony?.setValue) refs.percolationPolyphony.setValue(state.percolationPolyphony ?? 4, false);
   if (refs.percolationGateLen?.setValue) refs.percolationGateLen.setValue(state.percolationGateLen ?? 180, false);
   if (refs.percolationScanRate?.setValue) refs.percolationScanRate.setValue(state.percolationScanRate ?? 8, false);
+  if (refs.percolationRest?.setValue) refs.percolationRest.setValue(state.percolationRest ?? 40, false);
+  if (refs.percolationEvo?.setValue) refs.percolationEvo.setValue(state.percolationEvo ?? 25, false);
 }
 
 // ---- UI Construction (Flat Workbench Aesthetic) ----
@@ -943,7 +1021,7 @@ export function initPercolation() {
 
   const paramGrid = document.createElement("div");
   paramGrid.style.display = "grid";
-  paramGrid.style.gridTemplateColumns = "repeat(4, 1fr)";
+  paramGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
   paramGrid.style.gap = "6px";
 
   const kProb = R("percolationProb", knob({
@@ -984,6 +1062,30 @@ export function initPercolation() {
     }
   }));
 
+  const kRest = R("percolationRest", knob({
+    label: "REST",
+    min: 0,
+    max: 100,
+    step: 1,
+    value: state.percolationRest ?? 40,
+    title: "Refractory fatigue cool-down (higher = longer rest before re-triggering)",
+    onInput: (v) => {
+      state.percolationRest = Math.round(v);
+    }
+  }));
+
+  const kEvo = R("percolationEvo", knob({
+    label: "EVO",
+    min: 0,
+    max: 100,
+    step: 1,
+    value: state.percolationEvo ?? 25,
+    title: "Dynamic porosity evolution (hydraulic erosion & sedimentation rate)",
+    onInput: (v) => {
+      state.percolationEvo = Math.round(v);
+    }
+  }));
+
   const kSpan = R("percolationSpan", knob({
     label: "SPAN",
     min: 1,
@@ -996,7 +1098,7 @@ export function initPercolation() {
     }
   }));
 
-  paramGrid.append(kProb, kScanRate, kPolyphony, kSpan);
+  paramGrid.append(kProb, kScanRate, kPolyphony, kRest, kEvo, kSpan);
 
   // Dropdown Selectors
   const dropdownRow = document.createElement("div");
@@ -1241,6 +1343,8 @@ registerModel({
       polyphony: state.percolationPolyphony,
       span: state.percolationSpan,
       gateLen: state.percolationGateLen,
+      rest: state.percolationRest,
+      evo: state.percolationEvo,
       preset: state.percolationPreset,
       cells: cellBits
     };
@@ -1256,6 +1360,8 @@ registerModel({
     if (h.polyphony !== undefined) state.percolationPolyphony = h.polyphony;
     if (h.span !== undefined) state.percolationSpan = h.span;
     if (h.gateLen !== undefined) state.percolationGateLen = h.gateLen;
+    if (h.rest !== undefined) state.percolationRest = h.rest;
+    if (h.evo !== undefined) state.percolationEvo = h.evo;
     if (h.preset) state.percolationPreset = h.preset;
 
     if (Array.isArray(h.cells)) {
