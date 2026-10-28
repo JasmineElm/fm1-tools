@@ -90,16 +90,16 @@ export const HANENBOW_PRESETS = [
     name: "Waterfall Cascade",
     desc: "Staggered diagonal leaves funneling ricochets in descending/ascending arpeggio cascades",
     leaves: 5,
-    cannon: { x: 75, y: 460, angle: -0.95, speed: 640 },
+    cannon: { x: 75, y: 470, angle: -1.26, speed: 750 },
     leafData: [
-      { x: 190, y: 340, len: 110, angle: -0.22, pitch: 0 },
-      { x: 340, y: 260, len: 105, angle: 0.35,  pitch: 2 },
-      { x: 500, y: 220, len: 100, angle: -0.40, pitch: 4 },
-      { x: 640, y: 310, len: 110, angle: -0.65, pitch: 5 },
-      { x: 470, y: 420, len: 120, angle: 0.25,  pitch: 7 }
+      { x: 195, y: 325, len: 115, angle: -0.22, pitch: 0 },
+      { x: 340, y: 250, len: 110, angle: -0.20, pitch: 2 },
+      { x: 485, y: 220, len: 110, angle: -0.15, pitch: 4 },
+      { x: 625, y: 280, len: 110, angle: 0.35,  pitch: 5 },
+      { x: 480, y: 410, len: 120, angle: 0.20,  pitch: 7 }
     ],
-    gravity: 950,
-    elasticity: 0.88,
+    gravity: 860,
+    elasticity: 0.98,
     fireRate: 1.6
   },
   {
@@ -107,17 +107,17 @@ export const HANENBOW_PRESETS = [
     name: "Acoustic Fountain",
     desc: "Symmetrical V-shaped bounce leaves returning plankton in tall parabolic ricochet arcs",
     leaves: 6,
-    cannon: { x: 380, y: 500, angle: -Math.PI / 2, speed: 720 },
+    cannon: { x: 390, y: 490, angle: -1.68, speed: 720 },
     leafData: [
-      { x: 260, y: 240, len: 115, angle: 0.55,  pitch: 4 },
-      { x: 500, y: 240, len: 115, angle: -0.55, pitch: 4 },
-      { x: 160, y: 360, len: 110, angle: 0.35,  pitch: 1 },
-      { x: 600, y: 360, len: 110, angle: -0.35, pitch: 1 },
-      { x: 310, y: 430, len: 100, angle: -0.15, pitch: 6 },
-      { x: 450, y: 430, len: 100, angle: 0.15,  pitch: 6 }
+      { x: 270, y: 250, len: 120, angle: 0.45,  pitch: 4 },
+      { x: 530, y: 250, len: 120, angle: -0.45, pitch: 4 },
+      { x: 180, y: 360, len: 115, angle: 0.25,  pitch: 1 },
+      { x: 620, y: 360, len: 115, angle: -0.25, pitch: 1 },
+      { x: 330, y: 420, len: 110, angle: -0.18, pitch: 6 },
+      { x: 470, y: 420, len: 110, angle: 0.18,  pitch: 6 }
     ],
-    gravity: 980,
-    elasticity: 0.85,
+    gravity: 920,
+    elasticity: 0.96,
     fireRate: 1.4
   },
   {
@@ -125,7 +125,7 @@ export const HANENBOW_PRESETS = [
     name: "Pachinko Pinball",
     desc: "Alternating criss-cross leaves yielding syncopated polyrhythmic ricochets and double strikes",
     leaves: 7,
-    cannon: { x: 90, y: 480, angle: -1.1, speed: 700 },
+    cannon: { x: 90, y: 480, angle: -1.18, speed: 730 },
     leafData: [
       { x: 210, y: 250, len: 110, angle: 0.40,  pitch: 0 },
       { x: 380, y: 200, len: 100, angle: -0.45, pitch: 2 },
@@ -135,8 +135,8 @@ export const HANENBOW_PRESETS = [
       { x: 340, y: 390, len: 100, angle: 0.25,  pitch: 1 },
       { x: 200, y: 440, len: 110, angle: -0.15, pitch: 5 }
     ],
-    gravity: 1020,
-    elasticity: 0.90,
+    gravity: 920,
+    elasticity: 0.96,
     fireRate: 1.8
   },
   {
@@ -144,17 +144,17 @@ export const HANENBOW_PRESETS = [
     name: "Resonant Bell Tree",
     desc: "Ascending ladder of leaves with tight micro-timing intervals and ascending melodic runs",
     leaves: 6,
-    cannon: { x: 120, y: 500, angle: -0.85, speed: 680 },
+    cannon: { x: 120, y: 500, angle: -1.25, speed: 720 },
     leafData: [
-      { x: 230, y: 420, len: 120, angle: 0.20,  pitch: 0 },
-      { x: 360, y: 340, len: 110, angle: -0.25, pitch: 1 },
-      { x: 480, y: 270, len: 105, angle: 0.28,  pitch: 2 },
-      { x: 600, y: 210, len: 100, angle: -0.32, pitch: 3 },
-      { x: 420, y: 160, len: 95,  angle: 0.35,  pitch: 5 },
+      { x: 240, y: 380, len: 120, angle: -0.22, pitch: 0 },
+      { x: 360, y: 300, len: 115, angle: -0.25, pitch: 1 },
+      { x: 480, y: 230, len: 110, angle: -0.22, pitch: 2 },
+      { x: 600, y: 200, len: 100, angle: 0.30,  pitch: 3 },
+      { x: 440, y: 150, len: 95,  angle: 0.35,  pitch: 5 },
       { x: 280, y: 220, len: 100, angle: -0.28, pitch: 7 }
     ],
-    gravity: 920,
-    elasticity: 0.86,
+    gravity: 880,
+    elasticity: 0.98,
     fireRate: 1.5
   },
   {
@@ -162,15 +162,15 @@ export const HANENBOW_PRESETS = [
     name: "Zen Garden Chimes",
     desc: "Spacious, gentle shallow leaves for slow ambient ring-outs and peaceful water drop bounces",
     leaves: 4,
-    cannon: { x: 100, y: 450, angle: -0.80, speed: 600 },
+    cannon: { x: 100, y: 460, angle: -1.22, speed: 680 },
     leafData: [
-      { x: 260, y: 360, len: 135, angle: 0.15,  pitch: 0 },
-      { x: 450, y: 300, len: 130, angle: -0.18, pitch: 2 },
-      { x: 620, y: 380, len: 125, angle: -0.25, pitch: 4 },
-      { x: 380, y: 440, len: 130, angle: 0.12,  pitch: 7 }
+      { x: 240, y: 340, len: 135, angle: -0.22, pitch: 0 },
+      { x: 430, y: 280, len: 130, angle: -0.18, pitch: 2 },
+      { x: 620, y: 330, len: 125, angle: 0.28,  pitch: 4 },
+      { x: 400, y: 430, len: 130, angle: 0.15,  pitch: 7 }
     ],
-    gravity: 800,
-    elasticity: 0.82,
+    gravity: 780,
+    elasticity: 0.95,
     fireRate: 1.0
   }
 ];
@@ -297,83 +297,117 @@ export function getLeafNote(i) {
   return quantize(root + octave * 12 + (intervals[deg] || 0));
 }
 
+// Helper: Compute outward surface normal for leaf collision
+function getLeafNormal(px, py, closeX, closeY, ang, u, dist) {
+  const cosA = Math.cos(ang);
+  const sinA = Math.sin(ang);
+  if (u > 0.08 && u < 0.92) {
+    let nx = -sinA;
+    let ny = cosA;
+    if ((px - closeX) * nx + (py - closeY) * ny < 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    return { nx, ny };
+  } else {
+    const dx = px - closeX;
+    const dy = py - closeY;
+    if (dist > 0.001) {
+      return { nx: dx / dist, ny: dy / dist };
+    }
+    let nx = -sinA;
+    let ny = cosA;
+    if (ny > 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    return { nx, ny };
+  }
+}
+
 // ---- Ballistics & Physics Step ----
 function stepBallistics(dt) {
   const num = Math.min(MAX_LEAVES, Math.max(2, state.hanenbowLeaves ?? 5));
-  const grav = state.hanenbowGravity ?? 980;
-  const rest = state.hanenbowElasticity ?? 0.85;
+  const grav = state.hanenbowGravity ?? 880;
+  const rest = state.hanenbowElasticity ?? 0.96;
+  const subSteps = 5;
+  const sdt = dt / subSteps;
+  const hitDist = pRadius + 5.0;
 
-  // 1. Advance plankton projectiles
+  for (let sub = 0; sub < subSteps; sub++) {
+    // 1. Advance plankton projectiles
+    for (let p = 0; p < MAX_PLANKTON; p++) {
+      if (pActive[p] === 0) continue;
+
+      pVy[p] += grav * sdt;
+      pX[p] += pVx[p] * sdt;
+      pY[p] += pVy[p] * sdt;
+
+      // Check bounds: fall below pond water level (Y > 580) or off-screen
+      if (pX[p] < -40 || pX[p] > 860 || pY[p] > 580) {
+        pActive[p] = 0;
+        continue;
+      }
+
+      // 2. Collision with leaves (Circle-to-Line Segment deflection)
+      for (let j = 0; j < num; j++) {
+        const lx = leafX[j];
+        const ly = leafY[j];
+        const len = leafLength[j];
+        const ang = leafAngle[j] + leafBend[j];
+
+        const cosA = Math.cos(ang);
+        const sinA = Math.sin(ang);
+        const halfL = len * 0.5;
+
+        const segP1x = lx - cosA * halfL;
+        const segP1y = ly - sinA * halfL;
+        const segDx = cosA * len;
+        const segDy = sinA * len;
+        const segLenSq = len * len;
+
+        const u = Math.max(0, Math.min(1, ((pX[p] - segP1x) * segDx + (pY[p] - segP1y) * segDy) / segLenSq));
+        const closeX = segP1x + u * segDx;
+        const closeY = segP1y + u * segDy;
+        const dist = Math.hypot(pX[p] - closeX, pY[p] - closeY);
+
+        if (dist < hitDist) {
+          const { nx, ny } = getLeafNormal(pX[p], pY[p], closeX, closeY, ang, u, dist);
+          const dot = pVx[p] * nx + pVy[p] * ny;
+
+          if (dot < 0) {
+            // Specular rebound with restitution
+            pVx[p] -= (1 + rest) * dot * nx;
+            pVy[p] -= (1 + rest) * dot * ny;
+
+            // Push plankton cleanly off surface to prevent collision sticking
+            pX[p] = closeX + nx * (hitDist + 0.6);
+            pY[p] = closeY + ny * (hitDist + 0.6);
+
+            // Leaf spring elastic impulse & bloom
+            leafBendVel[j] += dot * 0.0009;
+            leafBloom[j] = Math.min(1.0, leafBloom[j] + 0.40);
+
+            // Trigger leaf sound
+            const note = getLeafNote(j);
+            const vel = Math.min(127, Math.max(40, Math.round(Math.abs(dot) * 0.22)));
+            const gateLen = state.hanenbowGateLen ?? 240;
+            playLeafVoice(j, note, vel, gateLen);
+          }
+        }
+      }
+    }
+  }
+
+  // Shift tail trail once per frame
   for (let p = 0; p < MAX_PLANKTON; p++) {
     if (pActive[p] === 0) continue;
-
-    // Shift tail trail
     for (let t = TRAIL_PTS - 1; t > 0; t--) {
       pTrailX[p * TRAIL_PTS + t] = pTrailX[p * TRAIL_PTS + t - 1];
       pTrailY[p * TRAIL_PTS + t] = pTrailY[p * TRAIL_PTS + t - 1];
     }
     pTrailX[p * TRAIL_PTS] = pX[p];
     pTrailY[p * TRAIL_PTS] = pY[p];
-
-    pVy[p] += grav * dt;
-    pX[p] += pVx[p] * dt;
-    pY[p] += pVy[p] * dt;
-
-    // Check bounds: fall below pond water level (Y > 580) or off-screen
-    if (pX[p] < -30 || pX[p] > 860 || pY[p] > 580) {
-      pActive[p] = 0;
-      continue;
-    }
-
-    // 2. Collision with leaves (Circle-to-Line Segment projection)
-    for (let j = 0; j < num; j++) {
-      const lx = leafX[j];
-      const ly = leafY[j];
-      const len = leafLength[j];
-      const ang = leafAngle[j] + leafBend[j];
-
-      const cosA = Math.cos(ang);
-      const sinA = Math.sin(ang);
-      const halfL = len * 0.5;
-
-      const segP1x = lx - cosA * halfL;
-      const segP1y = ly - sinA * halfL;
-      const segDx = cosA * len;
-      const segDy = sinA * len;
-      const segLenSq = len * len;
-
-      const u = Math.max(0, Math.min(1, ((pX[p] - segP1x) * segDx + (pY[p] - segP1y) * segDy) / segLenSq));
-      const closeX = segP1x + u * segDx;
-      const closeY = segP1y + u * segDy;
-      const dist = Math.hypot(pX[p] - closeX, pY[p] - closeY);
-
-      if (dist < pRadius + 6.0) {
-        // Normal to leaf segment
-        const nx = -sinA;
-        const ny = cosA;
-        const dot = pVx[p] * nx + pVy[p] * ny;
-
-        if (dot < 0) {
-          // Specular rebound with restitution
-          pVx[p] -= (1 + rest) * dot * nx;
-          pVy[p] -= (1 + rest) * dot * ny;
-
-          // Push plankton slightly off surface to prevent collision sticking
-          pX[p] = closeX + nx * (pRadius + 7.0);
-          pY[p] = closeY + ny * (pRadius + 7.0);
-
-          // Leaf spring elastic impulse & bloom
-          leafBendVel[j] += dot * 0.0008;
-          leafBloom[j] = Math.min(1.0, leafBloom[j] + 0.35);
-
-          // Trigger leaf sound
-          const note = getLeafNote(j);
-          const vel = Math.min(127, Math.max(40, Math.round(Math.abs(dot) * 0.22)));
-          const gateLen = state.hanenbowGateLen ?? 240;
-          playLeafVoice(j, note, vel, gateLen);
-        }
-      }
-    }
   }
 
   // 3. Update leaf spring damped oscillations
@@ -509,14 +543,17 @@ export function generateHanenbowBank(st) {
           const closeX = segP1x + u * segDx;
           const closeY = segP1y + u * segDy;
           const dist = Math.hypot(simPx - closeX, simPy - closeY);
+          const hitDist = pRadius + 5.0;
 
-          if (dist < pRadius + 6.0) {
-            const nx = -sinA, ny = cosA;
+          if (dist < hitDist) {
+            const { nx, ny } = getLeafNormal(simPx, simPy, closeX, closeY, ang, u, dist);
             const dot = simVx * nx + simVy * ny;
 
             if (dot < 0) {
               simVx -= (1 + simRest) * dot * nx;
               simVy -= (1 + simRest) * dot * ny;
+              simPx = closeX + nx * (hitDist + 0.6);
+              simPy = closeY + ny * (hitDist + 0.6);
 
               const normHeight = 1.0 - Math.min(1.0, Math.max(0.0, (ly - 140) / 360));
               const oct = Math.floor(normHeight * (span - 1));
@@ -717,9 +754,9 @@ function renderPondCanvas() {
   ctx.arc(bx, by, 3 * scaleX, 0, Math.PI * 2);
   ctx.fill();
 
-  // Cannon aiming trajectory guide arc (subtle dashed line)
+  // Cannon aiming trajectory guide arc (shows launch arc and multi-leaf deflections)
   ctx.save();
-  ctx.strokeStyle = "rgba(0, 240, 255, 0.35)";
+  ctx.strokeStyle = "rgba(0, 240, 255, 0.45)";
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 4]);
   ctx.beginPath();
@@ -728,14 +765,52 @@ function renderPondCanvas() {
   const spd = state.hanenbowLaunchSpeed ?? cannonSpeed;
   let arcVx = Math.cos(cannonAngle) * spd;
   let arcVy = Math.sin(cannonAngle) * spd;
-  const grav = state.hanenbowGravity ?? 980;
-  const stepT = 0.025;
+  const grav = state.hanenbowGravity ?? 880;
+  const rest = Math.min(1.0, state.hanenbowElasticity ?? 0.96);
+  const stepT = 0.016;
+  const guideHitDist = pRadius + 5.0;
   ctx.moveTo(arcX * scaleX, arcY * scaleY);
-  for (let s = 0; s < 26; s++) {
+  for (let s = 0; s < 70; s++) {
     arcVy += grav * stepT;
     arcX += arcVx * stepT;
     arcY += arcVy * stepT;
-    if (arcY > 520 || arcX < 0 || arcX > 800) break;
+    if (arcY > 540 || arcX < -20 || arcX > 820) break;
+
+    // Check collision with leaves
+    for (let j = 0; j < num; j++) {
+      const lx = leafX[j];
+      const ly = leafY[j];
+      const len = leafLength[j];
+      const ang = leafAngle[j] + leafBend[j];
+
+      const cosA = Math.cos(ang);
+      const sinA = Math.sin(ang);
+      const halfL = len * 0.5;
+
+      const segP1x = lx - cosA * halfL;
+      const segP1y = ly - sinA * halfL;
+      const segDx = cosA * len;
+      const segDy = sinA * len;
+      const segLenSq = len * len;
+
+      const u = Math.max(0, Math.min(1, ((arcX - segP1x) * segDx + (arcY - segP1y) * segDy) / segLenSq));
+      const closeX = segP1x + u * segDx;
+      const closeY = segP1y + u * segDy;
+      const dist = Math.hypot(arcX - closeX, arcY - closeY);
+
+      if (dist < guideHitDist) {
+        const { nx, ny } = getLeafNormal(arcX, arcY, closeX, closeY, ang, u, dist);
+        const dot = arcVx * nx + arcVy * ny;
+
+        if (dot < 0) {
+          arcVx -= (1 + rest) * dot * nx;
+          arcVy -= (1 + rest) * dot * ny;
+          arcX = closeX + nx * (guideHitDist + 0.6);
+          arcY = closeY + ny * (guideHitDist + 0.6);
+          break;
+        }
+      }
+    }
     ctx.lineTo(arcX * scaleX, arcY * scaleY);
   }
   ctx.stroke();
@@ -941,8 +1016,8 @@ export function initHanenbow() {
 
   const kElast = knob({
     label: "BOUNCE",
-    min: 0.50, max: 0.98, step: 0.02,
-    value: state.hanenbowElasticity ?? 0.85,
+    min: 0.50, max: 1.15, step: 0.02,
+    value: state.hanenbowElasticity ?? 0.96,
     unit: "e",
     title: "Specular restitution coefficient of leaves",
     onChange: (v) => {
