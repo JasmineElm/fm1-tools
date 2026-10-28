@@ -999,14 +999,14 @@ export function initPercolation() {
     }
   }));
 
-  const reseedBtn = R("btnPercolationReseed", actionBtn({
-    label: "RESEED",
-    title: "Randomize lattice site occupancy with current probability p",
-    onClick: () => {
+  const reseedBtn = R("btnPercolationReseed", actionBtn(
+    "RESEED",
+    () => {
       reseedPercolation();
       renderPercolationCanvas();
-    }
-  }));
+    },
+    "Randomize lattice site occupancy with current probability p"
+  ));
 
   presetRow.append(presetSelect, reseedBtn);
   headerCard.append(headerRow, presetRow);

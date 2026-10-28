@@ -110,14 +110,24 @@ export function toggleBtn(label, value, onInput, tip = "", labelPos = "top") {
 }
 
 export function actionBtn(label, onClick, tip = "") {
+  let lbl = label;
+  let clickHandler = onClick;
+  let tooltip = tip;
+
+  if (typeof label === "object" && label !== null) {
+    lbl = label.label || label.text || "";
+    clickHandler = label.onClick || onClick;
+    tooltip = label.tip || label.title || tip;
+  }
+
   const wrap = document.createElement("div");
   wrap.className = "toggle-wrap lab-right";
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "toggle action-btn";
-  btn.textContent = label;
-  if (tip) btn.title = tip;
-  btn.addEventListener("click", onClick);
+  btn.textContent = lbl;
+  if (tooltip) btn.title = tooltip;
+  if (typeof clickHandler === "function") btn.addEventListener("click", clickHandler);
   wrap.appendChild(btn);
   return wrap;
 }
