@@ -233,6 +233,7 @@ export const DEFAULT = {
   hanenbowCcDest: 74,
   hanenbowCcDepth: 85,
   hanenbowGateLen: 240,
+  hanenbowTimingPeriod: 1.5,
 };
 
 export const state = { ...DEFAULT };

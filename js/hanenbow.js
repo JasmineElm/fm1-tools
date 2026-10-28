@@ -60,6 +60,10 @@ const leafBendVel = new Float32Array(MAX_LEAVES);
 const leafBloom = new Float32Array(MAX_LEAVES); // 0.0 (green) -> 1.0 (bloomed amber/pink)
 const leafPitchIdx = new Int32Array(MAX_LEAVES);
 
+// Scale cycling state: tracks last trigger timestamp and cycle count per leaf
+const leafLastHitTime = new Float64Array(MAX_LEAVES).fill(-999);
+const leafCycleCount = new Int32Array(MAX_LEAVES);
+
 // Cannon Launcher State
 let cannonX = 80;
 let cannonY = 480;
@@ -282,19 +286,41 @@ function playLeafVoice(leafIdx, note, vel, durMs) {
   }
 }
 
-// Resolves a scale-quantized pitch for leaf `i`
-export function getLeafNote(i) {
+// Resolves a scale-quantized pitch for leaf `i`.
+// If `advance` is true and hit within `hanenbowTimingPeriod`, cycles upward through the scale.
+export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.001) {
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
   const span = state.hanenbowSpan ?? 3;
-  const num = Math.min(MAX_LEAVES, Math.max(2, state.hanenbowLeaves ?? 5));
+  const period = state.hanenbowTimingPeriod ?? 1.5;
 
-  // Map leaf position in pond: higher Y (closer to water top) = higher octave
+  if (advance) {
+    const elapsed = nowSec - leafLastHitTime[i];
+    if (elapsed > 0.04 && elapsed <= period) {
+      // Triggered more than once within global timing period: cycle upward through the musical scale!
+      leafCycleCount[i] += 1;
+    } else if (elapsed > period) {
+      // Timing period expired: reset cycle back to leaf base note
+      leafCycleCount[i] = 0;
+    }
+    leafLastHitTime[i] = nowSec;
+  }
+
+  // Base pitch mapping from leaf pond position
   const normHeight = 1.0 - Math.min(1.0, Math.max(0.0, (leafY[i] - 140) / 360));
-  const octave = Math.floor(normHeight * (span - 1));
-  const deg = (leafPitchIdx[i] ?? i) % intervals.length;
+  const baseOctave = Math.floor(normHeight * (span - 1));
+  const baseDeg = (leafPitchIdx[i] ?? i);
 
-  return quantize(root + octave * 12 + (intervals[deg] || 0));
+  // If not advancing, check if timing period has expired for display readout
+  const activeCycle = (advance || (nowSec - leafLastHitTime[i] <= period)) ? leafCycleCount[i] : 0;
+  const totalDeg = baseDeg + activeCycle;
+
+  const numIntervals = Math.max(1, intervals.length);
+  const octShift = Math.floor(totalDeg / numIntervals);
+  const deg = ((totalDeg % numIntervals) + numIntervals) % numIntervals;
+  const targetOctave = baseOctave + octShift;
+
+  return quantize(Math.min(127, Math.max(0, root + targetOctave * 12 + (intervals[deg] || 0))));
 }
 
 // Helper: Compute outward surface normal for leaf collision
@@ -388,8 +414,9 @@ function stepBallistics(dt) {
             leafBendVel[j] += dot * 0.0009;
             leafBloom[j] = Math.min(1.0, leafBloom[j] + 0.40);
 
-            // Trigger leaf sound
-            const note = getLeafNote(j);
+            // Trigger leaf sound (cycles upward through scale if hit within timing period)
+            const nowSec = performance.now() * 0.001;
+            const note = getLeafNote(j, true, nowSec);
             const vel = Math.min(127, Math.max(40, Math.round(Math.abs(dot) * 0.22)));
             const gateLen = state.hanenbowGateLen ?? 240;
             playLeafVoice(j, note, vel, gateLen);
@@ -496,8 +523,12 @@ export function generateHanenbowBank(st) {
 
     // Forward deterministic projectile simulation across the sequence steps
     const simDt = 0.02;
-    const simGrav = st.hanenbowGravity ?? 980;
-    const simRest = st.hanenbowElasticity ?? 0.85;
+    const simGrav = st.hanenbowGravity ?? 880;
+    const simRest = st.hanenbowElasticity ?? 0.96;
+    const period = st.hanenbowTimingPeriod ?? 1.5;
+    let simTimeSec = 0;
+    const simLastHit = new Float64Array(num).fill(-999);
+    const simCycleCount = new Int32Array(num);
 
     let simPx = cannonX + Math.cos(cannonAngle) * 22;
     let simPy = cannonY + Math.sin(cannonAngle) * 22;
@@ -555,10 +586,23 @@ export function generateHanenbowBank(st) {
               simPx = closeX + nx * (hitDist + 0.6);
               simPy = closeY + ny * (hitDist + 0.6);
 
+              // Cycle upwards through scale if triggered within global timing period
+              simTimeSec += simDt;
+              const elapsed = simTimeSec - simLastHit[j];
+              if (elapsed > 0.04 && elapsed <= period) {
+                simCycleCount[j]++;
+              } else if (elapsed > period) {
+                simCycleCount[j] = 0;
+              }
+              simLastHit[j] = simTimeSec;
+
               const normHeight = 1.0 - Math.min(1.0, Math.max(0.0, (ly - 140) / 360));
-              const oct = Math.floor(normHeight * (span - 1));
-              const deg = (leafPitchIdx[j] + s) % intervals.length;
-              const note = quantize(root + oct * 12 + (intervals[deg] || 0));
+              const baseOctave = Math.floor(normHeight * (span - 1));
+              const totalDeg = (leafPitchIdx[j] + s) + simCycleCount[j];
+              const numIntervals = Math.max(1, intervals.length);
+              const octShift = Math.floor(totalDeg / numIntervals);
+              const deg = ((totalDeg % numIntervals) + numIntervals) % numIntervals;
+              const note = quantize(Math.min(127, Math.max(0, root + (baseOctave + octShift) * 12 + (intervals[deg] || 0))));
               const vel = Math.min(127, Math.max(45, Math.round(Math.abs(dot) * 0.22)));
 
               if (!stepNotes.some(sn => sn.note === note) && stepNotes.length < 3) {
@@ -623,6 +667,7 @@ function renderPondCanvas() {
   const w = pondCanvas.width = pondCanvas.clientWidth * (window.devicePixelRatio || 1);
   const h = pondCanvas.height = pondCanvas.clientHeight * (window.devicePixelRatio || 1);
   ctx.clearRect(0, 0, w, h);
+  const nowMs = performance.now();
 
   // Read semantic workbench tokens dynamically
   const style = getComputedStyle(document.documentElement);
@@ -714,12 +759,19 @@ function renderPondCanvas() {
     ctx.strokeStyle = isSelected ? "#ffffff" : colLineFocus;
     ctx.stroke();
 
-    // Leaf pitch & index label
-    ctx.fillStyle = colFg;
+    // Leaf pitch & index label with scale cycling status
+    const nowSec = nowMs * 0.001;
+    const curNote = getLeafNote(i, false, nowSec);
+    const noteNameStr = midiName(curNote);
+    const period = state.hanenbowTimingPeriod ?? 1.5;
+    const isCycling = (nowSec - leafLastHitTime[i] <= period) && leafCycleCount[i] > 0;
+    const cycleLabel = isCycling ? `L${i + 1} ${noteNameStr} +${leafCycleCount[i]}` : `L${i + 1} ${noteNameStr}`;
+
+    ctx.fillStyle = isCycling ? colAccent : colFg;
     ctx.font = `bold ${Math.round(9 * scaleX)}px monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(`L${i + 1}`, lx, ly - 14 * scaleY);
+    ctx.fillText(cycleLabel, lx, ly - 14 * scaleY);
   }
 
   // 3. Draw Cannon launcher
@@ -857,6 +909,7 @@ function syncControlsFromState() {
   if (refs.hanenbowFireRate?.setValue) refs.hanenbowFireRate.setValue(state.hanenbowFireRate, false);
   if (refs.hanenbowLaunchSpeed?.setValue) refs.hanenbowLaunchSpeed.setValue(state.hanenbowLaunchSpeed, false);
   if (refs.hanenbowCcDepth?.setValue) refs.hanenbowCcDepth.setValue(state.hanenbowCcDepth, false);
+  if (refs.hanenbowTimingPeriod?.setValue) refs.hanenbowTimingPeriod.setValue(state.hanenbowTimingPeriod, false);
   if (presetSelect) presetSelect.value = state.hanenbowPreset || "cascade";
   if (notesSection?.sync) notesSection.sync();
 }
@@ -1059,6 +1112,21 @@ export function initHanenbow() {
   });
   R("hanenbowLaunchSpeed", kSpd);
 
+  const kPeriod = knob({
+    label: "PERIOD",
+    min: 0.2, max: 5.0, step: 0.1,
+    value: state.hanenbowTimingPeriod ?? 1.5,
+    unit: "s",
+    title: "Global timing period: repeated leaf triggers within this period cycle note upwards through scale",
+    onChange: (v) => {
+      state.hanenbowTimingPeriod = v;
+      forceRegenRhythm = true;
+      doGenerate(true);
+      forceRegenRhythm = false;
+    }
+  });
+  R("hanenbowTimingPeriod", kPeriod);
+
   const kCc = knob({
     label: "FM CC74",
     min: 0, max: 127, step: 1,
@@ -1069,7 +1137,7 @@ export function initHanenbow() {
   });
   R("hanenbowCcDepth", kCc);
 
-  paramGrid.append(kLeaves, kGrav, kElast, kRate, kSpd, kCc);
+  paramGrid.append(kLeaves, kGrav, kElast, kRate, kSpd, kPeriod, kCc);
   paramCard.appendChild(paramGrid);
 
   // Card 3: Notes & Scale Controls
@@ -1281,6 +1349,7 @@ registerModel({
       span: state.hanenbowSpan,
       ccDepth: state.hanenbowCcDepth,
       gateLen: state.hanenbowGateLen,
+      timingPeriod: state.hanenbowTimingPeriod,
       cannon: { x: cannonX, y: cannonY, angle: cannonAngle, speed: cannonSpeed },
       leafData: leavesArr
     };
@@ -1296,6 +1365,7 @@ registerModel({
     if (h?.span !== undefined) state.hanenbowSpan = h.span;
     if (h?.ccDepth !== undefined) state.hanenbowCcDepth = h.ccDepth;
     if (h?.gateLen !== undefined) state.hanenbowGateLen = h.gateLen;
+    if (h?.timingPeriod !== undefined) state.hanenbowTimingPeriod = h.timingPeriod;
 
     if (h?.cannon) {
       cannonX = h.cannon.x ?? cannonX;
