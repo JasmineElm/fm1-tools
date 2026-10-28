@@ -38,11 +38,61 @@ export function swingFrac() {
   return ((s - 50) / 25) / 3;
 }
 
+export const SAFE_WINDOW_MS = 500;
+export const SAFE_MAX_NOTES = 8;
+
+const safeNoteTimestamps = new Float64Array(64);
+let safeHead = 0;
+let safeCount = 0;
+
+/**
+ * Assess note triggers within the last 500ms sliding window.
+ * Drops any note after the 8th note in 500ms when state.safeMode is active.
+ *
+ * @param {number} [customNow] - Optional timestamp for testing
+ * @returns {boolean} True if note is allowed, false if dropped
+ */
+export function recordAndCheckSafeNote(customNow) {
+  if (!state.safeMode) return true;
+
+  const now = typeof customNow === "number" ? customNow : performance.now();
+  const windowStart = now - SAFE_WINDOW_MS;
+
+  // Count how many notes in the ring buffer fall within [now - 500ms, now]
+  let notesInWindow = 0;
+  for (let i = 0; i < safeCount; i++) {
+    const idx = (safeHead - 1 - i + 64) % 64;
+    const t = safeNoteTimestamps[idx];
+    if (t >= windowStart && t <= now) {
+      notesInWindow++;
+    }
+  }
+
+  if (notesInWindow >= SAFE_MAX_NOTES) {
+    return false; // Exceeded 8 notes per 500ms — DROP NOTE!
+  }
+
+  // Allowed: record timestamp
+  safeNoteTimestamps[safeHead % 64] = now;
+  safeHead = (safeHead + 1) % 64;
+  if (safeCount < 64) safeCount++;
+
+  return true;
+}
+
+export function resetSafeNoteHistory() {
+  safeHead = 0;
+  safeCount = 0;
+  safeNoteTimestamps.fill(0);
+}
+
 // Live note out — routes to BLE when it is connected (play-only), USB otherwise.
-export function liveNoteOn(note, vel) {
-  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
-  if (midi.bleConnected()) { midi.bleSendNoteOn(note, vel); return; }
+export function liveNoteOn(note, vel, fromPoly = false) {
+  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return false;
+  if (!fromPoly && !recordAndCheckSafeNote()) return false;
+  if (midi.bleConnected()) { midi.bleSendNoteOn(note, vel); return true; }
   midi.sendNoteOn(note, vel);
+  return true;
 }
 
 export function liveNoteOff(note) {
@@ -130,8 +180,9 @@ export async function playOnce(index) {
         const vel = typeof n === "number" ? 100 : (n?.vel ?? 100);
         if (typeof pitch === "number" && isFinite(pitch)) {
           previewHeld.add(pitch);
-          liveNoteOn(pitch, vel);
-          audio.noteOn(pitch, vel);
+          if (liveNoteOn(pitch, vel)) {
+            audio.noteOn(pitch, vel);
+          }
         }
       }
       await sleep(Math.max(12, sDur * gate));
@@ -278,8 +329,9 @@ export async function liveLoop(token) {
           const pitch = typeof n === "number" ? n : n?.note;
           const vel = typeof n === "number" ? 100 : (n?.vel ?? 100);
           if (typeof pitch === "number" && isFinite(pitch)) {
-            liveNoteOn(pitch, vel);
-            audio.noteOn(pitch, vel);
+            if (liveNoteOn(pitch, vel)) {
+              audio.noteOn(pitch, vel);
+            }
           }
         }
         const offAt = startAt + Math.max(12, sDur * gate);
@@ -344,4 +396,29 @@ export function buildAudioControls() {
     status(m ? "browser audio muted" : "browser audio on");
   };
   muteBtn.addEventListener("click", toggleMute);
+
+  // Safe mode rate limiter button: drops notes exceeding 8 per 500ms to protect FM-1 sound engine
+  const safeBtn = document.getElementById("safe-mode");
+  if (safeBtn) {
+    const updateSafeBtn = () => {
+      safeBtn.classList.toggle("active", !!state.safeMode);
+      safeBtn.textContent = state.safeMode ? "Safe: On" : "Safe: Off";
+    };
+    safeBtn.addEventListener("click", () => {
+      state.safeMode = !state.safeMode;
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("fm1p.safeMode", state.safeMode ? "1" : "0");
+        }
+      } catch (_) {}
+      updateSafeBtn();
+      status(state.safeMode ? "Safe mode: ON (max 8 notes per 500ms)" : "Safe mode: OFF (unlimited notes)");
+    });
+    try {
+      if (typeof localStorage !== "undefined" && localStorage.getItem("fm1p.safeMode") === "1") {
+        state.safeMode = true;
+      }
+    } catch (_) {}
+    updateSafeBtn();
+  }
 }

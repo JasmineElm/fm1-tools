@@ -1,7 +1,12 @@
 // tests/poly.test.mjs — Unit test suite for Centralized Polyphony Voice Allocation (js/poly.js)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { selectPolyVoices, POLY_STRATEGIES, MAX_HARDWARE_VOICES } from "../js/poly.js";
+import { state } from "../js/state.js";
+import {
+  selectPolyVoices, POLY_STRATEGIES, MAX_HARDWARE_VOICES,
+  recordAndCheckSafeNote, resetSafeNoteHistory,
+  SAFE_WINDOW_MS, SAFE_MAX_NOTES
+} from "../js/poly.js";
 
 test("selectPolyVoices returns all candidates when count <= maxVoices", () => {
   const notes = [48, 55, 60];
@@ -64,3 +69,41 @@ test("selectPolyVoices handles candidate objects with .note property", () => {
   assert.equal(res[0].note, 36);
   assert.equal(res[1].note, 48);
 });
+
+test("Safe Mode rate limiter allows all notes when safeMode is inactive", () => {
+  state.safeMode = false;
+  resetSafeNoteHistory();
+
+  // Trigger 20 notes at the exact same millisecond
+  for (let i = 0; i < 20; i++) {
+    assert.equal(recordAndCheckSafeNote(100), true);
+  }
+});
+
+test("Safe Mode rate limiter allows 8 notes per 500ms and drops subsequent notes", () => {
+  state.safeMode = true;
+  resetSafeNoteHistory();
+
+  assert.equal(SAFE_WINDOW_MS, 500);
+  assert.equal(SAFE_MAX_NOTES, 8);
+
+  // Trigger 8 notes across 100ms: all 8 must be allowed
+  for (let i = 0; i < 8; i++) {
+    const allowed = recordAndCheckSafeNote(100 + i * 10);
+    assert.equal(allowed, true, `Note ${i + 1} should be allowed`);
+  }
+
+  // 9th and 10th note within the 500ms window (e.g. at t = 200ms and t = 400ms): must be dropped!
+  assert.equal(recordAndCheckSafeNote(200), false, "Note 9 in 500ms window must be dropped");
+  assert.equal(recordAndCheckSafeNote(400), false, "Note 10 in 500ms window must be dropped");
+  assert.equal(recordAndCheckSafeNote(599), false, "Note at t=599ms still sees 8 notes in [99, 599] so must be dropped");
+
+  // At t = 601ms, Note 1 (fired at t=100ms) is older than 500ms (window is [101ms, 601ms])
+  // So only 7 notes remain in window -> note at t=601ms must be allowed!
+  assert.equal(recordAndCheckSafeNote(601), true, "Note after 500ms from 1st note must be allowed");
+
+  // Reset state
+  state.safeMode = false;
+  resetSafeNoteHistory();
+});
+
