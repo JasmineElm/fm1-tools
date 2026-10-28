@@ -13,7 +13,8 @@ export const POLYPHONIC_MODELS = new Set([
   "hanenbow",
   "sandpile",
   "percolation",
-  "dla"
+  "dla",
+  "epidemic"
 ]);
 
 export const MODELS = [
@@ -245,6 +246,22 @@ export const MODELS = [
       <circle cx="4" cy="12" r="1.2" fill="currentColor" />
       <circle cx="20" cy="12" r="1.2" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "epidemic",
+    name: "SIR Epidemic Network",
+    kicker: "Stochastic Contagion · Spatial Contact Graph · R₀ Threshold",
+    available: true,
+    desc: "Stochastic epidemiological network simulator governed by Kermack-McKendrick SIR dynamics. Susceptible agents contract infection from spatial neighbors with distance-decay transmission probability β. Active infections pulse through contact edges creating viral choral crescendos and macro-dramatic arcs as the population develops temporary protective immunity.",
+    tags: ["SIR Contagion", "Reproduction R₀", "Contact Graph", "Spatial Immunity", "Epidemic Waves", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+      <circle cx="5" cy="8" r="2" />
+      <circle cx="19" cy="8" r="2" />
+      <circle cx="7" cy="18" r="2" />
+      <circle cx="17" cy="18" r="2" />
+      <path d="M7 9l3 2m4 0l3-2m-8 6l2-2m4 0l2 2" stroke-dasharray="1 1" />
+    </svg>`
   }
 ];
 
@@ -402,6 +419,7 @@ export function showLanding(updateHash = true) {
   const modelSandpile = document.getElementById("model-sandpile");
   const modelPercolation = document.getElementById("model-percolation");
   const modelDla = document.getElementById("model-dla");
+  const modelEpidemic = document.getElementById("model-epidemic");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -437,6 +455,7 @@ export function showLanding(updateHash = true) {
   if (modelSandpile) modelSandpile.style.display = "none";
   if (modelPercolation) modelPercolation.style.display = "none";
   if (modelDla) modelDla.style.display = "none";
+  if (modelEpidemic) modelEpidemic.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -469,6 +488,7 @@ export function showModel(id, updateHash = true) {
   const modelSandpile = document.getElementById("model-sandpile");
   const modelPercolation = document.getElementById("model-percolation");
   const modelDla = document.getElementById("model-dla");
+  const modelEpidemic = document.getElementById("model-epidemic");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -482,8 +502,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, and DLA are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, and Epidemic are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -540,6 +560,7 @@ export function showModel(id, updateHash = true) {
     if (modelSandpile) modelSandpile.style.display = id === "sandpile" ? "block" : "none";
     if (modelPercolation) modelPercolation.style.display = id === "percolation" ? "block" : "none";
     if (modelDla) modelDla.style.display = id === "dla" ? "block" : "none";
+    if (modelEpidemic) modelEpidemic.style.display = id === "epidemic" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -561,6 +582,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "sandpile") modeTag.textContent = "Abelian Sandpile";
       else if (id === "percolation") modeTag.textContent = "Percolation Clusters";
       else if (id === "dla") modeTag.textContent = "DLA Dendritic Crystal";
+      else if (id === "epidemic") modeTag.textContent = "SIR Epidemic Network";
       modeTag.style.display = "inline-block";
     }
   }

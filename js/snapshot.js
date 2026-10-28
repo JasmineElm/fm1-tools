@@ -61,6 +61,7 @@ const PREFIX = {
   sandpile: /^sandpile[A-Z]/,
   percolation: /^percolation[A-Z]/,
   dla: /^dla[A-Z]/,
+  epidemic: /^epidemic[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {
