@@ -60,8 +60,10 @@ Every model implementation must strictly adhere to the following shared framewor
 2. **Audio & MIDI Engine ([js/player.js](file:///c:/Users/kj6fi/Dropbox/git/fm1-pulses/js/player.js))**:
    - Live note triggers dispatch via `liveNoteOn(note, vel, durMs)` and `liveNoteOff(note)`.
    - Continuous timbre modulation dispatches via `midi.sendControlChange(ccDest, ccVal)` (typically CC #74 Brightness / Cutoff).
-3. **Polyphony Ceiling (Strictly $\le 8$ Voices)**:
-   - Every model manages its active voice pool using a FIFO note-stealing ring buffer or explicit voice slots to guarantee the M-VAVE FM-1 hardware buffer never overflows.
+3. **Polyphony Ceiling & Voice Allocation Manager ([js/poly.js](file:///c:/Users/kj6fi/Dropbox/git/fm1-pulses/js/poly.js))**:
+   - Every polyphonic model reuses `selectPolyVoices(candidates, maxVoices, strategy)` and `playVoice()`, respecting global `state.polyphony` (1–8) and `state.polyStrategy` (Extrema, Lowest, Highest, Spread, Cluster, Cycle, Random).
+   - Guarantees strict $\le 8$ voices FIFO stealing for M-VAVE FM-1 hardware buffer safety and dual MIDI / browser synth dispatch.
+   - Polyphony controls are housed in the Notes div and automatically hidden on monophonic models.
 4. **Session Snapshot Serialization ([js/snapshot.js](file:///c:/Users/kj6fi/Dropbox/git/fm1-pulses/js/snapshot.js))**:
    - Register under `registerModel({ id, version: 1, migrations: {}, capture(), restore(h) })`.
    - Register ownership prefix in `PREFIX` within `js/snapshot.js`.

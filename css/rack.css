@@ -1546,44 +1546,28 @@ kbd {
 }
 
 .notes-grid-fullwidth {
-  display: grid;
-  grid-template-columns: repeat(14, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px 12px;
-  align-items: center;
+  align-items: flex-end;
   width: 100%;
   box-sizing: border-box;
 }
 
-.notes-grid-fullwidth .ctrl-root-note {
-  grid-column: span 2;
+.notes-grid-fullwidth > *:not(.ctrl-scale-box) {
+  flex: 1 1 95px;
+  min-width: 80px;
 }
 
-.notes-grid-fullwidth .ctrl-root-oct {
-  grid-column: span 2;
-}
-
-.notes-grid-fullwidth .ctrl-pitch-span {
-  grid-column: span 2;
-}
-
-.notes-grid-fullwidth .ctrl-oct-mode {
-  grid-column: span 2;
-}
-
-.notes-grid-fullwidth .ctrl-scale {
-  grid-column: span 2;
-}
-
-.notes-grid-fullwidth .ctrl-quant {
-  grid-column: span 2;
-}
-
-.notes-grid-fullwidth .ctrl-oct-spread {
-  grid-column: span 2;
+.notes-grid-fullwidth .ctrl-polyphony {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .notes-grid-fullwidth .ctrl-scale-box {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
   width: 100%;
   margin-top: 4px;
   padding-top: 6px;
@@ -1602,30 +1586,7 @@ kbd {
   font-size: 10px;
 }
 
-@media (max-width: 1100px) {
-  .notes-grid-fullwidth {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-  }
-  .notes-grid-fullwidth .ctrl-root-note { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-root-oct { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-pitch-span { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-oct-mode { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-scale { grid-column: span 4; }
-  .notes-grid-fullwidth .ctrl-quant { grid-column: span 4; }
-  .notes-grid-fullwidth .ctrl-oct-spread { grid-column: span 4; }
-}
-
 @media (max-width: 720px) {
-  .notes-grid-fullwidth {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-  .notes-grid-fullwidth .ctrl-root-note { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-root-oct { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-pitch-span { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-oct-mode { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-scale { grid-column: span 6; }
-  .notes-grid-fullwidth .ctrl-quant { grid-column: span 3; }
-  .notes-grid-fullwidth .ctrl-oct-spread { grid-column: span 3; }
   .notes-grid-fullwidth .scale {
     grid-template-columns: repeat(6, 1fr);
   }

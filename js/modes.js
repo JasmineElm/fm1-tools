@@ -1,5 +1,19 @@
 // modes.js — Sequencing models switcher and landing page manager.
 import { refs } from "./state.js";
+import { setPolyphonyControlsVisible } from "./scale.js";
+
+export const POLYPHONIC_MODELS = new Set([
+  "particles",
+  "pendulum",
+  "flock",
+  "krell",
+  "lsystem",
+  "lotka_volterra",
+  "orbital",
+  "hanenbow",
+  "sandpile",
+  "percolation"
+]);
 
 export const MODELS = [
   {
@@ -405,6 +419,7 @@ export function showLanding(updateHash = true) {
   if (modelPercolation) modelPercolation.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
+  setPolyphonyControlsVisible(false);
 
   if (updateHash && window.location.hash !== "#models") {
     history.replaceState(null, "", "#models");
@@ -442,6 +457,9 @@ export function showModel(id, updateHash = true) {
   activeModelId = id;
 
   if (viewLanding) viewLanding.style.display = "none";
+
+  // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
+  setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
   // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, and Percolation are unlinked free models: hide discrete step sequencer bars
   const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dxpatch" && id !== "librarian");

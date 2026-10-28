@@ -24,6 +24,7 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
+import { selectPolyVoices } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
@@ -427,7 +428,7 @@ function triggerConductionStep() {
   const total = W * H;
   const scanMode = state.percolationScanMode || "top-down";
   const mapMode = state.percolationPitchMapping || "x-scale";
-  const maxPoly = Math.min(MAX_VOICES, Math.max(1, state.percolationPolyphony ?? 4));
+  const maxPoly = Math.min(MAX_VOICES, Math.max(1, state.polyphony ?? state.percolationPolyphony ?? 4));
   const span = Math.min(4, Math.max(1, state.percolationSpan ?? 2));
   const baseGate = Math.min(600, Math.max(60, state.percolationGateLen ?? 180));
   const intervals = getActiveScaleIntervals();
@@ -519,62 +520,36 @@ function triggerConductionStep() {
 
   if (candidateCount === 0) return;
 
-  // Filter candidates to prioritize distinct clusters and cap polyphony
-  let selectedCount = 0;
+  // Collect candidate events across distinct clusters
+  const candidateEvents = [];
   clusterTouched.fill(0);
-
-  // First pass: select spanning cluster nodes and largest clusters
-  for (let i = 0; i < candidateCount && selectedCount < maxPoly; i++) {
-    const idx = activeCandidates[i];
-    const cRoot = dsuFind(idx);
-    const cSize = clusterSize[cRoot];
-
-    // Prefer 1 voice per cluster per scan step to avoid unison clusters
-    if (!clusterTouched[cRoot]) {
-      clusterTouched[cRoot] = 1;
-      chosenVoices[selectedCount++] = idx;
-    }
-  }
-
-  // Second pass: if under polyphony ceiling, fill remaining slots
-  for (let i = 0; i < candidateCount && selectedCount < maxPoly; i++) {
-    const idx = activeCandidates[i];
-    let alreadyChosen = false;
-    for (let s = 0; s < selectedCount; s++) {
-      if (chosenVoices[s] === idx) {
-        alreadyChosen = true;
-        break;
-      }
-    }
-    if (!alreadyChosen) {
-      chosenVoices[selectedCount++] = idx;
-    }
-  }
-
-  // Dispatch live notes and light up sparks
-  let stepMaxCluster = 1;
-  for (let i = 0; i < selectedCount; i++) {
-    const cellIdx = chosenVoices[i];
+  for (let i = 0; i < candidateCount; i++) {
+    const cellIdx = activeCandidates[i];
     const cRoot = dsuFind(cellIdx);
     const cSize = clusterSize[cRoot];
-    if (cSize > stepMaxCluster) stepMaxCluster = cSize;
+    if (!clusterTouched[cRoot]) {
+      clusterTouched[cRoot] = 1;
+      const spans = isSpanning[cellIdx];
+      const note = mapCellToPitch(cellIdx, cRoot, cSize, W, H, intervals, rootMidi, span, mapMode);
+      const velBase = spans ? 100 : Math.min(115, Math.max(45, 45 + Math.round(Math.log2(Math.max(1, cSize)) * 14)));
+      const vel = Math.min(127, Math.max(30, velBase + Math.floor((Math.random() - 0.5) * 10)));
+      const gateDur = spans ? Math.round(baseGate * 1.35) : (cSize <= 2 ? Math.round(baseGate * 0.65) : baseGate);
+      candidateEvents.push({ cellIdx, note, vel, gateDur, cSize, spans });
+    }
+  }
 
-    const spans = isSpanning[cellIdx];
-    const note = mapCellToPitch(cellIdx, cRoot, cSize, W, H, intervals, rootMidi, span, mapMode);
+  // Use centralized polyphony strategy and voice limit
+  const selectedEvents = selectPolyVoices(candidateEvents, maxPoly, state.polyStrategy);
+  const selectedCount = selectedEvents.length;
 
-    // Velocity & Gate duration dynamic scaling
-    const velBase = spans ? 100 : Math.min(115, Math.max(45, 45 + Math.round(Math.log2(Math.max(1, cSize)) * 14)));
-    const vel = Math.min(127, Math.max(30, velBase + Math.floor((Math.random() - 0.5) * 10)));
-    const gateDur = spans ? Math.round(baseGate * 1.35) : (cSize <= 2 ? Math.round(baseGate * 0.65) : baseGate);
-
-    // Spark visual life & set refractory fatigue
-    sparkLife[cellIdx] = 1.0;
-    cellFatigue[cellIdx] = 1.0;
-    cellAge[cellIdx] = 0;
-
-    // Disperse voice key across polyphony slots
+  for (let i = 0; i < selectedCount; i++) {
+    const ev = selectedEvents[i];
+    chosenVoices[i] = ev.cellIdx;
+    sparkLife[ev.cellIdx] = 1.0;
+    cellFatigue[ev.cellIdx] = 1.0;
+    cellAge[ev.cellIdx] = 0;
     const vKey = (voiceCounter++) % maxPoly;
-    playPercolationVoice(vKey, note, vel, gateDur);
+    playPercolationVoice(vKey, ev.note, ev.vel, ev.gateDur);
   }
 
   // Evolutionary Erosion & Sedimentation Dynamics
@@ -1050,18 +1025,6 @@ export function initPercolation() {
     }
   }));
 
-  const kPolyphony = R("percolationPolyphony", knob({
-    label: "POLY",
-    min: 1,
-    max: 8,
-    step: 1,
-    value: state.percolationPolyphony ?? 4,
-    title: "Max concurrent polyphony voices (1 to 8)",
-    onInput: (v) => {
-      state.percolationPolyphony = Math.round(v);
-    }
-  }));
-
   const kRest = R("percolationRest", knob({
     label: "REST",
     min: 0,
@@ -1098,7 +1061,7 @@ export function initPercolation() {
     }
   }));
 
-  paramGrid.append(kProb, kScanRate, kPolyphony, kRest, kEvo, kSpan);
+  paramGrid.append(kProb, kScanRate, kRest, kEvo, kSpan);
 
   // Dropdown Selectors
   const dropdownRow = document.createElement("div");

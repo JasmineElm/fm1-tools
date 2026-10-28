@@ -2,7 +2,8 @@
 import { SCALES, NOTE_NAMES, midiName, quantize } from "./generator.js";
 export { quantize, midiName, NOTE_NAMES, SCALES };
 import { state, refs, R, status } from "./state.js";
-import { dropdown, fader } from "./controls.js";
+import { knob, dropdown, fader } from "./controls.js";
+import { POLY_STRATEGIES } from "./poly.js";
 
 export const SCALE_LABELS = {
   pentMinor: "Pentatonic Minor",
@@ -342,27 +343,55 @@ export function createScalePicker({
  * + Scale DropDown
  * + Note Selection
  * + Quantize
- * + Octave spread (Fader + Mode Dropdown)
+/**
+ * Toggles visibility of all polyphony voice allocation controls across Notes bars.
+ * When hidden on monophonic models, remaining controls flex to fill row width.
  */
-export function createNotesSection({
-  container = null,
-  title = "Notes",
-  scaleKey = "scale",
-  customScaleKey = "customScale",
-  rootKey = "root",
-  rootNoteKey = "rootNote",
-  rootOctaveKey = "rootOctave",
-  pitchSpanKey = "pitchSpan",
-  quantKey = "quantSteps",
-  octaveKey = "octave",
-  octaveModeKey = "octaveMode",
-  defaultOctave = 4,
-  defaultPitchSpan = 3,
-  scaleLabel = "Scale",
-  isFullWidth = false,
-  badgeText = "Key & Scale",
-  onChange = () => {}
-} = {}) {
+export function setPolyphonyControlsVisible(visible) {
+  if (typeof document === "undefined") return;
+  document.querySelectorAll(".ctrl-poly-group").forEach((el) => {
+    el.style.display = visible ? "" : "none";
+  });
+}
+
+/**
+ * Creates the complete, unified 'Notes' div component for any sequencer model.
+ * Contains:
+ * + Root Note
+ * + Root Octave
+ * + Scale DropDown
+ * + Note Selection
+ * + Quantize
+ * + Octave spread (Fader + Mode Dropdown)
+ * + Polyphony Voice Ceiling (POLY 1–8) & Selection Strategy (STRAT)
+ */
+export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
+  let opts = optionsOrPrefix;
+  if (typeof opts === "string") {
+    opts = { pitchSpanKey: `${opts}Span`, onChange: maybeOnChange || (() => {}) };
+  }
+  const {
+    container = null,
+    title = "Notes",
+    scaleKey = "scale",
+    customScaleKey = "customScale",
+    rootKey = "root",
+    rootNoteKey = "rootNote",
+    rootOctaveKey = "rootOctave",
+    pitchSpanKey = "pitchSpan",
+    quantKey = "quantSteps",
+    octaveKey = "octave",
+    octaveModeKey = "octaveMode",
+    polyphonyKey = "polyphony",
+    polyStrategyKey = "polyStrategy",
+    defaultOctave = 4,
+    defaultPitchSpan = 3,
+    scaleLabel = "Scale",
+    isFullWidth = false,
+    badgeText = "Key & Scale",
+    onChange = () => {}
+  } = opts;
+
   const picker = createScalePicker({
     scaleKey,
     customScaleKey,
@@ -436,6 +465,40 @@ export function createNotesSection({
     tip: "Octave spread direction: Up (+12 st), Down (-12 st), or Both (±12 st)."
   }));
 
+  // Polyphony Voice Ceiling (1 to 8)
+  const polyCtrl = R(polyphonyKey, knob({
+    label: "POLY",
+    min: 1,
+    max: 8,
+    step: 1,
+    value: state[polyphonyKey] ?? 4,
+    def: 4,
+    size: "sm",
+    ticks: 7,
+    majorEvery: 0,
+    format: (v) => `${Math.round(v)}`,
+    onInput: (v) => {
+      state[polyphonyKey] = Math.round(v);
+      onChange();
+      status(`Polyphony: ${Math.round(v)} Voices`);
+    },
+    tip: "Maximum concurrent polyphony voices (1 to 8)."
+  }));
+
+  // Polyphonic Voice Selection Strategy
+  const polyStratCtrl = R(polyStrategyKey, dropdown({
+    label: "STRAT",
+    options: POLY_STRATEGIES,
+    value: state[polyStrategyKey] || "extrema",
+    onInput: (v) => {
+      state[polyStrategyKey] = v;
+      onChange();
+      const label = POLY_STRATEGIES.find((s) => s.v === v)?.t || v;
+      status(`Voice Strategy: ${label}`);
+    },
+    tip: "Voice selection strategy when note count exceeds polyphony limit."
+  }));
+
   // Container Div titled 'Notes'
   const sectEl = container || document.createElement("div");
   if (!container) sectEl.className = "sect notes-sect";
@@ -464,6 +527,8 @@ export function createNotesSection({
   picker.scaleBox.classList.add("ctrl-scale-box");
   quantCtrl.classList.add("ctrl-quant");
   octaveCtrl.classList.add("ctrl-oct-spread");
+  polyCtrl.classList.add("ctrl-polyphony", "ctrl-poly-group");
+  polyStratCtrl.classList.add("ctrl-poly-strategy", "ctrl-poly-group");
 
   if (!isFullWidth) {
     // Row 1: Root Note (2), Root Octave (2), Octave Spread (2)
@@ -482,6 +547,10 @@ export function createNotesSection({
     quantCtrl.style.gridColumn = "span 3";
     octaveCtrl.style.gridColumn = "span 3";
 
+    // Row 5: Polyphony (3), Voice Strategy (3)
+    polyCtrl.style.gridColumn = "span 3";
+    polyStratCtrl.style.gridColumn = "span 3";
+
     grid.append(
       picker.rootNoteCtrl,
       picker.rootOctCtrl,
@@ -490,7 +559,9 @@ export function createNotesSection({
       picker.scaleCtrl,
       picker.scaleBox,
       quantCtrl,
-      octaveCtrl
+      octaveCtrl,
+      polyCtrl,
+      polyStratCtrl
     );
   } else {
     grid.append(
@@ -501,6 +572,8 @@ export function createNotesSection({
       picker.scaleCtrl,
       quantCtrl,
       octaveCtrl,
+      polyCtrl,
+      polyStratCtrl,
       picker.scaleBox
     );
   }
@@ -513,6 +586,8 @@ export function createNotesSection({
     if (refs[quantKey]?.setValue) refs[quantKey].setValue(state[quantKey] ?? 100, false);
     if (refs[octaveKey]?.setValue) refs[octaveKey].setValue(state[octaveKey] ?? 0, false);
     if (refs[octaveModeKey]?.setValue) refs[octaveModeKey].setValue(state[octaveModeKey] || "up", false);
+    if (refs[polyphonyKey]?.setValue) refs[polyphonyKey].setValue(state[polyphonyKey] ?? 4, false);
+    if (refs[polyStrategyKey]?.setValue) refs[polyStrategyKey].setValue(state[polyStrategyKey] || "extrema", false);
   }
 
   return {
@@ -525,6 +600,8 @@ export function createNotesSection({
     quantCtrl,
     octaveCtrl,
     octaveModeCtrl,
+    polyCtrl,
+    polyStratCtrl,
     sync
   };
 }
