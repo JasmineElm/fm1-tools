@@ -19,7 +19,7 @@ import {
 } from "./state.js";
 import { knob, dropdown } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -475,12 +475,11 @@ function dispatchAvalancheAudio(toppleCount, comX, comY, siteCount, S) {
   }
 
   // MIDI CC #74 Brightness Modulation
-  const ccDest = state.sandpileCcDest ?? 74;
-  const ccDepth = state.sandpileCcDepth ?? 80;
-  if (ccDepth > 0) {
-    const ccVal = Math.min(127, Math.round((toppleCount / 40) * ccDepth));
-    try { midi.sendControlChange(ccDest, ccVal); } catch (_) {}
-  }
+  dispatchTimbreCc(toppleCount / 40, {
+    dest: state.sandpileCcDest ?? 74,
+    depth: state.sandpileCcDepth ?? 80,
+    floorFactor: 0
+  });
 }
 
 // ---- Autonomous Free Physics Loop ----
@@ -986,6 +985,55 @@ export function initSandpile() {
     }
   });
   R("sandpileDropAmount", kAmount);
+
+  const kSpan = knob({
+    label: "SPAN",
+    min: 1, max: 4, step: 1,
+    value: state.sandpileSpan ?? 2,
+    unit: "oct",
+    title: "Octave range mapped across the lattice",
+    onChange: (v) => {
+      state.sandpileSpan = Math.round(v);
+      state.pitchSpan = state.sandpileSpan;
+    }
+  });
+  R("sandpileSpan", kSpan);
+
+  const kGate = knob({
+    label: "GATE",
+    min: 40, max: 400, step: 10,
+    value: state.sandpileGateLen ?? 180,
+    unit: "ms",
+    title: "Note trigger gate duration",
+    onChange: (v) => {
+      state.sandpileGateLen = v;
+    }
+  });
+  R("sandpileGateLen", kGate);
+
+  const kVel = knob({
+    label: "VELOCITY",
+    min: 30, max: 127, step: 1,
+    value: state.sandpileVelocity ?? 90,
+    unit: "",
+    title: "Base MIDI velocity for avalanche triggers",
+    onChange: (v) => {
+      state.sandpileVelocity = Math.round(v);
+    }
+  });
+  R("sandpileVelocity", kVel);
+
+  const kCc = knob({
+    label: "FM CC74",
+    min: 0, max: 127, step: 1,
+    value: state.sandpileCcDepth ?? 80,
+    unit: "",
+    title: "MIDI CC #74 Brightness modulation depth driven by avalanche power",
+    onChange: (v) => {
+      state.sandpileCcDepth = v;
+    }
+  });
+  R("sandpileCcDepth", kCc);
 
   paramGrid.append(kSize, kRate, kAmount, kSpan, kGate, kVel, kCc);
 

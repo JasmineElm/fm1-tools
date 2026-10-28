@@ -163,6 +163,11 @@ export function sendNoteOff(note, channel = 1) {
   if (out) out.send(new Uint8Array([0x80 | ((channel - 1) & 0x0F), note & 0x7F, 0]));
 }
 
+export function sendControlChange(controller, value, channel = 1) {
+  const out = findFm1();
+  if (out) out.send(new Uint8Array([0xB0 | ((channel - 1) & 0x0F), controller & 0x7F, value & 0x7F]));
+}
+
 export function hasAccess() { return !!access; }
 
 // --------------------------------------------------------------------------- //
@@ -272,6 +277,9 @@ export function bleSendNoteOn(note, vel, channel = 1) {
 }
 export function bleSendNoteOff(note, channel = 1) {
   return bleSend(new Uint8Array([0x80 | ((channel - 1) & 0x0F), note & 0x7F, 0]));
+}
+export function bleSendControlChange(controller, value, channel = 1) {
+  return bleSend(new Uint8Array([0xB0 | ((channel - 1) & 0x0F), controller & 0x7F, value & 0x7F]));
 }
 
 // --------------------------------------------------------------------------- //

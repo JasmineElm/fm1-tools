@@ -51,6 +51,51 @@ export function liveNoteOff(note) {
   midi.sendNoteOff(note);
 }
 
+// Live CC out — routes to BLE when connected, USB otherwise.
+let controlChangeSink = null;
+export function setControlChangeSink(fn) { controlChangeSink = fn; }
+
+export function liveControlChange(controller, value, channel = 1) {
+  if (typeof controller !== "number" || typeof value !== "number") return;
+  if (controlChangeSink) controlChangeSink(controller, value, channel);
+  if (midi.bleConnected()) { midi.bleSendControlChange(controller, value, channel); return; }
+  midi.sendControlChange(controller, value, channel);
+}
+
+/**
+ * Dispatches continuous or event-driven CC modulation (e.g. CC #74 Brightness)
+ * scaled by depth and bounded within safe hardware ranges.
+ *
+ * @param {number} normVal - Normalized parameter value [0.0 .. 1.0]
+ * @param {Object} [options]
+ * @param {number} [options.depth=80] - Modulation depth [0 .. 127]
+ * @param {number} [options.dest=74] - MIDI CC controller number (default CC #74 Brightness)
+ * @param {number} [options.minVal=0] - Minimum clamped CC output
+ * @param {number} [options.maxVal=127] - Maximum clamped CC output
+ * @param {number} [options.floorFactor=0.25] - Resting floor brightness scaling
+ * @param {boolean} [options.requireLive=false] - Only send if transport/model is currently live
+ * @param {number} [options.channel=1] - MIDI channel [1 .. 16]
+ */
+export function dispatchTimbreCc(normVal, {
+  depth = 80,
+  dest = 74,
+  minVal = 0,
+  maxVal = 127,
+  floorFactor = 0.25,
+  requireLive = false,
+  channel = 1
+} = {}) {
+  const safeDepth = Math.min(127, Math.max(0, Number(depth) || 0));
+  if (safeDepth <= 0) return;
+  if (requireLive && !isLive()) return;
+  const clampedNorm = Math.min(1.0, Math.max(0.0, Number(normVal) || 0.0));
+  const baseline = (127 - safeDepth) * floorFactor;
+  const ccVal = Math.min(maxVal, Math.max(minVal, Math.round(clampedNorm * safeDepth + baseline)));
+  try {
+    liveControlChange(dest, ccVal, channel);
+  } catch (_) {}
+}
+
 export function panicPreview() {
   for (const n of previewHeld) {
     try { liveNoteOff(n); } catch (_) {}

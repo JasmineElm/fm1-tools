@@ -16,7 +16,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -172,16 +172,14 @@ function playLsystemVoice(note, vel, durMs, depth = 0) {
   playVoice(depth, note, vel, durMs);
 
   // Modulate FM-1 CC #74 Brightness with branch stack depth
-  const ccDest = state.lsystemCcDest ?? 74;
-  const ccDepth = state.lsystemCcDepth ?? 80;
-  if (ccDepth > 0) {
-    // Top-level trunk = bright; deep branches = softer/darker filter
-    const depthRatio = Math.max(0, 1 - depth * 0.2);
-    const ccVal = Math.min(127, Math.max(10, Math.round(depthRatio * ccDepth + (127 - ccDepth) * 0.3)));
-    try {
-      midi.sendControlChange(ccDest, ccVal);
-    } catch (_) {}
-  }
+  // Top-level trunk = bright; deep branches = softer/darker filter
+  const depthRatio = Math.max(0, 1 - depth * 0.2);
+  dispatchTimbreCc(depthRatio, {
+    dest: state.lsystemCcDest ?? 74,
+    depth: state.lsystemCcDepth ?? 80,
+    minVal: 10,
+    floorFactor: 0.3
+  });
 }
 
 // ---- String Expansion & Grammar Compilation ----

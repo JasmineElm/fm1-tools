@@ -18,7 +18,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -295,15 +295,12 @@ function playLeafVoice(leafIdx, note, vel, durMs) {
   voiceSlots[leafIdx] = note;
 
   // Modulate FM-1 CC #74 Brightness with impact force
-  const ccDest = state.hanenbowCcDest ?? 74;
-  const ccDepth = state.hanenbowCcDepth ?? 85;
-  if (ccDepth > 0) {
-    const normVel = Math.min(1.0, Math.max(0.1, vel / 127.0));
-    const ccVal = Math.min(127, Math.max(20, Math.round(normVel * ccDepth + (127 - ccDepth) * 0.25)));
-    try {
-      midi.sendControlChange(ccDest, ccVal);
-    } catch (_) {}
-  }
+  const normVel = Math.min(1.0, Math.max(0.1, vel / 127.0));
+  dispatchTimbreCc(normVel, {
+    dest: state.hanenbowCcDest ?? 74,
+    depth: state.hanenbowCcDepth ?? 85,
+    minVal: 20
+  });
 }
 
 // Resolves a scale-quantized pitch for leaf `i`.

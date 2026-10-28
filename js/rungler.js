@@ -16,7 +16,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -91,14 +91,11 @@ function playRunglerVoice(note, velocity, durMs) {
   playVoice(0, note, velocity, durMs);
 
   // Send continuous FM-1 CC #74 (Brightness / Filter Cutoff)
-  const ccDest = state.runglerCcDest ?? 74;
-  const ccDepth = state.runglerCcDepth ?? 80;
-  if (ccDepth > 0) {
-    const ccVal = Math.min(127, Math.round((currentDacVal / 15) * ccDepth + (127 - ccDepth) * 0.3));
-    try {
-      midi.sendControlChange(ccDest, ccVal);
-    } catch (_) {}
-  }
+  dispatchTimbreCc(currentDacVal / 15, {
+    dest: state.runglerCcDest ?? 74,
+    depth: state.runglerCcDepth ?? 80,
+    floorFactor: 0.3
+  });
 }
 
 // ---- Core Circuit Simulation ----
@@ -204,12 +201,11 @@ function handleRunglerStep(stepIndex) {
   clockShiftRegister();
 
   // Send continuous CC#74 for FM-1 brightness
-  const ccDest = state.runglerCcDest ?? 74;
-  const ccDepth = state.runglerCcDepth ?? 80;
-  if (ccDepth > 0) {
-    const ccVal = Math.min(127, Math.round((currentDacVal / 15) * ccDepth + (127 - ccDepth) * 0.3));
-    try { midi.sendControlChange(ccDest, ccVal); } catch (_) {}
-  }
+  dispatchTimbreCc(currentDacVal / 15, {
+    dest: state.runglerCcDest ?? 74,
+    depth: state.runglerCcDepth ?? 80,
+    floorFactor: 0.3
+  });
 
   // Update current step note in bank so player.js plays the exact Rungler note if gate is active
   const currentBank = getBank();

@@ -16,7 +16,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -189,15 +189,12 @@ function playSpeciesVoice(speciesIdx, note, vel, durMs) {
   voiceSlots[speciesIdx] = note;
 
   // Modulate FM-1 CC #74 Brightness with predator-prey intensity
-  const ccDest = state.lvCcDest ?? 74;
-  const ccDepth = state.lvCcDepth ?? 85;
-  if (ccDepth > 0) {
-    const ratio = Math.min(1, Math.max(0, simY / (simX + 0.1)));
-    const ccVal = Math.min(127, Math.max(15, Math.round(ratio * ccDepth + (127 - ccDepth) * 0.25)));
-    try {
-      midi.sendControlChange(ccDest, ccVal);
-    } catch (_) {}
-  }
+  const ratio = Math.min(1, Math.max(0, simY / (simX + 0.1)));
+  dispatchTimbreCc(ratio, {
+    dest: state.lvCcDest ?? 74,
+    depth: state.lvCcDepth ?? 85,
+    minVal: 15
+  });
 }
 
 // ---- 2D (X, Y) Phase Space Position to Pitch Mapping ----
@@ -496,13 +493,13 @@ export function onLotkaVolterraLiveStep(stepIndex) {
     updateHud();
 
     // Modulate FM-1 CC #74 Brightness with predator-prey intensity
-    const ccDest = state.lvCcDest ?? 74;
-    const ccDepth = state.lvCcDepth ?? 85;
-    if (ccDepth > 0) {
-      const ratio = Math.min(1, Math.max(0, simY / (simX + 0.1)));
-      const ccVal = Math.min(127, Math.max(15, Math.round(ratio * ccDepth + (127 - ccDepth) * 0.25)));
-      try { midi.sendControlChange(ccDest, ccVal); } catch (_) {}
-    }
+    const ratio = Math.min(1, Math.max(0, simY / (simX + 0.1)));
+    dispatchTimbreCc(ratio, {
+      dest: state.lvCcDest ?? 74,
+      depth: state.lvCcDepth ?? 85,
+      minVal: 15,
+      requireLive: true
+    });
 
     // Dynamically derive triggered note pitch from current (X, Y) phase trajectory
     const curBank = getBank();

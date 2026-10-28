@@ -18,7 +18,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -559,9 +559,12 @@ function triggerConductionStep() {
   }
 
   // MIDI CC #74 Brightness Modulation based on conduction energy
-  const ccDest = state.percolationCcDest ?? 74;
-  const ccVal = Math.min(127, Math.max(20, Math.round(currentConduction * 110 + (stepMaxCluster / total) * 40)));
-  try { midi.sendControlChange(ccDest, ccVal); } catch (_) {}
+  const normConduction = Math.min(1.0, currentConduction + (stepMaxCluster / Math.max(1, total)) * 0.35);
+  dispatchTimbreCc(normConduction, {
+    dest: state.percolationCcDest ?? 74,
+    depth: state.percolationCcDepth ?? 80,
+    minVal: 20
+  });
 }
 
 // Spark a specific cell directly (interactive direct manipulation)

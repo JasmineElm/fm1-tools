@@ -18,7 +18,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -341,16 +341,13 @@ function playPlanetVoice(bodyIdx, note, vel, durMs) {
   starPulse = 1.0;
 
   // Modulate FM-1 CC #74 Brightness with total orbital kinetic energy
-  const ccDest = state.orbitalCcDest ?? 74;
-  const ccDepth = state.orbitalCcDepth ?? 80;
-  if (ccDepth > 0) {
-    const speed = Math.hypot(velX[bodyIdx], velY[bodyIdx]);
-    const normSpeed = Math.min(1.0, Math.max(0.1, speed / 120.0));
-    const ccVal = Math.min(127, Math.max(20, Math.round(normSpeed * ccDepth + (127 - ccDepth) * 0.25)));
-    try {
-      midi.sendControlChange(ccDest, ccVal);
-    } catch (_) {}
-  }
+  const speed = Math.hypot(velX[bodyIdx], velY[bodyIdx]);
+  const normSpeed = Math.min(1.0, Math.max(0.1, speed / 120.0));
+  dispatchTimbreCc(normSpeed, {
+    dest: state.orbitalCcDest ?? 74,
+    depth: state.orbitalCcDepth ?? 80,
+    minVal: 20
+  });
 }
 
 // Derives a scale-quantized pitch for planet body `i`

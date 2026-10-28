@@ -14,7 +14,7 @@ import {
   setModelGenerator, setModelRandomizer
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, liveNoteOn, liveNoteOff, panicPreview, setModelTransportHandler } from "./player.js?v=1";
+import { isLive, liveNoteOn, liveNoteOff, panicPreview, setModelTransportHandler, dispatchTimbreCc } from "./player.js?v=1";
 import * as audio from "./audio.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, getRootMidi, getActiveScaleIntervals, quantize, midiName, SCALES } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
@@ -213,14 +213,11 @@ function krellTick(time) {
   }
 
   // Stream continuous MIDI CC #74 (Filter Cutoff / Brightness)
-  const ccDest = state.krellCcDest ?? 74;
-  const ccDepth = state.krellCcDepth ?? 95;
-  if (ccDepth > 0 && isLive()) {
-    const ccVal = Math.min(127, Math.round(maxEnv * ccDepth + (127 - ccDepth) * 0.25));
-    try {
-      midi.sendControlChange(ccDest, ccVal);
-    } catch (_) {}
-  }
+  dispatchTimbreCc(maxEnv, {
+    dest: state.krellCcDest ?? 74,
+    depth: state.krellCcDepth ?? 95,
+    requireLive: true
+  });
 
   renderKrellVisualizer();
   animFrameId = requestAnimationFrame(krellTick);
