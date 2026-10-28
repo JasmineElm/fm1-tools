@@ -17,7 +17,7 @@ import {
   setModelGenerator, setModelRandomizer
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, setModelStepHandler } from "./player.js?v=1";
+import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
 import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
@@ -68,10 +68,17 @@ const bodyColor = [
 // Central star pulse indicator
 let starPulse = 0;
 let lastLiveStep = -1;
+let currentLiveStep = -1;
+let liveStepTime = 0;
 let animFrameId = null;
 let lastFrameTime = 0;
 let isDraggingBody = -1; // -1 if not dragging, 0..7 if dragging a planet
 let hoveredBody = -1;
+
+// Trigger visual animation buffers (zero GC churn)
+const triggerFlash = new Float32Array(MAX_BODIES);
+const triggerRipple = new Float32Array(MAX_BODIES);
+const triggerNoteName = new Array(MAX_BODIES).fill("");
 
 // UI DOM references
 let orbitalContainer = null;
@@ -303,6 +310,11 @@ function playPlanetVoice(bodyIdx, note, vel, durMs) {
   audio.noteOn(note, vel);
   voiceSlots[bodyIdx] = note;
 
+  // Visual trigger animation
+  triggerFlash[bodyIdx] = 1.0;
+  triggerRipple[bodyIdx] = 6.0;
+  triggerNoteName[bodyIdx] = midiName(note);
+
   const tid = setTimeout(() => {
     activeVoices.delete(note);
     if (voiceSlots[bodyIdx] === note) voiceSlots[bodyIdx] = null;
@@ -361,13 +373,32 @@ export function getPlanetNote(i) {
 }
 
 // ---- Free-Running Real-Time Animation Loop ----
+// ---- Free-Running Real-Time Animation Loop ----
 function freeLoop(time) {
-  if (state.orbitalMode === "free") {
-    const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
-    lastFrameTime = time;
+  const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
+  lastFrameTime = time;
 
+  // Animate orbital physics in free mode or when transport sequencer is running
+  if (state.orbitalMode === "free" || isLive()) {
     stepVerlet(dt);
-    checkOrbitalTriggers(dt);
+    if (state.orbitalMode === "free") {
+      checkOrbitalTriggers(dt);
+    }
+  } else {
+    // Subtle idle drift when stopped so the system is visibly alive
+    stepVerlet(dt * 0.25);
+  }
+
+  // Decay visual trigger flashes and expand shockwave ripples
+  for (let i = 0; i < MAX_BODIES; i++) {
+    if (triggerFlash[i] > 0.01) {
+      triggerFlash[i] *= 0.88;
+      triggerRipple[i] += 48 * dt;
+    } else {
+      triggerFlash[i] = 0;
+      triggerRipple[i] = 0;
+      if (voiceSlots[i] === null) triggerNoteName[i] = "";
+    }
   }
 
   if (starPulse > 0.01) {
@@ -376,7 +407,7 @@ function freeLoop(time) {
     starPulse = 0;
   }
 
-  renderOrbitCanvas();
+  renderOrbitCanvas(time);
   updateHud();
 
   animFrameId = requestAnimationFrame(freeLoop);
@@ -415,7 +446,7 @@ function checkOrbitalTriggers(dt) {
         if (diff > Math.PI) diff = Math.PI * 2 - diff;
 
         if (diff < thresh) {
-          // Alignment detected: if velocities are opposing or newly aligned, fire conjunction chime
+          // Alignment detected: fire conjunction chime
           const noteI = getPlanetNote(i);
           playPlanetVoice(i, noteI, 90, gateLen);
         }
@@ -426,9 +457,11 @@ function checkOrbitalTriggers(dt) {
 
 // ---- Transport Step Handler (Sync Mode) ----
 export function onOrbitalLiveStep(step) {
+  if (step === currentLiveStep) return;
+  currentLiveStep = step;
+  liveStepTime = performance.now();
+
   if (state.orbitalMode !== "sync") return;
-  if (step === lastLiveStep) return;
-  lastLiveStep = step;
 
   const curBank = getBank();
   const seq = curBank?.[getSelected()] || curBank?.[0];
@@ -437,10 +470,18 @@ export function onOrbitalLiveStep(step) {
   const st = seq.steps[step];
   if (!st || !st.notes || st.notes.length === 0) return;
 
-  // Step triggers in sync mode obey Rhythm grid mutes
+  const num = Math.min(MAX_BODIES, Math.max(2, state.orbitalBodies ?? 5));
   for (const n of st.notes) {
     if (n && n.note !== undefined) {
-      const planetIdx = (step % Math.max(1, state.orbitalBodies ?? 5));
+      let planetIdx = -1;
+      for (let b = 0; b < num; b++) {
+        if (getPlanetNote(b) === n.note) {
+          planetIdx = b;
+          break;
+        }
+      }
+      if (planetIdx === -1) planetIdx = step % num;
+
       playPlanetVoice(planetIdx, n.note, n.vel || 90, state.orbitalGateLen ?? 220);
     }
   }
@@ -550,7 +591,8 @@ export function syncOrbitalFromRegen() {
 }
 
 // ---- Canvas Rendering & Interactive Direct Manipulation ----
-function renderOrbitCanvas() {
+// ---- Canvas Rendering & Interactive Direct Manipulation ----
+function renderOrbitCanvas(time = 0) {
   if (!orbitCanvas) return;
   const ctx = orbitCanvas.getContext("2d");
   if (!ctx) return;
@@ -575,22 +617,78 @@ function renderOrbitCanvas() {
 
   const num = Math.min(MAX_BODIES, Math.max(2, state.orbitalBodies ?? 5));
   const scaleFactor = Math.min(w, h) / 640.0;
+  const rDial = Math.min(w, h) * 0.46;
 
-  // 1. Draw central star (No gradients: flat concentric alpha rings)
+  // 1. Outer Sequence Step Ring & Playhead Radar Sweep
+  const seqLen = Math.max(1, Math.min(64, state.length || 16));
+  const curBank = getBank();
+  const seq = curBank?.[getSelected()] || curBank?.[0];
+  const isPlaying = isLive();
+
+  // Reference sequence ring perimeter
+  ctx.beginPath();
+  ctx.arc(cx, cy, rDial, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Draw step pips around dial
+  for (let s = 0; s < seqLen; s++) {
+    const theta = (s / seqLen) * Math.PI * 2 - Math.PI / 2;
+    const px = cx + Math.cos(theta) * rDial;
+    const py = cy + Math.sin(theta) * rDial;
+    const isCurrent = (s === currentLiveStep && isPlaying);
+    const hasNote = seq?.steps?.[s]?.notes?.length > 0;
+
+    if (isCurrent) {
+      // Rotating Sequence Radar Sweep Line from Sun to active step
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(px, py);
+      ctx.strokeStyle = colAccent;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // Trailing sector wedge
+      const wedgeTheta = theta - (Math.PI * 2 / seqLen) * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, rDial, wedgeTheta, theta);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(59, 130, 246, 0.08)";
+      ctx.fill();
+
+      // Active step playhead node
+      ctx.beginPath();
+      ctx.arc(px, py, 5.5 * scaleFactor, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.strokeStyle = colAccent;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(px, py, (hasNote ? 3 : 1.5) * scaleFactor, 0, Math.PI * 2);
+      ctx.fillStyle = hasNote ? colAccent2 : (s % 4 === 0 ? colLineFocus : colLine);
+      ctx.fill();
+    }
+  }
+
+  // 2. Draw central star (No gradients: flat concentric alpha rings with pulse)
   const starRadius = (14 + starPulse * 8) * scaleFactor;
   ctx.beginPath();
-  ctx.arc(cx, cy, starRadius + 12 * scaleFactor, 0, Math.PI * 2);
+  ctx.arc(cx, cy, starRadius + 14 * scaleFactor, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(234, 179, 8, 0.12)";
   ctx.fill();
 
   ctx.beginPath();
-  ctx.arc(cx, cy, starRadius + 5 * scaleFactor, 0, Math.PI * 2);
+  ctx.arc(cx, cy, starRadius + 6 * scaleFactor, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(234, 179, 8, 0.25)";
   ctx.fill();
 
   ctx.beginPath();
   ctx.arc(cx, cy, starRadius, 0, Math.PI * 2);
-  ctx.fillStyle = "#eab308";
+  ctx.fillStyle = starPulse > 0.3 ? "#ffffff" : "#eab308";
   ctx.fill();
 
   // Central Star Label
@@ -600,21 +698,53 @@ function renderOrbitCanvas() {
   ctx.textBaseline = "middle";
   ctx.fillText("SOL", cx, cy);
 
-  // 2. Draw elliptical orbital tracks and motion trails
+  // 3. Draw elliptical orbital tracks, flowing motion streams, and periapsis transit gates
   for (let i = 0; i < num; i++) {
     const a = semiMajor[i] * scaleFactor;
     const e = eccentricity[i];
     const b = a * Math.sqrt(Math.max(0.01, 1 - e * e));
     const c = a * e; // Distance from center to focal sun
-
-    // Highlight hovered or dragged orbit
     const isSelected = (i === hoveredBody || i === isDraggingBody);
-    ctx.lineWidth = isSelected ? 2 : 1;
-    ctx.strokeStyle = isSelected ? colLineFocus : colLine;
+    const isTriggered = triggerFlash[i] > 0.02;
 
-    // Draw reference Keplerian ellipse
+    // Draw reference ellipse
     ctx.beginPath();
     ctx.ellipse(cx - c, cy, a, b, 0, 0, Math.PI * 2);
+
+    if (isTriggered) {
+      // Flashing illuminated orbit line on note trigger
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = bodyColor[i % bodyColor.length];
+      ctx.globalAlpha = 0.6 + triggerFlash[i] * 0.4;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+    } else {
+      ctx.lineWidth = isSelected ? 2 : 1;
+      ctx.strokeStyle = isSelected ? colLineFocus : colLine;
+      ctx.stroke();
+
+      // Flowing dashed particle stream indicating orbital velocity & travel direction
+      ctx.save();
+      ctx.setLineDash([4, 8]);
+      ctx.lineDashOffset = -time * 0.035 * (1 + (num - i) * 0.35);
+      ctx.strokeStyle = bodyColor[i % bodyColor.length];
+      ctx.globalAlpha = 0.3;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Periapsis transit gate marker (closest approach to Sun)
+    const periX = cx - c + a;
+    const periY = cy;
+    const gSize = 3.5 * scaleFactor;
+    ctx.beginPath();
+    ctx.moveTo(periX, periY - gSize);
+    ctx.lineTo(periX + gSize, periY);
+    ctx.lineTo(periX, periY + gSize);
+    ctx.lineTo(periX - gSize, periY);
+    ctx.closePath();
+    ctx.strokeStyle = isTriggered ? "#ffffff" : bodyColor[i % bodyColor.length];
+    ctx.lineWidth = isTriggered ? 2 : 1;
     ctx.stroke();
 
     // Draw motion trail
@@ -623,19 +753,21 @@ function renderOrbitCanvas() {
     if (count > 1) {
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = bodyColor[i % bodyColor.length];
+      ctx.globalAlpha = 0.8;
       ctx.beginPath();
       for (let t = 0; t < count; t++) {
         const idx = (head - count + t + TRAIL_LEN) % TRAIL_LEN;
-        const px = cx + trailX[i * TRAIL_LEN + idx] * scaleFactor;
-        const py = cy + trailY[i * TRAIL_LEN + idx] * scaleFactor;
-        if (t === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
+        const tx = cx + trailX[i * TRAIL_LEN + idx] * scaleFactor;
+        const ty = cy + trailY[i * TRAIL_LEN + idx] * scaleFactor;
+        if (t === 0) ctx.moveTo(tx, ty);
+        else ctx.lineTo(tx, ty);
       }
       ctx.stroke();
+      ctx.globalAlpha = 1.0;
     }
   }
 
-  // 3. Draw radial conjunction alignment beams
+  // 4. Draw radial conjunction alignment beams
   if (state.orbitalConjunction) {
     const thresh = state.orbitalConjThresh ?? 0.08;
     for (let i = 0; i < num; i++) {
@@ -643,7 +775,7 @@ function renderOrbitCanvas() {
         let diff = Math.abs(bodyAngle[i] - bodyAngle[j]);
         if (diff > Math.PI) diff = Math.PI * 2 - diff;
         if (diff < thresh) {
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
           ctx.lineWidth = 1;
           ctx.setLineDash([3, 3]);
           ctx.beginPath();
@@ -656,14 +788,45 @@ function renderOrbitCanvas() {
     }
   }
 
-  // 4. Draw planet bodies
+  // 5. Draw planet bodies, shockwaves, gravitational beams, and floating note badges
   for (let i = 0; i < num; i++) {
     const px = cx + posX[i] * scaleFactor;
     const py = cy + posY[i] * scaleFactor;
     const isSelected = (i === hoveredBody || i === isDraggingBody);
     const radius = (isSelected ? 9 : 6) * scaleFactor;
+    const flash = triggerFlash[i];
 
-    // Active note glow indicator
+    // Triggered visual effects: Gravitational tidal ray + Shockwave ring
+    if (flash > 0.01) {
+      // Gravitational beam from Sun to Planet
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(px, py);
+      ctx.strokeStyle = bodyColor[i % bodyColor.length];
+      ctx.globalAlpha = flash * 0.7;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+
+      // Expanding shockwave ripple ring
+      ctx.beginPath();
+      ctx.arc(px, py, triggerRipple[i] * scaleFactor, 0, Math.PI * 2);
+      ctx.strokeStyle = bodyColor[i % bodyColor.length];
+      ctx.globalAlpha = flash * 0.85;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+
+      // Outer glowing halo
+      ctx.beginPath();
+      ctx.arc(px, py, radius + 8 * scaleFactor, 0, Math.PI * 2);
+      ctx.fillStyle = bodyColor[i % bodyColor.length];
+      ctx.globalAlpha = flash * 0.4;
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    }
+
+    // Active voice note indicator ring
     if (voiceSlots[i] !== null) {
       ctx.beginPath();
       ctx.arc(px, py, radius + 4 * scaleFactor, 0, Math.PI * 2);
@@ -671,17 +834,17 @@ function renderOrbitCanvas() {
       ctx.fill();
     }
 
-    // Planet body
+    // Planet body circle
     ctx.beginPath();
     ctx.arc(px, py, radius, 0, Math.PI * 2);
-    ctx.fillStyle = bodyColor[i % bodyColor.length];
+    ctx.fillStyle = flash > 0.4 ? "#ffffff" : bodyColor[i % bodyColor.length];
     ctx.fill();
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = isSelected ? "#ffffff" : colLine;
     ctx.stroke();
 
-    // Planet index badge
-    ctx.fillStyle = "#ffffff";
+    // Planet index badge inside the body
+    ctx.fillStyle = flash > 0.4 ? "#111215" : "#ffffff";
     ctx.font = `bold ${Math.round(8 * scaleFactor)}px monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -694,6 +857,29 @@ function renderOrbitCanvas() {
     ctx.moveTo(px, py);
     ctx.lineTo(px + velX[i] * 0.15 * scaleFactor, py + velY[i] * 0.15 * scaleFactor);
     ctx.stroke();
+
+    // Floating Note Name Badge above planet when sounding
+    if (triggerNoteName[i]) {
+      const noteText = triggerNoteName[i];
+      const badgeY = py - (radius + 12 * scaleFactor);
+      ctx.font = `bold ${Math.round(10 * scaleFactor)}px monospace`;
+      const tw = ctx.measureText(noteText).width;
+      const padX = 4 * scaleFactor;
+      const padY = 2 * scaleFactor;
+
+      ctx.fillStyle = colPanel2;
+      ctx.strokeStyle = bodyColor[i % bodyColor.length];
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.rect(px - tw / 2 - padX, badgeY - 6 * scaleFactor - padY, tw + padX * 2, 12 * scaleFactor + padY * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(noteText, px, badgeY);
+    }
   }
 }
 
@@ -1054,6 +1240,17 @@ export function activateOrbitalModel() {
   setModelGenerator(generateOrbitalBank);
   setModelRandomizer(randomizeOrbital);
   setModelStepHandler(onOrbitalLiveStep);
+  setModelTransportHandler({
+    onStart: () => {
+      currentLiveStep = -1;
+    },
+    onStop: () => {
+      currentLiveStep = -1;
+      triggerFlash.fill(0);
+      triggerRipple.fill(0);
+      triggerNoteName.fill("");
+    }
+  });
 
   const curBank = getBank();
   const hasExistingSteps = curBank?.[0]?.steps?.some((st) => (st.notes && st.notes.length > 0) || st._savedNote);
@@ -1077,9 +1274,14 @@ export function deactivateOrbitalModel() {
   panicPreview();
   audio.allOff();
   setModelStepHandler(null);
+  setModelTransportHandler(null);
   activeVoices.clear();
   voiceSlots.fill(null);
+  triggerFlash.fill(0);
+  triggerRipple.fill(0);
+  triggerNoteName.fill("");
   lastLiveStep = -1;
+  currentLiveStep = -1;
 
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);
