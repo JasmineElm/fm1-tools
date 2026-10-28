@@ -408,7 +408,7 @@ function freeLoop(time) {
     }
   }
 
-  // Always step ballistics so launched fish continue flying and ricocheting smoothly
+  // Always step ballistics so launched projectiles continue flying and ricocheting smoothly
   stepBallistics(dt);
 
   renderPondCanvas();
@@ -741,21 +741,18 @@ function renderPondCanvas() {
   ctx.stroke();
   ctx.restore();
 
-  // 4. Draw Plankton fish creatures
-  const nowMs = performance.now();
+  // 4. Draw Plankton circle icons
   for (let p = 0; p < MAX_PLANKTON; p++) {
     if (pActive[p] === 0) continue;
 
     const px = pX[p] * scaleX;
     const py = pY[p] * scaleY;
-    const vx = pVx[p];
-    const vy = pVy[p];
-    const heading = Math.atan2(vy, vx);
     const col = pColors[p % pColors.length];
+    const r = Math.max(5.5, Math.min(10, pRadius * scaleX * 1.1));
 
-    // Trailing luminous wake ribbon
+    // Trailing motion wake
     ctx.save();
-    ctx.lineWidth = 3.5 * scaleX;
+    ctx.lineWidth = 2.5 * scaleX;
     ctx.lineCap = "round";
     ctx.strokeStyle = col;
     ctx.globalAlpha = 0.45;
@@ -767,64 +764,14 @@ function renderPondCanvas() {
     ctx.stroke();
     ctx.restore();
 
-    // Draw swimming fish creature oriented along velocity vector
-    ctx.save();
-    ctx.translate(px, py);
-    ctx.rotate(heading);
-
-    const fScale = Math.max(0.9, Math.min(1.5, scaleX * 1.35));
-    const tailWiggle = Math.sin(nowMs * 0.022 + p * 1.5) * (4.5 * fScale);
-
-    // Outer soft aura
+    // Simple circle icon
     ctx.beginPath();
-    ctx.ellipse(0, 0, 15 * fScale, 9 * fScale, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0, 240, 255, 0.2)";
-    ctx.fill();
-
-    // Tail fin (flaring out behind fish)
-    ctx.beginPath();
-    ctx.moveTo(-7 * fScale, 0);
-    ctx.lineTo(-19 * fScale, -7 * fScale + tailWiggle);
-    ctx.lineTo(-14 * fScale, tailWiggle * 0.5);
-    ctx.lineTo(-19 * fScale, 7 * fScale + tailWiggle);
-    ctx.closePath();
-    ctx.fillStyle = col;
-    ctx.fill();
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = "#ffffff";
-    ctx.stroke();
-
-    // Main fish body (streamlined teardrop)
-    ctx.beginPath();
-    ctx.moveTo(14 * fScale, 0); // nose tip
-    ctx.quadraticCurveTo(4 * fScale, -8 * fScale, -8 * fScale, -4 * fScale); // top dorsal
-    ctx.lineTo(-8 * fScale, 4 * fScale); // rear
-    ctx.quadraticCurveTo(4 * fScale, 8 * fScale, 14 * fScale, 0); // bottom belly
-    ctx.closePath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
     ctx.fillStyle = col;
     ctx.fill();
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = "#ffffff";
     ctx.stroke();
-
-    // Dorsal / side fin
-    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-    ctx.beginPath();
-    ctx.ellipse(0, 4 * fScale, 4 * fScale, 2 * fScale, Math.PI / 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Fish eye (white sclera with dark pupil)
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(6 * fScale, -3 * fScale, 3 * fScale, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#111215";
-    ctx.beginPath();
-    ctx.arc(7.2 * fScale, -3 * fScale, 1.4 * fScale, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
   }
 }
 
@@ -1212,7 +1159,7 @@ export function activateHanenbowModel() {
     animFrameId = requestAnimationFrame(freeLoop);
   }
 
-  // Auto-launch a fish on entering so the pond is immediately active and visible
+  // Auto-launch a projectile on entering so the pond is immediately active and visible
   firePlankton();
 }
 
