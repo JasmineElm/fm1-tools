@@ -20,7 +20,7 @@ import {
 import { knob, dropdown } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
 import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
-import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
+import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
@@ -98,7 +98,6 @@ let comAlpha = 0;
 // DOM & Canvas elements
 let sandpileContainer = null;
 let sandpileCanvas = null;
-let notesSection = null;
 let presetSelect = null;
 let statReadoutEl = null;
 
@@ -1244,20 +1243,7 @@ export function initSandpile() {
   dropdownRow.append(pPattern, pBoundary, pMapping, pRule);
   paramCard.append(paramGrid, dropdownRow);
 
-  // Card 3: Notes & Musical Scale Bar
-  notesSection = createNotesSection({
-    pitchSpanKey: "sandpileSpan",
-    defaultPitchSpan: 2,
-    onChange: () => {
-      state.pitchSpan = state.sandpileSpan;
-      renderSandpileCanvas();
-    }
-  });
-  notesSection.sectEl.classList.add("card");
-  notesSection.sectEl.style.padding = "8px 12px";
-  notesSection.sectEl.style.marginTop = "8px";
-
-  module.append(headerCard, paramCard, notesSection.sectEl);
+  module.append(headerCard, paramCard);
 
   // --- Right Column: Interactive Sandpile Canvas Matrix ---
   const display = document.createElement("div");

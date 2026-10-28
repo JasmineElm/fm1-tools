@@ -306,6 +306,13 @@ export function buildNotesBar() {
       state.lvRoot = state.root;
       state.lvRootNote = state.rootNote;
       state.lvRootOctave = state.rootOctave;
+      state.sandpileScale = state.scale;
+      state.sandpileCustomScale = state.customScale;
+      state.sandpileRoot = state.root;
+      state.sandpileRootNote = state.rootNote;
+      state.sandpileRootOctave = state.rootOctave;
+      state.sandpileSpan = state.pitchSpan;
+      if (refs.sandpileSpan?.setValue) refs.sandpileSpan.setValue(state.pitchSpan, false);
 
       if (getActiveModel() === "lotka_volterra") {
         updateLotkaVolterraScaleAndOctave();
