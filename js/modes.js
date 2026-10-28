@@ -243,6 +243,7 @@ export function renderModelsGrid(container) {
     const card = document.createElement("div");
     card.className = "model-card is-active";
     card.dataset.modelId = m.id;
+    card.title = `${m.name}: ${m.desc}`;
 
     card.innerHTML = `
       <div class="model-card-top">
@@ -255,13 +256,12 @@ export function renderModelsGrid(container) {
         </div>
       </div>
       <div class="model-card-body">
-        <p class="model-desc">${m.desc}</p>
         <div class="model-tags">
           ${m.tags.map((t) => `<span class="model-tag">${t}</span>`).join("")}
         </div>
       </div>
       <div class="model-card-footer">
-        <button class="model-launch-btn primary" data-launch="${m.id}" title="Launch ${m.name} Sequencer">
+        <button class="model-launch-btn primary" data-launch="${m.id}" title="${m.name}: ${m.desc}">
           Launch ${m.name} Engine <span>→</span>
         </button>
       </div>
@@ -288,6 +288,7 @@ export function renderToolsGrid(container) {
     const card = document.createElement("div");
     card.className = "model-card is-active";
     card.dataset.toolId = t.id;
+    card.title = `${t.name}: ${t.desc}`;
 
     card.innerHTML = `
       <div class="model-card-top">
@@ -300,13 +301,12 @@ export function renderToolsGrid(container) {
         </div>
       </div>
       <div class="model-card-body">
-        <p class="model-desc">${t.desc}</p>
         <div class="model-tags">
           ${t.tags.map((tag) => `<span class="model-tag">${tag}</span>`).join("")}
         </div>
       </div>
       <div class="model-card-footer">
-        <button class="model-launch-btn primary" data-launch="${t.id}" title="Launch ${t.name}">
+        <button class="model-launch-btn primary" data-launch="${t.id}" title="${t.name}: ${t.desc}">
           Launch ${t.name} <span>→</span>
         </button>
       </div>
