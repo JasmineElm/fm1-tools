@@ -80,10 +80,55 @@ const triggerFlash = new Float32Array(MAX_BODIES);
 const triggerRipple = new Float32Array(MAX_BODIES);
 const triggerNoteName = new Array(MAX_BODIES).fill("");
 
+let isOrbitalPlaying = false;
+
+export function isOrbitalRunning() {
+  return isOrbitalPlaying;
+}
+
+export function startOrbital() {
+  if (isOrbitalPlaying) return;
+  isOrbitalPlaying = true;
+  audio.unlock();
+  updatePlayBtnUI();
+  status("Orbital: Playing · Keplerian celestial resonance chimes", "ok");
+}
+
+export function stopOrbital() {
+  isOrbitalPlaying = false;
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
+  activeVoices.clear();
+  voiceSlots.fill(null);
+  updatePlayBtnUI();
+  status("stopped");
+}
+
+export function toggleOrbitalRunning() {
+  if (isOrbitalPlaying) {
+    stopOrbital();
+    return false;
+  } else {
+    startOrbital();
+    return true;
+  }
+}
+
+function updatePlayBtnUI() {
+  const headerBtn = document.getElementById("audition");
+  if (headerBtn) {
+    headerBtn.textContent = isOrbitalPlaying ? "■ Stop" : "▶ Play";
+    if (isOrbitalPlaying) {
+      headerBtn.classList.add("playing");
+    } else {
+      headerBtn.classList.remove("playing");
+    }
+  }
+}
+
 // UI DOM references
 let orbitalContainer = null;
 let orbitCanvas = null;
-let modeToggleBtn = null;
 let presetSelect = null;
 let bodiesCountDisplay = null;
 let notesSection = null;
@@ -373,17 +418,14 @@ export function getPlanetNote(i) {
 }
 
 // ---- Free-Running Real-Time Animation Loop ----
-// ---- Free-Running Real-Time Animation Loop ----
 function freeLoop(time) {
   const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
   lastFrameTime = time;
 
-  // Animate orbital physics in free mode or when transport sequencer is running
-  if (state.orbitalMode === "free" || isLive()) {
+  // Run continuous celestial physics and trigger checks when transport is playing
+  if (isOrbitalPlaying) {
     stepVerlet(dt);
-    if (state.orbitalMode === "free") {
-      checkOrbitalTriggers(dt);
-    }
+    checkOrbitalTriggers(dt);
   } else {
     // Subtle idle drift when stopped so the system is visibly alive
     stepVerlet(dt * 0.25);
@@ -455,114 +497,29 @@ function checkOrbitalTriggers(dt) {
   }
 }
 
-// ---- Transport Step Handler (Sync Mode) ----
-export function onOrbitalLiveStep(step) {
-  if (step === currentLiveStep) return;
-  currentLiveStep = step;
-  liveStepTime = performance.now();
-
-  if (state.orbitalMode !== "sync") return;
-
-  const curBank = getBank();
-  const seq = curBank?.[getSelected()] || curBank?.[0];
-  if (!seq || !seq.steps) return;
-
-  const st = seq.steps[step];
-  if (!st || !st.notes || st.notes.length === 0) return;
-
-  const num = Math.min(MAX_BODIES, Math.max(2, state.orbitalBodies ?? 5));
-  for (const n of st.notes) {
-    if (n && n.note !== undefined) {
-      let planetIdx = -1;
-      for (let b = 0; b < num; b++) {
-        if (getPlanetNote(b) === n.note) {
-          planetIdx = b;
-          break;
-        }
-      }
-      if (planetIdx === -1) planetIdx = step % num;
-
-      playPlanetVoice(planetIdx, n.note, n.vel || 90, state.orbitalGateLen ?? 220);
-    }
-  }
-}
+// Retained for interface compatibility; note triggers are based on continuous orbital dynamics
+export function onOrbitalLiveStep(step) {}
 
 // ---- Bank Generator Contract (`return bank`) ----
-export function generateOrbitalBank(st) {
-  const seqLen = Math.max(1, Math.min(64, st.length || 16));
+// Note triggering is based on real-time continuous orbital dynamics; bank steps contain no step-clock notes.
+export function generateOrbitalBank(st = state) {
+  const seqLen = Math.max(1, Math.min(64, st?.length || 16));
   const bank = [];
-  const intervals = getActiveScaleIntervals();
-  const root = getRootMidi();
-  const num = Math.min(MAX_BODIES, Math.max(2, st.orbitalBodies ?? 5));
-  const span = st.orbitalSpan ?? 3;
-
   for (let s = 0; s < 16; s++) {
-    const pattern = {
-      length: seqLen,
-      rate: st.rate ?? 6,
-      steps: []
-    };
-
-    // Forward simulation across step count to map celestial pulses deterministically
-    const simDt = 0.04;
-    const simGM = 400000 * (st.orbitalGravity ?? 1.0);
-    const simPosX = new Float32Array(posX);
-    const simPosY = new Float32Array(posY);
-    const simVelX = new Float32Array(velX);
-    const simVelY = new Float32Array(velY);
-    const simPrevVr = new Float32Array(prevVr);
-
+    const steps = [];
     for (let step = 0; step < seqLen; step++) {
-      const stepNotes = [];
-
-      // Advance physics simulation by multiple sub-steps per sequence step
-      for (let sub = 0; sub < 4; sub++) {
-        for (let i = 0; i < num; i++) {
-          const r = Math.hypot(simPosX[i], simPosY[i]) + 8.0;
-          const r3 = r * r * r;
-          const ax = -(simGM * simPosX[i]) / r3;
-          const ay = -(simGM * simPosY[i]) / r3;
-
-          simPosX[i] += simVelX[i] * simDt;
-          simPosY[i] += simVelY[i] * simDt;
-          simVelX[i] += ax * simDt;
-          simVelY[i] += ay * simDt;
-
-          const vr = (simPosX[i] * simVelX[i] + simPosY[i] * simVelY[i]) / r;
-          if (simPrevVr[i] <= 0 && vr > 0) {
-            // Periapsis transit on this sub-step
-            const deg = (i * 2 + s) % intervals.length;
-            const oct = Math.floor(((num - 1 - i) / Math.max(1, num - 1)) * (span - 1));
-            const note = quantize(root + oct * 12 + (intervals[deg] || 0));
-            const speed = Math.hypot(simVelX[i], simVelY[i]);
-            const vel = Math.min(127, Math.max(45, Math.round(speed * 0.9)));
-
-            if (!stepNotes.some(sn => sn.note === note) && stepNotes.length < 3) {
-              stepNotes.push({ note, vel });
-            }
-          }
-          simPrevVr[i] = vr;
-        }
-      }
-
-      // If no periapsis occurred on this step, provide sparse celestial grounding intervals
-      if (stepNotes.length === 0 && (step % (Math.max(2, Math.floor(seqLen / num))) === 0)) {
-        const bodyIdx = (step / 2) % num;
-        const deg = (bodyIdx * 2 + s) % intervals.length;
-        const oct = Math.floor(((num - 1 - bodyIdx) / Math.max(1, num - 1)) * (span - 1));
-        const note = quantize(root + oct * 12 + (intervals[deg] || 0));
-        stepNotes.push({ note, vel: 65 });
-      }
-
-      pattern.steps.push({
-        notes: stepNotes,
-        gate: stepNotes.length > 0
+      steps.push({
+        notes: [],
+        gate: false
       });
     }
-
-    bank.push(pattern);
+    bank.push({
+      length: seqLen,
+      rate: st?.rate ?? 6,
+      steps
+    });
   }
-
+  setBank(bank);
   return bank;
 }
 
@@ -577,10 +534,8 @@ export function randomizeOrbital() {
 
   initPlanetarySystem(p.id);
   syncControlsFromState();
-  forceRegenRhythm = true;
-  doGenerate(true);
-  forceRegenRhythm = false;
-  syncRhythmGrid();
+  renderOrbitCanvas();
+  updateHud();
   status(`Randomized Orbital Resonance: ${p.name}`, "ok");
 }
 
@@ -617,64 +572,8 @@ function renderOrbitCanvas(time = 0) {
 
   const num = Math.min(MAX_BODIES, Math.max(2, state.orbitalBodies ?? 5));
   const scaleFactor = Math.min(w, h) / 640.0;
-  const rDial = Math.min(w, h) * 0.46;
 
-  // 1. Outer Sequence Step Ring & Playhead Radar Sweep
-  const seqLen = Math.max(1, Math.min(64, state.length || 16));
-  const curBank = getBank();
-  const seq = curBank?.[getSelected()] || curBank?.[0];
-  const isPlaying = isLive();
-
-  // Reference sequence ring perimeter
-  ctx.beginPath();
-  ctx.arc(cx, cy, rDial, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Draw step pips around dial
-  for (let s = 0; s < seqLen; s++) {
-    const theta = (s / seqLen) * Math.PI * 2 - Math.PI / 2;
-    const px = cx + Math.cos(theta) * rDial;
-    const py = cy + Math.sin(theta) * rDial;
-    const isCurrent = (s === currentLiveStep && isPlaying);
-    const hasNote = seq?.steps?.[s]?.notes?.length > 0;
-
-    if (isCurrent) {
-      // Rotating Sequence Radar Sweep Line from Sun to active step
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(px, py);
-      ctx.strokeStyle = colAccent;
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
-
-      // Trailing sector wedge
-      const wedgeTheta = theta - (Math.PI * 2 / seqLen) * 0.8;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, rDial, wedgeTheta, theta);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(59, 130, 246, 0.08)";
-      ctx.fill();
-
-      // Active step playhead node
-      ctx.beginPath();
-      ctx.arc(px, py, 5.5 * scaleFactor, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.fill();
-      ctx.strokeStyle = colAccent;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.arc(px, py, (hasNote ? 3 : 1.5) * scaleFactor, 0, Math.PI * 2);
-      ctx.fillStyle = hasNote ? colAccent2 : (s % 4 === 0 ? colLineFocus : colLine);
-      ctx.fill();
-    }
-  }
-
-  // 2. Draw central star (No gradients: flat concentric alpha rings with pulse)
+  // 1. Draw central star (No gradients: flat concentric alpha rings with pulse)
   const starRadius = (14 + starPulse * 8) * scaleFactor;
   ctx.beginPath();
   ctx.arc(cx, cy, starRadius + 14 * scaleFactor, 0, Math.PI * 2);
@@ -930,19 +829,6 @@ export function initOrbital() {
   actionsGroup.style.display = "flex";
   actionsGroup.style.gap = "4px";
 
-  modeToggleBtn = document.createElement("button");
-  modeToggleBtn.className = "btn-action";
-  modeToggleBtn.style.fontSize = "10px";
-  modeToggleBtn.style.padding = "3px 8px";
-  modeToggleBtn.textContent = state.orbitalMode === "free" ? "Free Loop" : "Sync Step";
-  modeToggleBtn.title = "Toggle between transport step sync and free-running continuous celestial physics";
-  modeToggleBtn.addEventListener("click", () => {
-    state.orbitalMode = state.orbitalMode === "free" ? "sync" : "free";
-    modeToggleBtn.textContent = state.orbitalMode === "free" ? "Free Loop" : "Sync Step";
-    renderOrbitCanvas();
-    status(`Orbital mode: ${state.orbitalMode.toUpperCase()}`, "ok");
-  });
-
   const btnRnd = document.createElement("button");
   btnRnd.className = "btn-action primary";
   btnRnd.style.fontSize = "10px";
@@ -953,7 +839,7 @@ export function initOrbital() {
     randomizeOrbital();
   });
 
-  actionsGroup.append(modeToggleBtn, btnRnd);
+  actionsGroup.append(btnRnd);
   topRow.append(titleGroup, actionsGroup);
 
   // Preset Selector Dropdown
@@ -991,10 +877,8 @@ export function initOrbital() {
       state.orbitalSpeed = p.speed;
       initPlanetarySystem(pid);
       syncControlsFromState();
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
-      syncRhythmGrid();
+      renderOrbitCanvas();
+      updateHud();
       status(`Orbital preset: ${p.name}`, "ok");
     }
   });
@@ -1020,10 +904,8 @@ export function initOrbital() {
     onChange: (v) => {
       state.orbitalBodies = Math.round(v);
       initPlanetarySystem(state.orbitalPreset);
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
-      syncRhythmGrid();
+      renderOrbitCanvas();
+      updateHud();
     }
   });
   R("orbitalBodies", kBodies);
@@ -1036,9 +918,6 @@ export function initOrbital() {
     title: "Celestial simulation velocity scaling factor",
     onChange: (v) => {
       state.orbitalSpeed = v;
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
     }
   });
   R("orbitalSpeed", kSpeed);
@@ -1052,9 +931,7 @@ export function initOrbital() {
     onChange: (v) => {
       state.orbitalEccentricity = v;
       initPlanetarySystem(state.orbitalPreset);
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
+      renderOrbitCanvas();
     }
   });
   R("orbitalEccentricity", kEcc);
@@ -1068,9 +945,7 @@ export function initOrbital() {
     onChange: (v) => {
       state.orbitalGravity = v;
       initPlanetarySystem(state.orbitalPreset);
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
+      renderOrbitCanvas();
     }
   });
   R("orbitalGravity", kGrav);
@@ -1100,10 +975,7 @@ export function initOrbital() {
 
   // Card 3: Notes & Musical Pitch Controls
   notesSection = createNotesSection("orbital", () => {
-    forceRegenRhythm = true;
-    doGenerate(true);
-    forceRegenRhythm = false;
-    syncRhythmGrid();
+    renderOrbitCanvas();
   });
   notesSection.sectEl.classList.add("card");
   notesSection.sectEl.style.padding = "8px 12px";
@@ -1215,10 +1087,7 @@ export function initOrbital() {
     if (isDraggingBody >= 0) {
       try { orbitCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
       isDraggingBody = -1;
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
-      syncRhythmGrid();
+      renderOrbitCanvas();
     }
   };
 
@@ -1239,28 +1108,15 @@ export function initOrbital() {
 export function activateOrbitalModel() {
   setModelGenerator(generateOrbitalBank);
   setModelRandomizer(randomizeOrbital);
-  setModelStepHandler(onOrbitalLiveStep);
+  setModelStepHandler(null);
   setModelTransportHandler({
-    onStart: () => {
-      currentLiveStep = -1;
-    },
-    onStop: () => {
-      currentLiveStep = -1;
-      triggerFlash.fill(0);
-      triggerRipple.fill(0);
-      triggerNoteName.fill("");
-    }
+    toggle: toggleOrbitalRunning,
+    stop: stopOrbital,
+    start: startOrbital,
+    isRunning: isOrbitalRunning
   });
 
-  const curBank = getBank();
-  const hasExistingSteps = curBank?.[0]?.steps?.some((st) => (st.notes && st.notes.length > 0) || st._savedNote);
-  if (!hasExistingSteps) {
-    forceRegenRhythm = true;
-  }
-  doGenerate(true);
-  forceRegenRhythm = false;
-
-  syncRhythmGrid();
+  doGenerate(false);
   renderOrbitCanvas();
   updateHud();
 
@@ -1268,13 +1124,20 @@ export function activateOrbitalModel() {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(freeLoop);
   }
+
+  updatePlayBtnUI();
+  status("Orbital Resonance: Ready (Press Play or Spacebar to start)", "ok");
 }
 
 export function deactivateOrbitalModel() {
-  panicPreview();
-  audio.allOff();
+  stopOrbital();
   setModelStepHandler(null);
   setModelTransportHandler(null);
+  setModelGenerator(null);
+  setModelRandomizer(null);
+
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   activeVoices.clear();
   voiceSlots.fill(null);
   triggerFlash.fill(0);

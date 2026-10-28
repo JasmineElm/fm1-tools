@@ -738,8 +738,10 @@ initModes({
       deactivateLsystemModel();
       deactivateLotkaVolterraModel();
       deactivateHanenbowModel();
+      deactivateSandpileModel();
       deactivateDxPatch();
       deactivateLibrarian();
+      if (isLive()) stopLive();
       activateOrbitalModel();
       fitSteps();
       renderScope();

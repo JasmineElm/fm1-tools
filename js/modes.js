@@ -416,8 +416,8 @@ export function showModel(id, updateHash = true) {
 
   if (viewLanding) viewLanding.style.display = "none";
 
-  // Flocking, Pendulum, Krell, Hanenbow, and Sandpile are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, and Orbital are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
