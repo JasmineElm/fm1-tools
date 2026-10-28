@@ -47,7 +47,8 @@ The models are ordered first by the **fundamental algorithmic, mathematical, and
 | **06** | `percolation` | **Percolation Cluster Phase Transition** | Fluid Porosity / Criticality | Disjoint Set Union (DSU / Union-Find), cluster scaling, conductive wave fronts | Mod-High (3.5/5) | ✅ Complete |
 | **07** | `dla` | **Diffusion-Limited Aggregation (DLA)** | Fractal Growth / Brownian Walks | 2D Brownian motion, perimeter boundary kill zones, sticky bitmask lookup | High (4/5) | ✅ Complete |
 | **08** | `epidemic` | **SIR Epidemic Network Dynamics** | Population / Epidemiology | Spatial contact proximity graphs, multi-state Markov transitions, $R_0$ density | High (4/5) | ✅ Complete |
-| **09** | `physarum` | **Physarum Slime Mould Network** | Biological Foraging / Transport | 3-sensor agent steering, 2D Float32Array pheromone diffusion/decay, flux tubes | Highest (5/5) | Pending |
+| **09** | `changes` | **English Change Ringing & Campanology** | Permutation / Group Theory | Plain Hunt, Plain Bob, Grandsire, Stedman, Blue Line method sheet, 8-bell polyphony | Moderate (3/5) | ✅ Complete |
+| **10** | `physarum` | **Physarum Slime Mould Network** | Biological Foraging / Transport | 3-sensor agent steering, 2D Float32Array pheromone diffusion/decay, flux tubes | Highest (5/5) | Pending |
 
 ---
 

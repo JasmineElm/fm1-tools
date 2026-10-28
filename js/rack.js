@@ -34,6 +34,7 @@ import { initSandpile, activateSandpileModel, deactivateSandpileModel, syncSandp
 import { initPercolation, activatePercolationModel, deactivatePercolationModel, syncPercolationFromRegen } from "./percolation.js?v=1";
 import { initDla, activateDlaModel, deactivateDlaModel } from "./dla.js";
 import { initEpidemic, activateEpidemicModel, deactivateEpidemicModel } from "./epidemic.js";
+import { initChanges, activateChangesModel, deactivateChangesModel } from "./changes.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -580,6 +581,7 @@ initSandpile();
 initPercolation();
 initDla();
 initEpidemic();
+initChanges();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -863,6 +865,28 @@ initModes({
       fitSteps();
       renderScope();
       syncRhythmGrid();
+    } else if (modelId === "changes") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateChangesModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
     }
   },
   onLeaveModel: () => {
@@ -888,6 +912,7 @@ initModes({
     try { deactivatePercolationModel(); } catch (e) { console.warn("Error deactivating percolation model:", e); }
     try { deactivateDlaModel(); } catch (e) { console.warn("Error deactivating dla model:", e); }
     try { deactivateEpidemicModel(); } catch (e) { console.warn("Error deactivating epidemic model:", e); }
+    try { deactivateChangesModel(); } catch (e) { console.warn("Error deactivating changes model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

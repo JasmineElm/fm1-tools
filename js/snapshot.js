@@ -62,6 +62,7 @@ const PREFIX = {
   percolation: /^percolation[A-Z]/,
   dla: /^dla[A-Z]/,
   epidemic: /^epidemic[A-Z]/,
+  changes: /^changes[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {
