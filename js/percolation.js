@@ -329,6 +329,12 @@ function getGridH() {
 
 // ---- Voice Allocation & Audio Dispatch (Strict <= 8 Voices) ----
 function playPercolationVoice(voiceKey, note, vel, durMs) {
+  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
+
+  const safeNote = Math.min(127, Math.max(0, Math.round(note)));
+  const safeVel = Math.min(127, Math.max(1, Math.round(vel)));
+  const safeDur = Math.max(40, Math.round(durMs));
+
   audio.unlock();
 
   // Terminate any previous note on this voice slot
@@ -336,6 +342,7 @@ function playPercolationVoice(voiceKey, note, vel, durMs) {
     const prev = activeVoices.get(voiceKey);
     clearTimeout(prev.timeoutId);
     try { liveNoteOff(prev.note); } catch (_) {}
+    try { audio.noteOff(prev.note); } catch (_) {}
     activeVoices.delete(voiceKey);
   }
 
@@ -345,23 +352,27 @@ function playPercolationVoice(voiceKey, note, vel, durMs) {
     const oldest = activeVoices.get(oldestKey);
     clearTimeout(oldest.timeoutId);
     try { liveNoteOff(oldest.note); } catch (_) {}
+    try { audio.noteOff(oldest.note); } catch (_) {}
     activeVoices.delete(oldestKey);
   }
 
-  try { liveNoteOn(note, vel, durMs); } catch (_) {}
+  try { liveNoteOn(safeNote, safeVel); } catch (_) {}
+  try { audio.noteOn(safeNote, safeVel); } catch (_) {}
 
   const timeoutId = setTimeout(() => {
-    try { liveNoteOff(note); } catch (_) {}
+    try { liveNoteOff(safeNote); } catch (_) {}
+    try { audio.noteOff(safeNote); } catch (_) {}
     activeVoices.delete(voiceKey);
-  }, Math.max(40, durMs));
+  }, safeDur);
 
-  activeVoices.set(voiceKey, { note, timeoutId });
+  activeVoices.set(voiceKey, { note: safeNote, timeoutId });
 }
 
 function releaseAllVoices() {
   for (const [, v] of activeVoices.entries()) {
     clearTimeout(v.timeoutId);
     try { liveNoteOff(v.note); } catch (_) {}
+    try { audio.noteOff(v.note); } catch (_) {}
   }
   activeVoices.clear();
   try { panicPreview(); } catch (_) {}
@@ -580,11 +591,16 @@ export function sparkPercolationCell(cellIdx) {
   // Play chord arpeggio based on cluster size
   const chordNotes = Math.min(4, Math.max(1, Math.min(MAX_VOICES, Math.round(Math.log2(Math.max(2, cSize))))));
   for (let v = 0; v < chordNotes; v++) {
-    const note = mapCellToPitch(cellIdx, cRoot, cSize, W, H, intervals, rootMidi, span, mapMode) + v * 4;
+    const rawPitch = mapCellToPitch(cellIdx, cRoot, cSize, W, H, intervals, rootMidi, span, mapMode) + v * 4;
+    const note = quantize(rawPitch, intervals, rootMidi);
     const vKey = (voiceCounter++) % MAX_VOICES;
-    setTimeout(() => {
-      playPercolationVoice(vKey, quantize(note, intervals, rootMidi), 95, baseGate);
-    }, v * 45);
+    if (v === 0) {
+      playPercolationVoice(vKey, note, 100, baseGate);
+    } else {
+      setTimeout(() => {
+        playPercolationVoice(vKey, note, 90, baseGate);
+      }, v * 45);
+    }
   }
 }
 
@@ -629,7 +645,7 @@ export function startPercolation() {
   if (isPercolationPlaying) return;
   isPercolationPlaying = true;
   audio.unlock();
-  scanAccumulator = 0;
+  scanAccumulator = 1.0;
   updatePlayBtnUI();
   status("Percolation Clusters: Playing · Fluid Porosity Conduction", "ok");
 }
@@ -1106,6 +1122,9 @@ export function initPercolation() {
       } else {
         grid[idx] = paintValue;
         recomputePercolationClusters();
+        if (paintValue === 1) {
+          sparkPercolationCell(idx);
+        }
       }
       renderPercolationCanvas();
     }
