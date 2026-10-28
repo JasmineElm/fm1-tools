@@ -22,13 +22,12 @@ import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
+import { playVoice, releasePolyVoices } from "./poly.js";
 import * as midi from "./midi.js";
 
 // ---- Constants & Polyphony Ceiling ----
 const MAX_VOICES = 8;
 const MAX_EXPANDED_LEN = 4096;
-const activeVoices = new Map(); // note -> timeoutId
-let activeSoundingNote = null;
 
 // Presets for classic and musical L-Systems
 export const LSYSTEM_PRESETS = [
@@ -168,28 +167,9 @@ let ruleXInput = null;
 let ruleYInput = null;
 let presetSelect = null;
 
-// ---- Audio Dispatch & 8-Voice Polyphony Ceiling ----
+// ---- Audio Dispatch & 8-Voice Polyphony Ceiling (via js/poly.js) ----
 function playLsystemVoice(note, vel, durMs, depth = 0) {
-  if (activeVoices.size >= MAX_VOICES) {
-    const oldest = activeVoices.keys().next().value;
-    clearTimeout(activeVoices.get(oldest));
-    liveNoteOff(oldest);
-    activeVoices.delete(oldest);
-  }
-
-  if (activeSoundingNote !== null && activeSoundingNote !== note) {
-    liveNoteOff(activeSoundingNote);
-    activeVoices.delete(activeSoundingNote);
-  }
-
-  liveNoteOn(note, vel, durMs);
-  activeSoundingNote = note;
-
-  const tid = setTimeout(() => {
-    activeVoices.delete(note);
-    if (activeSoundingNote === note) activeSoundingNote = null;
-  }, durMs);
-  activeVoices.set(note, tid);
+  playVoice(depth, note, vel, durMs);
 
   // Modulate FM-1 CC #74 Brightness with branch stack depth
   const ccDest = state.lsystemCcDest ?? 74;
@@ -1177,10 +1157,8 @@ export function activateLsystemModel() {
 }
 
 export function deactivateLsystemModel() {
-  panicPreview();
+  releasePolyVoices();
   setModelStepHandler(null);
-  activeVoices.clear();
-  activeSoundingNote = null;
   lastLiveStep = -1;
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);

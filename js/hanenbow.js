@@ -24,6 +24,7 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
+import { playVoice, releasePolyVoices } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
@@ -31,7 +32,6 @@ import * as audio from "./audio.js";
 const MAX_LEAVES = 8;
 const MAX_PLANKTON = 16;
 const MAX_VOICES = 8;
-const activeVoices = new Map(); // note -> timeoutId
 const voiceSlots = new Array(MAX_LEAVES).fill(null); // active note per leaf
 
 let forceRegenRhythm = false;
@@ -289,40 +289,10 @@ export function firePlankton() {
   cannonPulse = 1.0;
 }
 
-// ---- Audio Dispatch & Voice Slot Management (Strict 8-Voice Ceiling) ----
+// ---- Audio Dispatch & Voice Slot Management (Strict 8-Voice Ceiling via js/poly.js) ----
 function playLeafVoice(leafIdx, note, vel, durMs) {
-  // Voice stealing within dedicated leaf voice slot
-  const prevNote = voiceSlots[leafIdx];
-  if (prevNote !== null) {
-    liveNoteOff(prevNote);
-    audio.noteOff(prevNote);
-    activeVoices.delete(prevNote);
-    voiceSlots[leafIdx] = null;
-  }
-
-  // Global 8-voice limit enforcement
-  if (activeVoices.size >= MAX_VOICES) {
-    const oldest = activeVoices.keys().next().value;
-    if (oldest !== undefined) {
-      clearTimeout(activeVoices.get(oldest));
-      liveNoteOff(oldest);
-      audio.noteOff(oldest);
-      activeVoices.delete(oldest);
-    }
-  }
-
-  audio.unlock();
-  liveNoteOn(note, vel);
-  audio.noteOn(note, vel);
+  playVoice(leafIdx, note, vel, durMs);
   voiceSlots[leafIdx] = note;
-
-  const tid = setTimeout(() => {
-    activeVoices.delete(note);
-    if (voiceSlots[leafIdx] === note) voiceSlots[leafIdx] = null;
-    liveNoteOff(note);
-    audio.noteOff(note);
-  }, durMs);
-  activeVoices.set(note, tid);
 
   // Modulate FM-1 CC #74 Brightness with impact force
   const ccDest = state.hanenbowCcDest ?? 74;
@@ -1333,9 +1303,7 @@ export function deactivateHanenbowModel() {
   setModelGenerator(null);
   setModelRandomizer(null);
 
-  panicPreview();
-  try { audio.allOff(); } catch (_) {}
-  activeVoices.clear();
+  releasePolyVoices();
   voiceSlots.fill(null);
   lastLiveStep = -1;
 

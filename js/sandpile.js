@@ -25,7 +25,7 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
-import { selectPolyVoices } from "./poly.js";
+import { selectPolyVoices, playVoice, releasePolyVoices } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
@@ -74,8 +74,7 @@ const sortMetrics = new Float32Array(MAX_CELLS);
 const chosenCellIndices = new Int32Array(MAX_VOICES);
 const chosenPitches = new Int32Array(MAX_VOICES);
 
-// 8-Voice FIFO polyphony manager
-const activeVoices = new Map(); // voiceKey -> note
+// 8-Voice FIFO voice slot index
 let voiceCounter = 0;
 
 // Simulation & Transport State
@@ -111,50 +110,13 @@ export const SANDPILE_PRESETS = [
   { id: "apollonian", name: "Apollonian Gasket", desc: "Massive central sandpile (4,000 grains) creating fractal geometry" }
 ];
 
-// ---- Voice Allocation & Audio Dispatch (Strictly <= 8 Voices) ----
+// ---- Voice Allocation & Audio Dispatch (Strictly <= 8 Voices via js/poly.js) ----
 function playSandpileVoice(voiceId, note, vel, durMs) {
-  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
-  const safeNote = Math.min(127, Math.max(0, Math.round(note)));
-  const safeVel = Math.min(127, Math.max(1, Math.round(vel)));
-  const safeDur = Math.max(20, Math.round(durMs || 180));
-
-  if (activeVoices.has(voiceId)) {
-    const prevNote = activeVoices.get(voiceId);
-    liveNoteOff(prevNote);
-    audio.noteOff(prevNote);
-    activeVoices.delete(voiceId);
-  }
-
-  // Voice stealing: enforce strictly <= 8-voice hardware limit
-  if (activeVoices.size >= MAX_VOICES) {
-    const oldestKey = activeVoices.keys().next().value;
-    const oldNote = activeVoices.get(oldestKey);
-    liveNoteOff(oldNote);
-    audio.noteOff(oldNote);
-    activeVoices.delete(oldestKey);
-  }
-
-  audio.unlock();
-  liveNoteOn(safeNote, safeVel);
-  audio.noteOn(safeNote, safeVel);
-  activeVoices.set(voiceId, safeNote);
-
-  setTimeout(() => {
-    if (activeVoices.get(voiceId) === safeNote) {
-      liveNoteOff(safeNote);
-      audio.noteOff(safeNote);
-      activeVoices.delete(voiceId);
-    }
-  }, safeDur);
+  playVoice(voiceId, note, vel, durMs);
 }
 
 function releaseAllVoices() {
-  for (const [_, note] of activeVoices) {
-    liveNoteOff(note);
-    audio.noteOff(note);
-  }
-  activeVoices.clear();
-  panicPreview();
+  releasePolyVoices();
 }
 
 // ---- Lattice Management & Initialization ----

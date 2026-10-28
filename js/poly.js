@@ -118,10 +118,35 @@ export function selectPolyVoices(candidates, maxVoices = state.polyphony || 4, s
   }
 }
 
+let autoVoiceCounter = 0;
+
 /**
  * Play a voice with strict <= 8 voice FIFO stealing, dispatching to both MIDI and Web Audio.
+ * Supports both playVoice(slot, note, vel, durMs) and playVoice(note, vel, durMs).
  */
-export function playVoice(voiceSlot, note, vel = 90, durMs = 180) {
+export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeDur) {
+  let slot, note, vel, durMs;
+
+  if (maybeDur !== undefined) {
+    // 4 arguments: (slot, note, vel, durMs)
+    slot = voiceSlotOrNote;
+    note = noteOrVel;
+    vel = velOrDur;
+    durMs = maybeDur;
+  } else if (typeof voiceSlotOrNote === "string") {
+    // Named voice slot: ("lead", note, vel)
+    slot = voiceSlotOrNote;
+    note = noteOrVel;
+    vel = velOrDur;
+    durMs = 180;
+  } else {
+    // 1 to 3 arguments: (note, [vel], [durMs])
+    slot = `auto_${(autoVoiceCounter++) % MAX_HARDWARE_VOICES}`;
+    note = voiceSlotOrNote;
+    vel = noteOrVel;
+    durMs = velOrDur;
+  }
+
   if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
 
   const safeNote = Math.min(127, Math.max(0, Math.round(note)));
@@ -131,12 +156,12 @@ export function playVoice(voiceSlot, note, vel = 90, durMs = 180) {
   audio.unlock();
 
   // If this voice slot is already playing a note, terminate it first
-  if (activePolyVoices.has(voiceSlot)) {
-    const prev = activePolyVoices.get(voiceSlot);
+  if (activePolyVoices.has(slot)) {
+    const prev = activePolyVoices.get(slot);
     clearTimeout(prev.timeoutId);
     try { liveNoteOff(prev.note); } catch (_) {}
     try { audio.noteOff(prev.note); } catch (_) {}
-    activePolyVoices.delete(voiceSlot);
+    activePolyVoices.delete(slot);
   }
 
   // FIFO Note Stealing if voice count reaches 8
@@ -157,10 +182,10 @@ export function playVoice(voiceSlot, note, vel = 90, durMs = 180) {
   const timeoutId = setTimeout(() => {
     try { liveNoteOff(safeNote); } catch (_) {}
     try { audio.noteOff(safeNote); } catch (_) {}
-    activePolyVoices.delete(voiceSlot);
+    activePolyVoices.delete(slot);
   }, safeDur);
 
-  activePolyVoices.set(voiceSlot, { note: safeNote, timeoutId });
+  activePolyVoices.set(slot, { note: safeNote, timeoutId });
 }
 
 /**

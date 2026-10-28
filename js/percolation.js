@@ -24,7 +24,7 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
-import { selectPolyVoices } from "./poly.js";
+import { selectPolyVoices, playVoice, releasePolyVoices } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
@@ -58,8 +58,7 @@ const candidateSizes = new Int32Array(MAX_CELLS);
 const candidatePitches = new Int32Array(MAX_CELLS);
 const chosenVoices = new Int32Array(MAX_VOICES);
 
-// 8-Voice FIFO Polyphony Allocation
-const activeVoices = new Map(); // voiceId -> { note, timeoutId }
+// 8-Voice FIFO voice slot index
 let voiceCounter = 0;
 
 // Simulation & Transport State
@@ -332,56 +331,13 @@ function getGridH() {
   return 20;
 }
 
-// ---- Voice Allocation & Audio Dispatch (Strict <= 8 Voices) ----
+// ---- Voice Allocation & Audio Dispatch (Strict <= 8 Voices via js/poly.js) ----
 function playPercolationVoice(voiceKey, note, vel, durMs) {
-  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
-
-  const safeNote = Math.min(127, Math.max(0, Math.round(note)));
-  const safeVel = Math.min(127, Math.max(1, Math.round(vel)));
-  const safeDur = Math.max(40, Math.round(durMs));
-
-  audio.unlock();
-
-  // Terminate any previous note on this voice slot
-  if (activeVoices.has(voiceKey)) {
-    const prev = activeVoices.get(voiceKey);
-    clearTimeout(prev.timeoutId);
-    try { liveNoteOff(prev.note); } catch (_) {}
-    try { audio.noteOff(prev.note); } catch (_) {}
-    activeVoices.delete(voiceKey);
-  }
-
-  // FIFO Note Stealing if voice ceiling exceeded
-  if (activeVoices.size >= MAX_VOICES) {
-    const oldestKey = activeVoices.keys().next().value;
-    const oldest = activeVoices.get(oldestKey);
-    clearTimeout(oldest.timeoutId);
-    try { liveNoteOff(oldest.note); } catch (_) {}
-    try { audio.noteOff(oldest.note); } catch (_) {}
-    activeVoices.delete(oldestKey);
-  }
-
-  try { liveNoteOn(safeNote, safeVel); } catch (_) {}
-  try { audio.noteOn(safeNote, safeVel); } catch (_) {}
-
-  const timeoutId = setTimeout(() => {
-    try { liveNoteOff(safeNote); } catch (_) {}
-    try { audio.noteOff(safeNote); } catch (_) {}
-    activeVoices.delete(voiceKey);
-  }, safeDur);
-
-  activeVoices.set(voiceKey, { note: safeNote, timeoutId });
+  playVoice(voiceKey, note, vel, durMs);
 }
 
 function releaseAllVoices() {
-  for (const [, v] of activeVoices.entries()) {
-    clearTimeout(v.timeoutId);
-    try { liveNoteOff(v.note); } catch (_) {}
-    try { audio.noteOff(v.note); } catch (_) {}
-  }
-  activeVoices.clear();
-  try { panicPreview(); } catch (_) {}
-  try { audio.allOff(); } catch (_) {}
+  releasePolyVoices();
 }
 
 // ---- Pitch Mapping Calculation ----

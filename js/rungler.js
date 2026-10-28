@@ -22,12 +22,12 @@ import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
+import { playVoice } from "./poly.js";
 import * as midi from "./midi.js";
 
 // ---- Constants & State ----
 const REGISTER_LEN = 16;
 const MAX_VOICES = 8;
-const activeVoices = new Map(); // note -> timeoutId
 
 // 16-bit shift register
 export const runglerBits = new Uint8Array(REGISTER_LEN);
@@ -86,29 +86,9 @@ export const RUNGLER_PRESETS = [
   }
 ];
 
-// ---- Voice Allocation & MIDI Output ----
+// ---- Voice Allocation & MIDI Output (via js/poly.js) ----
 function playRunglerVoice(note, velocity, durMs) {
-  if (activeVoices.size >= MAX_VOICES) {
-    const oldest = activeVoices.keys().next().value;
-    clearTimeout(activeVoices.get(oldest));
-    liveNoteOff(oldest);
-    activeVoices.delete(oldest);
-  }
-
-  // Also cut off previous monophonic lead note for clean articulate phrasing
-  if (activeSoundingNote !== null && activeSoundingNote !== note) {
-    liveNoteOff(activeSoundingNote);
-    activeVoices.delete(activeSoundingNote);
-  }
-
-  liveNoteOn(note, velocity, durMs);
-  activeSoundingNote = note;
-
-  const tid = setTimeout(() => {
-    activeVoices.delete(note);
-    if (activeSoundingNote === note) activeSoundingNote = null;
-  }, durMs);
-  activeVoices.set(note, tid);
+  playVoice(0, note, velocity, durMs);
 
   // Send continuous FM-1 CC #74 (Brightness / Filter Cutoff)
   const ccDest = state.runglerCcDest ?? 74;

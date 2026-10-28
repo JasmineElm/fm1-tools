@@ -22,12 +22,12 @@ import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
+import { playVoice, releasePolyVoices } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
 // ---- Constants & Pre-allocated Buffers (Zero GC Churn) ----
 const MAX_VOICES = 8;
-const activeVoices = new Map(); // note -> timeoutId
 const voiceSlots = [null, null, null]; // [prey, predator, apex] active notes
 
 let forceRegenRhythm = false;
@@ -183,40 +183,10 @@ function rk4Step(dt) {
   if (trailCount < TRAIL_LEN) trailCount++;
 }
 
-// ---- Audio Dispatch & 8-Voice Polyphony Ceiling ----
+// ---- Audio Dispatch & 8-Voice Polyphony Ceiling (via js/poly.js) ----
 function playSpeciesVoice(speciesIdx, note, vel, durMs) {
-  // Voice stealing within dedicated species slot to guarantee crisp articulation
-  const prevNote = voiceSlots[speciesIdx];
-  if (prevNote !== null) {
-    liveNoteOff(prevNote);
-    audio.noteOff(prevNote);
-    activeVoices.delete(prevNote);
-    voiceSlots[speciesIdx] = null;
-  }
-
-  // Global 8-voice limit enforcement
-  if (activeVoices.size >= MAX_VOICES) {
-    const oldest = activeVoices.keys().next().value;
-    if (oldest !== undefined) {
-      clearTimeout(activeVoices.get(oldest));
-      liveNoteOff(oldest);
-      audio.noteOff(oldest);
-      activeVoices.delete(oldest);
-    }
-  }
-
-  audio.unlock();
-  liveNoteOn(note, vel);
-  audio.noteOn(note, vel);
+  playVoice(speciesIdx, note, vel, durMs);
   voiceSlots[speciesIdx] = note;
-
-  const tid = setTimeout(() => {
-    activeVoices.delete(note);
-    if (voiceSlots[speciesIdx] === note) voiceSlots[speciesIdx] = null;
-    liveNoteOff(note);
-    audio.noteOff(note);
-  }, durMs);
-  activeVoices.set(note, tid);
 
   // Modulate FM-1 CC #74 Brightness with predator-prey intensity
   const ccDest = state.lvCcDest ?? 74;
@@ -1086,10 +1056,8 @@ export function activateLotkaVolterraModel() {
 }
 
 export function deactivateLotkaVolterraModel() {
-  panicPreview();
-  audio.allOff();
+  releasePolyVoices();
   setModelStepHandler(null);
-  activeVoices.clear();
   voiceSlots[0] = null;
   voiceSlots[1] = null;
   voiceSlots[2] = null;
