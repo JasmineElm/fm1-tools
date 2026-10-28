@@ -14,7 +14,7 @@
 import {
   state, refs, R, setState, scheduleRegen, doGenerate,
   getBank, setBank, getSelected, setSelected, status, onRegen,
-  setModelGenerator, setModelRandomizer
+  setModelGenerator, setModelRandomizer, RATE_NAMES
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler } from "./player.js?v=1";
@@ -482,8 +482,8 @@ export function onHanenbowLiveStep(step) {
   if (step === lastLiveStep) return;
   lastLiveStep = step;
 
-  // Fire cannon on transport step divisions (e.g. every 4th step or based on fireRate)
-  const fireDiv = Math.max(2, Math.round(8 / (state.hanenbowFireRate ?? 1.5)));
+  // Fire cannon on transport step divisions based on fireRate
+  const fireDiv = Math.max(1, Math.round(8 / Math.max(0.2, state.hanenbowFireRate ?? 1.5)));
   if (step % fireDiv === 0) {
     firePlankton();
   }
@@ -495,14 +495,9 @@ export function onHanenbowLiveStep(step) {
   const st = seq.steps[step];
   if (!st || !st.notes || st.notes.length === 0) return;
 
-  // Step triggers in sync mode obey Rhythm grid mutes
-  for (const n of st.notes) {
-    if (n && n.note !== undefined) {
-      const leafIdx = step % Math.max(1, state.hanenbowLeaves ?? 5);
-      playLeafVoice(leafIdx, n.note, n.vel || 90, state.hanenbowGateLen ?? 240);
-      leafBloom[leafIdx] = 1.0;
-    }
-  }
+  // Visual bloom for active leaf on this step
+  const leafIdx = step % Math.max(1, state.hanenbowLeaves ?? 5);
+  leafBloom[leafIdx] = 1.0;
 }
 
 // ---- Bank Generator Contract (`return bank`) ----
@@ -513,11 +508,12 @@ export function generateHanenbowBank(st) {
   const root = getRootMidi();
   const num = Math.min(MAX_LEAVES, Math.max(2, st.hanenbowLeaves ?? 5));
   const span = st.hanenbowSpan ?? 3;
+  const rateIdx = typeof st.rate === "number" ? st.rate : (RATE_NAMES.indexOf(st.rate) >= 0 ? RATE_NAMES.indexOf(st.rate) : 6);
 
   for (let s = 0; s < 16; s++) {
     const pattern = {
       length: seqLen,
-      rate: st.rate ?? 6,
+      rate: rateIdx,
       steps: []
     };
 
@@ -625,6 +621,7 @@ export function generateHanenbowBank(st) {
 
       pattern.steps.push({
         notes: stepNotes,
+        rate: rateIdx,
         gate: stepNotes.length > 0
       });
     }
@@ -910,6 +907,10 @@ function syncControlsFromState() {
   if (refs.hanenbowLaunchSpeed?.setValue) refs.hanenbowLaunchSpeed.setValue(state.hanenbowLaunchSpeed, false);
   if (refs.hanenbowCcDepth?.setValue) refs.hanenbowCcDepth.setValue(state.hanenbowCcDepth, false);
   if (refs.hanenbowTimingPeriod?.setValue) refs.hanenbowTimingPeriod.setValue(state.hanenbowTimingPeriod, false);
+  if (refs.hanenbowRate?.setValue) {
+    const r = typeof state.rate === "number" ? state.rate : (RATE_NAMES.indexOf(state.rate) >= 0 ? RATE_NAMES.indexOf(state.rate) : 6);
+    refs.hanenbowRate.setValue(r, false);
+  }
   if (presetSelect) presetSelect.value = state.hanenbowPreset || "cascade";
   if (notesSection?.sync) notesSection.sync();
 }
@@ -1082,12 +1083,48 @@ export function initHanenbow() {
   });
   R("hanenbowElasticity", kElast);
 
-  const kRate = knob({
+  const kTrigRate = knob({
+    label: "RATE",
+    min: 0, max: 9, step: 1,
+    value: typeof state.rate === "number" ? state.rate : (RATE_NAMES.indexOf(state.rate) >= 0 ? RATE_NAMES.indexOf(state.rate) : 6),
+    format: (v) => RATE_NAMES[Math.round(v)] || "1/16",
+    unit: "",
+    title: "Sequencer trigger speed / step note value (controllable live while running)",
+    onChange: (v) => {
+      const rateIdx = Math.round(v);
+      state.rate = rateIdx;
+
+      // Update active bank patterns so player.js liveLoop immediately steps at the new rate
+      const curBank = getBank();
+      if (curBank) {
+        for (const p of curBank) {
+          if (p) {
+            p.rate = rateIdx;
+            if (p.steps) {
+              for (const st of p.steps) {
+                if (st) st.rate = rateIdx;
+              }
+            }
+          }
+        }
+      }
+
+      if (refs.rate?.setValue) refs.rate.setValue(rateIdx, false);
+      forceRegenRhythm = true;
+      doGenerate(true);
+      forceRegenRhythm = false;
+      syncRhythmGrid();
+      status(`Trigger speed: ${RATE_NAMES[rateIdx] || rateIdx}`, "ok");
+    }
+  });
+  R("hanenbowRate", kTrigRate);
+
+  const kLaunch = knob({
     label: "LAUNCH",
-    min: 0.4, max: 4.0, step: 0.1,
+    min: 0.2, max: 8.0, step: 0.1,
     value: state.hanenbowFireRate ?? 1.5,
     unit: "Hz",
-    title: "Plankton fire rate",
+    title: "Plankton projectile launch fire rate (controllable live while running)",
     onChange: (v) => {
       state.hanenbowFireRate = v;
       forceRegenRhythm = true;
@@ -1095,7 +1132,7 @@ export function initHanenbow() {
       forceRegenRhythm = false;
     }
   });
-  R("hanenbowFireRate", kRate);
+  R("hanenbowFireRate", kLaunch);
 
   const kSpd = knob({
     label: "SPEED",
@@ -1137,7 +1174,7 @@ export function initHanenbow() {
   });
   R("hanenbowCcDepth", kCc);
 
-  paramGrid.append(kLeaves, kGrav, kElast, kRate, kSpd, kPeriod, kCc);
+  paramGrid.append(kLeaves, kGrav, kElast, kTrigRate, kLaunch, kSpd, kPeriod, kCc);
   paramCard.appendChild(paramGrid);
 
   // Card 3: Notes & Scale Controls
@@ -1300,6 +1337,11 @@ export function activateHanenbowModel() {
   if (!animFrameId) {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(freeLoop);
+  }
+
+  if (refs.hanenbowRate) {
+    const r = typeof state.rate === "number" ? state.rate : (RATE_NAMES.indexOf(state.rate) >= 0 ? RATE_NAMES.indexOf(state.rate) : 6);
+    refs.hanenbowRate.setValue(r, false);
   }
 
   // Auto-launch a projectile on entering so the pond is immediately active and visible
