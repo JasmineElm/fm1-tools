@@ -799,6 +799,9 @@ function syncControlsFromState() {
   if (refs.sandpileGateLen?.setValue) refs.sandpileGateLen.setValue(state.sandpileGateLen, false);
   if (refs.sandpileVelocity?.setValue) refs.sandpileVelocity.setValue(state.sandpileVelocity, false);
   if (refs.sandpileCcDepth?.setValue) refs.sandpileCcDepth.setValue(state.sandpileCcDepth, false);
+  if (refs.sandpileDropPattern?.setValue) refs.sandpileDropPattern.setValue(state.sandpileDropPattern || "center", false);
+  if (refs.sandpileBoundary?.setValue) refs.sandpileBoundary.setValue(state.sandpileBoundary || "open", false);
+  if (refs.sandpilePitchMapping?.setValue) refs.sandpilePitchMapping.setValue(state.sandpilePitchMapping || "radial", false);
   if (presetSelect) presetSelect.value = state.sandpilePreset || "empty";
 }
 
@@ -907,7 +910,7 @@ export function initSandpile() {
   presetLabel.textContent = "PRESET";
 
   presetSelect = document.createElement("select");
-  presetSelect.className = "dropdown";
+  presetSelect.className = "lsystem-select";
   presetSelect.style.fontSize = "10px";
   presetSelect.style.flex = "1";
   for (const pr of SANDPILE_PRESETS) {
@@ -1035,48 +1038,48 @@ export function initSandpile() {
   dropdownRow.style.gap = "6px";
   dropdownRow.style.marginTop = "8px";
 
-  const pPattern = dropdown({
+  const pPattern = R("sandpileDropPattern", dropdown({
     label: "PATTERN",
     options: [
-      { value: "center", label: "Center Sink" },
-      { value: "corners", label: "Four Corners" },
-      { value: "cross", label: "Cross Lattice" },
-      { value: "spiral", label: "Orbital Spiral" },
-      { value: "random", label: "Rain / Random" }
+      { v: "center", t: "Center Sink" },
+      { v: "corners", t: "Four Corners" },
+      { v: "cross", t: "Cross Lattice" },
+      { v: "spiral", t: "Orbital Spiral" },
+      { v: "random", t: "Rain / Random" }
     ],
     value: state.sandpileDropPattern || "center",
-    onChange: (v) => {
+    onInput: (v) => {
       state.sandpileDropPattern = v;
       renderSandpileCanvas();
     }
-  });
+  }));
 
-  const pBoundary = dropdown({
+  const pBoundary = R("sandpileBoundary", dropdown({
     label: "BOUND",
     options: [
-      { value: "open", label: "Open Sink (SOC)" },
-      { value: "closed", label: "Reflective Wall" },
-      { value: "wrap", label: "Toroidal Wrap" }
+      { v: "open", t: "Open Sink (SOC)" },
+      { v: "closed", t: "Reflective Wall" },
+      { v: "wrap", t: "Toroidal Wrap" }
     ],
     value: state.sandpileBoundary || "open",
-    onChange: (v) => {
+    onInput: (v) => {
       state.sandpileBoundary = v;
     }
-  });
+  }));
 
-  const pMapping = dropdown({
+  const pMapping = R("sandpilePitchMapping", dropdown({
     label: "MAPPING",
     options: [
-      { value: "radial", label: "Radial (CoM)" },
-      { value: "quadrant", label: "Quadrant Chords" },
-      { value: "cluster", label: "Arpeggio Cascades" },
-      { value: "avalanche-size", label: "Scale Magnitude" }
+      { v: "radial", t: "Radial (CoM)" },
+      { v: "quadrant", t: "Quadrant Chords" },
+      { v: "cluster", t: "Arpeggio Cascades" },
+      { v: "avalanche-size", t: "Scale Magnitude" }
     ],
     value: state.sandpilePitchMapping || "radial",
-    onChange: (v) => {
+    onInput: (v) => {
       state.sandpilePitchMapping = v;
     }
-  });
+  }));
 
   dropdownRow.append(pPattern, pBoundary, pMapping);
   paramCard.append(paramGrid, dropdownRow);

@@ -209,7 +209,7 @@ export function toggle({ label, value = false, onInput }) {
 }
 
 // A panel dropdown select box for choosing from a list of options.
-export function dropdown({ label, options, value, onInput, tip = "", labelPos = "top" }) {
+export function dropdown({ label, options, value, onInput, onChange, tip = "", labelPos = "top" }) {
   const el = document.createElement("div");
   el.className = "dropdown-wrap" + (labelPos === "right" ? " lab-right" : "");
 
@@ -223,15 +223,18 @@ export function dropdown({ label, options, value, onInput, tip = "", labelPos = 
 
   for (const opt of options) {
     const o = document.createElement("option");
-    o.value = opt.v;
-    o.textContent = opt.t ?? opt.v;
-    if (String(opt.v) === String(value)) o.selected = true;
+    const val = opt.v ?? opt.value;
+    const txt = opt.t ?? opt.label ?? val;
+    o.value = val;
+    o.textContent = txt;
+    if (String(val) === String(value)) o.selected = true;
     select.appendChild(o);
   }
 
   select.addEventListener("change", () => {
     const v = select.value;
     if (onInput) onInput(v);
+    else if (onChange) onChange(v);
   });
 
   if (labelPos === "right") {
