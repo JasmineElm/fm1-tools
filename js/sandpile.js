@@ -36,10 +36,19 @@ const MAX_VOICES = 8;
 // Lattice buffers
 const grid = new Int16Array(MAX_CELLS);
 const toppleMark = new Uint8Array(MAX_CELLS);
-const toppleQueue = new Int32Array(MAX_CELLS * 2);
-const nextToppleQueue = new Int32Array(MAX_CELLS * 2);
-let queueLen = 0;
-let nextQueueLen = 0;
+const Q_SIZE = 65536;
+const Q_MASK = Q_SIZE - 1;
+const toppleQueue = new Int32Array(Q_SIZE);
+let qHead = 0;
+let qTail = 0;
+
+function queueTopple(idx) {
+  if (!toppleMark[idx]) {
+    toppleMark[idx] = 1;
+    toppleQueue[qTail & Q_MASK] = idx;
+    qTail++;
+  }
+}
 
 // Ripple animation buffers
 const MAX_RIPPLES = 12;
@@ -94,34 +103,45 @@ export const SANDPILE_PRESETS = [
 
 // ---- Voice Allocation & Audio Dispatch (Strictly <= 8 Voices) ----
 function playSandpileVoice(voiceId, note, vel, durMs) {
+  if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
+  const safeNote = Math.min(127, Math.max(0, Math.round(note)));
+  const safeVel = Math.min(127, Math.max(1, Math.round(vel)));
+  const safeDur = Math.max(20, Math.round(durMs || 180));
+
   if (activeVoices.has(voiceId)) {
     const prevNote = activeVoices.get(voiceId);
     liveNoteOff(prevNote);
+    audio.noteOff(prevNote);
     activeVoices.delete(voiceId);
   }
 
-  // Voice stealing: enforce 8-voice hardware limit
+  // Voice stealing: enforce strictly <= 8-voice hardware limit
   if (activeVoices.size >= MAX_VOICES) {
     const oldestKey = activeVoices.keys().next().value;
     const oldNote = activeVoices.get(oldestKey);
     liveNoteOff(oldNote);
+    audio.noteOff(oldNote);
     activeVoices.delete(oldestKey);
   }
 
-  liveNoteOn(note, vel, durMs);
-  activeVoices.set(voiceId, note);
+  audio.unlock();
+  liveNoteOn(safeNote, safeVel);
+  audio.noteOn(safeNote, safeVel);
+  activeVoices.set(voiceId, safeNote);
 
   setTimeout(() => {
-    if (activeVoices.get(voiceId) === note) {
-      liveNoteOff(note);
+    if (activeVoices.get(voiceId) === safeNote) {
+      liveNoteOff(safeNote);
+      audio.noteOff(safeNote);
       activeVoices.delete(voiceId);
     }
-  }, durMs);
+  }, safeDur);
 }
 
 function releaseAllVoices() {
   for (const [_, note] of activeVoices) {
     liveNoteOff(note);
+    audio.noteOff(note);
   }
   activeVoices.clear();
   panicPreview();
@@ -134,8 +154,8 @@ export function initSandpileGrid(presetId = state.sandpilePreset || "empty") {
   grid.fill(0);
   toppleMark.fill(0);
   flashLife.fill(0);
-  queueLen = 0;
-  nextQueueLen = 0;
+  qHead = 0;
+  qTail = 0;
   totalGrains = 0;
   lastAvalancheSize = 0;
   activeToppleCount = 0;
@@ -175,9 +195,7 @@ export function initSandpileGrid(presetId = state.sandpilePreset || "empty") {
     const initialPile = 4000;
     grid[idx] = initialPile;
     totalGrains = initialPile;
-    toppleQueue[0] = idx;
-    toppleMark[idx] = 1;
-    queueLen = 1;
+    queueTopple(idx);
     // Pre-relax partially so the fractal pattern emerges
     runAvalancheCascade(2400, false);
   }
@@ -192,9 +210,8 @@ export function dropGrains(x, y, amount = 1) {
   totalGrains += amount;
   flashLife[idx] = 1.0;
 
-  if (grid[idx] >= 4 && !toppleMark[idx]) {
-    toppleMark[idx] = 1;
-    toppleQueue[queueLen++] = idx;
+  if (grid[idx] >= 4) {
+    queueTopple(idx);
   }
 }
 
@@ -259,7 +276,7 @@ function spawnRipple(cx, cy, maxR = 40, col = "#00f0ff") {
 // Step topple relaxation sweep
 // Returns total topples processed in this sweep
 export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
-  if (queueLen === 0) return 0;
+  if (qHead >= qTail) return 0;
 
   const S = Math.min(MAX_GRID_SIZE, Math.max(15, state.sandpileGridSize ?? 33));
   const boundary = state.sandpileBoundary || "open";
@@ -272,10 +289,9 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
   const cx = Math.floor(S / 2);
   const cy = Math.floor(S / 2);
 
-  nextQueueLen = 0;
-
-  while (queueLen > 0 && topples < maxStepBudget) {
-    const idx = toppleQueue[--queueLen];
+  while (qHead < qTail && topples < maxStepBudget) {
+    const idx = toppleQueue[qHead & Q_MASK];
+    qHead++;
     toppleMark[idx] = 0;
 
     if (grid[idx] < 4) continue;
@@ -325,16 +341,16 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
 
       const nidx = ny * S + nx;
       grid[nidx] += numTopples;
-      if (grid[nidx] >= 4 && !toppleMark[nidx]) {
-        toppleMark[nidx] = 1;
-        nextToppleQueue[nextQueueLen++] = nidx;
+      if (grid[nidx] >= 4) {
+        queueTopple(nidx);
       }
     }
   }
 
-  // Swap queues for subsequent cascade frames
-  for (let i = 0; i < nextQueueLen; i++) {
-    toppleQueue[queueLen++] = nextToppleQueue[i];
+  // Reset indices if queue fully drained
+  if (qHead >= qTail) {
+    qHead = 0;
+    qTail = 0;
   }
 
   activeToppleCount = topples;
@@ -348,7 +364,7 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
     currentComY = sumY / topples;
     comAlpha = 1.0;
 
-    if (dispatchAudio && (isSandpilePlaying || isLive())) {
+    if (dispatchAudio) {
       dispatchAvalancheAudio(topples, currentComX, currentComY, q0, q1, q2, q3, S);
     }
   }
@@ -356,8 +372,33 @@ export function runAvalancheCascade(maxStepBudget = 250, dispatchAudio = true) {
   return topples;
 }
 
+let lastAudioTriggerTime = 0;
+let voiceRotator = 0;
+
+function playDropletPing(x, y, S) {
+  const root = getRootMidi();
+  const intervals = getActiveScaleIntervals();
+  const span = Math.min(4, Math.max(1, state.sandpileSpan ?? state.pitchSpan ?? 2));
+  const cx = Math.floor(S / 2);
+  const cy = Math.floor(S / 2);
+  const r = Math.hypot(x - cx, y - cy);
+  const normR = Math.min(1.0, r / (S / 2));
+  const totalNotes = intervals.length * span;
+  const noteIdx = Math.min(totalNotes - 1, Math.floor(normR * totalNotes));
+  const octave = Math.floor(noteIdx / intervals.length);
+  const deg = noteIdx % intervals.length;
+  const targetPitch = root + octave * 12 + (intervals[deg] || 0);
+  const note = quantize(targetPitch, intervals, root);
+  playSandpileVoice(7, note, 55, 90);
+  spawnRipple(x, y, 16, "#38bdf8");
+}
+
 // Dispatch scale-quantized audio events based on avalanche topology
 function dispatchAvalancheAudio(toppleCount, comX, comY, q0, q1, q2, q3, S) {
+  const now = performance.now();
+  if (now - lastAudioTriggerTime < 35) return;
+  lastAudioTriggerTime = now;
+
   const root = getRootMidi();
   const intervals = getActiveScaleIntervals();
   const span = Math.min(4, Math.max(1, state.sandpileSpan ?? state.pitchSpan ?? 2));
@@ -370,7 +411,6 @@ function dispatchAvalancheAudio(toppleCount, comX, comY, q0, q1, q2, q3, S) {
 
   const cx = Math.floor(S / 2);
   const cy = Math.floor(S / 2);
-  const maxR = Math.SQRT2 * (S / 2);
   const r = Math.hypot(comX - cx, comY - cy);
   const normR = Math.min(1.0, r / (S / 2));
 
@@ -380,23 +420,25 @@ function dispatchAvalancheAudio(toppleCount, comX, comY, q0, q1, q2, q3, S) {
     const noteIdx = Math.min(totalNotes - 1, Math.floor(normR * totalNotes));
     const octave = Math.floor(noteIdx / intervals.length);
     const deg = noteIdx % intervals.length;
-    const note = quantize(root + octave * 12 + (intervals[deg] || 0));
+    const targetPitch = root + octave * 12 + (intervals[deg] || 0);
+    const note = quantize(targetPitch, intervals, root);
 
-    playSandpileVoice(0, note, vel, gateLen);
+    const vSlot = (voiceRotator++) % MAX_VOICES;
+    playSandpileVoice(vSlot, note, vel, gateLen);
     spawnRipple(comX, comY, 20 + normR * 40, "#00f0ff");
   } else if (mapping === "quadrant") {
     // 4-voice spatial chords reflecting avalanche distribution across quadrants
     const quadCounts = [q0, q1, q2, q3];
-    const quadOffsets = [0, 4, 7, 11]; // Root, 3rd, 5th, 7th chord structure
 
     for (let q = 0; q < 4; q++) {
-      if (quadCounts[q] >= 2) {
-        const qVel = Math.min(127, Math.max(40, Math.round(vel * (quadCounts[q] / toppleCount) * 1.5)));
+      if (quadCounts[q] >= 1) {
+        const qVel = Math.min(127, Math.max(40, Math.round(vel * Math.min(1.0, quadCounts[q] / Math.max(1, toppleCount)) * 1.5)));
         const totalNotes = intervals.length * span;
         const noteIdx = Math.min(totalNotes - 1, Math.floor((normR * 0.5 + q * 0.25) * totalNotes));
         const octave = Math.floor(noteIdx / intervals.length);
         const deg = noteIdx % intervals.length;
-        const note = quantize(root + octave * 12 + (intervals[deg] || 0));
+        const targetPitch = root + octave * 12 + (intervals[deg] || 0);
+        const note = quantize(targetPitch, intervals, root);
 
         playSandpileVoice(q, note, qVel, gateLen);
       }
@@ -411,7 +453,8 @@ function dispatchAvalancheAudio(toppleCount, comX, comY, q0, q1, q2, q3, S) {
       const noteIdx = Math.min(totalNotes - 1, Math.floor(normR * (totalNotes / 2) + stepOffset));
       const octave = Math.floor(noteIdx / intervals.length);
       const deg = noteIdx % intervals.length;
-      const note = quantize(root + octave * 12 + (intervals[deg] || 0));
+      const targetPitch = root + octave * 12 + (intervals[deg] || 0);
+      const note = quantize(targetPitch, intervals, root);
       const subVel = Math.min(127, Math.max(35, vel - v * 6));
 
       setTimeout(() => {
@@ -427,9 +470,11 @@ function dispatchAvalancheAudio(toppleCount, comX, comY, q0, q1, q2, q3, S) {
     const noteIdx = Math.min(totalNotes - 1, Math.floor((1.0 - normSize) * totalNotes)); // larger = deeper bass
     const octave = Math.floor(noteIdx / intervals.length);
     const deg = noteIdx % intervals.length;
-    const note = quantize(root + octave * 12 + (intervals[deg] || 0));
+    const targetPitch = root + octave * 12 + (intervals[deg] || 0);
+    const note = quantize(targetPitch, intervals, root);
 
-    playSandpileVoice(0, note, vel, gateLen);
+    const vSlot = (voiceRotator++) % MAX_VOICES;
+    playSandpileVoice(vSlot, note, vel, gateLen);
     spawnRipple(comX, comY, 25 + normSize * 45, "#ffb700");
   }
 
@@ -805,10 +850,14 @@ export function initSandpile() {
   btnDrop.textContent = "Drop 1";
   btnDrop.title = "Drop a single sand grain onto the lattice";
   btnDrop.addEventListener("click", () => {
+    audio.unlock();
     const S = Math.min(MAX_GRID_SIZE, Math.max(15, state.sandpileGridSize ?? 33));
     const [dx, dy] = getDropCoordinate(state.sandpileDropPattern || "center", S);
     dropGrains(dx, dy, 1);
-    runAvalancheCascade(250, true);
+    const toppled = runAvalancheCascade(250, true);
+    if (toppled === 0) {
+      playDropletPing(dx, dy, S);
+    }
     renderSandpileCanvas();
   });
 
@@ -819,6 +868,7 @@ export function initSandpile() {
   btnBurst.textContent = "Burst 50";
   btnBurst.title = "Drop a massive cluster of 50 grains at center to trigger an avalanche";
   btnBurst.addEventListener("click", () => {
+    audio.unlock();
     const S = Math.min(MAX_GRID_SIZE, Math.max(15, state.sandpileGridSize ?? 33));
     const cx = Math.floor(S / 2);
     const cy = Math.floor(S / 2);
@@ -1084,6 +1134,7 @@ export function initSandpile() {
   let isPointerDown = false;
 
   function handleCanvasPointer(e) {
+    audio.unlock();
     const rect = sandpileCanvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -1094,7 +1145,10 @@ export function initSandpile() {
     if (cellX >= 0 && cellX < S && cellY >= 0 && cellY < S) {
       const dropQty = e.shiftKey ? 30 : Math.max(1, state.sandpileDropAmount ?? 1);
       dropGrains(cellX, cellY, dropQty);
-      runAvalancheCascade(250, true);
+      const toppled = runAvalancheCascade(250, true);
+      if (toppled === 0) {
+        playDropletPing(cellX, cellY, S);
+      }
       renderSandpileCanvas();
     }
   }
