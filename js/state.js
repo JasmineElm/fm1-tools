@@ -330,12 +330,12 @@ export function triggerRegenHooks() {
 
 let currentModelGenerator = null;
 export function setModelGenerator(fn) {
-  currentModelGenerator = fn;
+  currentModelGenerator = typeof fn === "function" ? fn : null;
 }
 
 let currentModelRandomizer = null;
 export function setModelRandomizer(fn) {
-  currentModelRandomizer = fn;
+  currentModelRandomizer = typeof fn === "function" ? fn : null;
 }
 
 export function getCurrentModelRandomizer() {
@@ -345,7 +345,7 @@ export function getCurrentModelRandomizer() {
 export function doGenerate(newSeed = true) {
   if (newSeed) state.seed = (Math.random() * 1e9) | 0;
   refs.seed?.setValue(state.seed, false);
-  if (currentModelGenerator) {
+  if (typeof currentModelGenerator === "function") {
     bank = currentModelGenerator(state);
   } else {
     bank = generateBank(state);
@@ -358,7 +358,7 @@ let regenTimer = null;
 export function scheduleRegen() {
   clearTimeout(regenTimer);
   regenTimer = setTimeout(() => {
-    if (currentModelGenerator) {
+    if (typeof currentModelGenerator === "function") {
       bank = currentModelGenerator(state);
     } else {
       bank = generateBank(state);

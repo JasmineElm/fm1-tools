@@ -895,6 +895,7 @@ function setupCanvasInteraction() {
 export function activateChangesModel() {
   isRunning = true;
   lastFrameTime = performance.now();
+  setModelGenerator(generateChangesBank);
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
   }
@@ -906,6 +907,7 @@ export function activateChangesModel() {
  */
 export function deactivateChangesModel() {
   isRunning = false;
+  setModelGenerator(null);
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
@@ -1092,9 +1094,6 @@ export function initChanges() {
     });
     rackEl.appendChild(btnTittums);
   }
-
-  // Register model generator for SYNC mode
-  setModelGenerator("changes", (st) => generateChangesBank(st));
 }
 
 // Register snapshot serialization (at module top-level for immediate registry access)

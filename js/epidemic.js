@@ -191,8 +191,8 @@ export function initEpidemicGraph(presetId = state.epidemicPreset || "spiral") {
     }
   }
 
-  // Inoculate Patient Zero (Initial Outbreak)
-  infectNode(0);
+  // Inoculate Patient Zero (Initial Outbreak) - silent during graph setup
+  infectNode(0, -1, false);
 
   updatePopulationCounts();
   renderEpidemicCanvas();
@@ -200,7 +200,7 @@ export function initEpidemicGraph(presetId = state.epidemicPreset || "spiral") {
 }
 
 // Inoculates / infects a specific node
-export function infectNode(nodeId, sourceId = -1) {
+export function infectNode(nodeId, sourceId = -1, playSound = true) {
   const N = Math.min(MAX_NODES, Math.max(16, Number(state.epidemicNodes ?? 48)));
   if (nodeId < 0 || nodeId >= N) return;
 
@@ -222,20 +222,22 @@ export function infectNode(nodeId, sourceId = -1) {
   const note = getEpidemicNodeNote(posX[nodeId], posY[nodeId]);
   nodePitch[nodeId] = note;
 
-  const baseVel = Math.min(127, Math.max(30, Number(state.epidemicVelocity ?? 90)));
-  const dist = Math.hypot(posX[nodeId] - 0.5, posY[nodeId] - 0.5);
-  const vel = Math.min(127, Math.max(35, Math.round(baseVel * 0.75 + (dist / 0.5) * (baseVel * 0.35))));
-  const gateMs = Math.min(600, Math.max(40, Number(state.epidemicGateLen ?? 200)));
+  if (playSound && isRunning) {
+    const baseVel = Math.min(127, Math.max(30, Number(state.epidemicVelocity ?? 90)));
+    const dist = Math.hypot(posX[nodeId] - 0.5, posY[nodeId] - 0.5);
+    const vel = Math.min(127, Math.max(35, Math.round(baseVel * 0.75 + (dist / 0.5) * (baseVel * 0.35))));
+    const gateMs = Math.min(600, Math.max(40, Number(state.epidemicGateLen ?? 200)));
 
-  playEpidemicVoice(`epi_${nodeId % 8}`, note, vel, gateMs);
+    playEpidemicVoice(`epi_${nodeId % 8}`, note, vel, gateMs);
 
-  // Modulate FM-1 CC #74 Brightness with epidemic prevalence (I / N)
-  const prevalence = Math.min(1.0, countI / N);
-  dispatchTimbreCc(prevalence, {
-    dest: state.epidemicCcDest ?? 74,
-    depth: state.epidemicCcDepth ?? 85,
-    minVal: 20
-  });
+    // Modulate FM-1 CC #74 Brightness with epidemic prevalence (I / N)
+    const prevalence = Math.min(1.0, countI / N);
+    dispatchTimbreCc(prevalence, {
+      dest: state.epidemicCcDest ?? 74,
+      depth: state.epidemicCcDepth ?? 85,
+      minVal: 20
+    });
+  }
 }
 
 function updatePopulationCounts() {
