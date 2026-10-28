@@ -144,3 +144,21 @@ test("changes model snapshot registration and round-trip", () => {
     def.restore(captured);
   });
 });
+
+test("changes model transport start/stop/toggle controls", async () => {
+  const { startChanges, stopChanges, toggleChangesRunning, isChangesRunning } = await import("../js/changes.js");
+
+  assert.equal(isChangesRunning(), false);
+
+  startChanges();
+  assert.equal(isChangesRunning(), true);
+
+  stopChanges();
+  assert.equal(isChangesRunning(), false);
+
+  toggleChangesRunning();
+  assert.equal(isChangesRunning(), true);
+
+  toggleChangesRunning();
+  assert.equal(isChangesRunning(), false);
+});

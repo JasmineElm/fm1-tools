@@ -85,6 +85,7 @@ let rowCount = 0;
 let pendingCall = "none"; // "none", "bob", "single"
 let currentCall = "none";
 let isRunning = false;
+let isChangesPlaying = false;
 let animFrameId = null;
 let lastFrameTime = 0;
 
@@ -424,14 +425,9 @@ function strikeBell(bellNumber) {
 }
 
 /**
- * Main simulation step loop for autonomous / Free mode ringing.
+ * Visual decay for bell wheel deflection angles and impact flashes.
  */
-function stepSimulation(deltaTime) {
-  const rateMs = Math.max(60, Math.min(500, Number(state.changesRate) || 160));
-  const openLeadPercent = Math.max(0, Math.min(200, Number(state.changesOpenLead) || 50));
-  const openLeadMs = rateMs * (openLeadPercent / 100);
-
-  // Update wheel angles with damped harmonic oscillator (spring back to vertical)
+function decayVisuals() {
   for (let i = 0; i < MAX_BELLS; i++) {
     bellAngles[i] *= 0.92;
     if (bellFlash[i] > 0.01) {
@@ -440,9 +436,24 @@ function stepSimulation(deltaTime) {
       bellFlash[i] = 0;
     }
   }
+}
+
+/**
+ * Main simulation step loop for autonomous / Free mode ringing.
+ * Obeys both changesRate and the global SPEED knob multiplier (state.modelSpeed).
+ */
+function stepSimulation(deltaTime) {
+  const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+  const effectiveDt = deltaTime * speedMult;
+
+  const rateMs = Math.max(60, Math.min(500, Number(state.changesRate) || 160));
+  const openLeadPercent = Math.max(0, Math.min(200, Number(state.changesOpenLead) || 50));
+  const openLeadMs = rateMs * (openLeadPercent / 100);
+
+  decayVisuals();
 
   if (isRowPause) {
-    rowPauseTimer += deltaTime;
+    rowPauseTimer += effectiveDt;
     if (rowPauseTimer >= openLeadMs) {
       isRowPause = false;
       rowPauseTimer = 0;
@@ -453,7 +464,7 @@ function stepSimulation(deltaTime) {
     return;
   }
 
-  strikeTimer += deltaTime;
+  strikeTimer += effectiveDt;
   if (strikeTimer >= rateMs) {
     strikeTimer = 0;
     // Strike the bell at current position
@@ -552,7 +563,7 @@ export function renderCanvas() {
     const bx = centerX + Math.cos(theta) * radius;
     const by = centerY + Math.sin(theta) * radius;
 
-    const isCurrentStriking = (pos === currentStrikePos && isRunning);
+    const isCurrentStriking = (pos === currentStrikePos && isChangesPlaying);
     const isWorking = (bellNum === workingBell);
     const isTreble = (bellNum === 1);
     const isTenor = (bellNum === N);
@@ -730,7 +741,7 @@ export function renderCanvas() {
     ctx.stroke();
 
     // Draw active strike dot on current striking bell position
-    if (isRunning && currentStrikePos < N) {
+    if (isChangesPlaying && currentStrikePos < N) {
       const activeX = sheetX + (currentStrikePos + 1) * colStep;
       ctx.fillStyle = colorAccent;
       ctx.beginPath();
@@ -752,8 +763,10 @@ function animationTick(now) {
   const deltaTime = Math.min(100, now - lastFrameTime);
   lastFrameTime = now;
 
-  if (isRunning) {
+  if (isChangesPlaying) {
     stepSimulation(deltaTime);
+  } else {
+    decayVisuals();
   }
 
   renderCanvas();
@@ -889,6 +902,49 @@ function setupCanvasInteraction() {
   });
 }
 
+// ---- Transport Handlers ----
+export function isChangesRunning() {
+  return isChangesPlaying;
+}
+
+export function startChanges() {
+  if (isChangesPlaying) return;
+  isChangesPlaying = true;
+  audio.unlock();
+  strikeTimer = 0;
+  updatePlayBtnUI();
+  status("Changes campanology: Ringing bells · Method changes active", "ok");
+}
+
+export function stopChanges() {
+  isChangesPlaying = false;
+  releasePolyVoices();
+  updatePlayBtnUI();
+  status("stopped");
+}
+
+export function toggleChangesRunning() {
+  if (isChangesPlaying) {
+    stopChanges();
+    return false;
+  } else {
+    startChanges();
+    return true;
+  }
+}
+
+function updatePlayBtnUI() {
+  const headerBtn = document.getElementById("audition");
+  if (headerBtn) {
+    headerBtn.textContent = isChangesPlaying ? "■ Stop" : "▶ Play";
+    if (isChangesPlaying) {
+      headerBtn.classList.add("playing");
+    } else {
+      headerBtn.classList.remove("playing");
+    }
+  }
+}
+
 /**
  * Model activation lifecycle hook (called from rack.js / modes.js onEnterModel).
  */
@@ -896,18 +952,33 @@ export function activateChangesModel() {
   isRunning = true;
   lastFrameTime = performance.now();
   setModelGenerator(generateChangesBank);
+  setModelStepHandler(null);
+  setModelTransportHandler({
+    toggle: toggleChangesRunning,
+    stop: stopChanges,
+    start: startChanges,
+    isRunning: isChangesRunning
+  });
+
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
   }
-  status("Changes campanology engine active");
+
+  updatePlayBtnUI();
+  renderCanvas();
+  status("Changes campanology engine ready (Press Play or Spacebar to ring bells)", "ok");
 }
 
 /**
  * Model deactivation lifecycle hook (called when switching away from Changes).
  */
 export function deactivateChangesModel() {
+  stopChanges();
   isRunning = false;
+  setModelStepHandler(null);
+  setModelTransportHandler(null);
   setModelGenerator(null);
+
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
