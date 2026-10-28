@@ -30,10 +30,24 @@ let sound = "epiano";
 export function setSound(id) { if (SOUNDS.some((s) => s.id === id)) sound = id; }
 export function getSound() { return sound; }
 
+// Convert 0..100 UI volume to linear audio gain using a 2.7 power curve (audio taper)
+// matching human logarithmic loudness perception.
+function volumeToGain(v) {
+  if (v <= 0) return 0;
+  const norm = Math.max(0, Math.min(100, Number(v) || 0)) / 100;
+  return Math.pow(norm, 2.7) * MAX_GAIN;
+}
+
 export function getVolume() { return volume; }
 export function setVolume(v) {
   volume = Math.max(0, Math.min(100, Number(v) || 0));
-  if (master) master.gain.value = muted ? 0 : (volume / 100) * MAX_GAIN;
+  if (master && ctx) {
+    const targetGain = muted ? 0 : volumeToGain(volume);
+    const t = ctx.currentTime;
+    master.gain.cancelScheduledValues(t);
+    master.gain.setValueAtTime(master.gain.value, t);
+    master.gain.linearRampToValueAtTime(targetGain, t + 0.015);
+  }
 }
 
 function ensure() {
@@ -41,18 +55,23 @@ function ensure() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     ctx = new AC();
-    master = ctx.createGain();
-    master.gain.value = muted ? 0 : (volume / 100) * MAX_GAIN;
-    // chords stack up to 9 voices plus release overlap; the compressor keeps
-    // the sum out of clipping without killing the attack transients
+
+    // Chords stack up to 9 voices plus release overlap; the compressor keeps
+    // the voice sum out of clipping before the master output stage
     comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -18;
+    comp.threshold.value = -12;
     comp.knee.value = 12;
     comp.ratio.value = 4;
     comp.attack.value = 0.004;
     comp.release.value = 0.15;
-    master.connect(comp);
-    comp.connect(ctx.destination);
+
+    // Master volume stage with perceptual audio taper
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : volumeToGain(volume);
+
+    // Signal chain: Voices -> Compressor -> Master Output Gain -> Audio Destination
+    comp.connect(master);
+    master.connect(ctx.destination);
   }
   if (ctx.state === "suspended") ctx.resume();
   return ctx;
@@ -60,7 +79,13 @@ function ensure() {
 
 export function setMuted(m) {
   muted = !!m;
-  if (master) master.gain.value = muted ? 0 : (volume / 100) * MAX_GAIN;
+  if (master && ctx) {
+    const targetGain = muted ? 0 : volumeToGain(volume);
+    const t = ctx.currentTime;
+    master.gain.cancelScheduledValues(t);
+    master.gain.setValueAtTime(master.gain.value, t);
+    master.gain.linearRampToValueAtTime(targetGain, t + 0.01);
+  }
 }
 export function isMuted() { return muted; }
 export function unlock() { ensure(); }        // call from a user gesture
@@ -129,7 +154,7 @@ function buildVoice(c, t, f, vel, id) {
       const lp = c.createBiquadFilter();
       lp.type = "lowpass";
       lp.frequency.value = Math.min(f * 5, 7000);
-      gain.connect(lp).connect(master);
+      gain.connect(lp).connect(comp || master);
       gain.gain.setValueAtTime(0, t);
       gain.gain.linearRampToValueAtTime(peak * 0.6, t + 0.004);
       gain.gain.linearRampToValueAtTime(peak * 0.3, t + 0.18);
@@ -147,7 +172,7 @@ function buildVoice(c, t, f, vel, id) {
       break;
     }
   }
-  if (id !== "chip") gain.connect(master);
+  if (id !== "chip") gain.connect(comp || master);
   return { oscs, gain, rel };
 }
 
