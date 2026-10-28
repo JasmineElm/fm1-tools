@@ -275,7 +275,8 @@ function pushTrailPoint(i, x, y) {
 // Symplectic Velocity-Verlet Integration Step
 function stepVerlet(dt) {
   const num = Math.min(MAX_BODIES, Math.max(2, state.orbitalBodies ?? 5));
-  const speed = (state.orbitalSpeed ?? 1.0) * 1.5;
+  const modelSpd = Math.max(0.1, Number(state.modelSpeed ?? state.orbitalSpeed ?? 1.0));
+  const speed = modelSpd * 1.5;
   const h = dt * speed;
   const h2_half = 0.5 * h * h;
   const h_half = 0.5 * h;
@@ -529,6 +530,7 @@ export function randomizeOrbital() {
   state.orbitalBodies = p.bodies;
   state.orbitalEccentricity = 0.1 + Math.random() * 0.45;
   state.orbitalSpeed = 0.8 + Math.random() * 0.8;
+  state.modelSpeed = state.orbitalSpeed;
   state.orbitalGravity = 0.8 + Math.random() * 0.6;
   state.orbitalConjunction = Math.random() > 0.3;
 
@@ -791,7 +793,7 @@ function updateHud() {
 
 function syncControlsFromState() {
   if (refs.orbitalBodies?.setValue) refs.orbitalBodies.setValue(state.orbitalBodies, false);
-  if (refs.orbitalSpeed?.setValue) refs.orbitalSpeed.setValue(state.orbitalSpeed, false);
+  if (refs.speed?.setValue) refs.speed.setValue(state.modelSpeed ?? state.orbitalSpeed ?? 1.0, false);
   if (refs.orbitalEccentricity?.setValue) refs.orbitalEccentricity.setValue(state.orbitalEccentricity, false);
   if (refs.orbitalGravity?.setValue) refs.orbitalGravity.setValue(state.orbitalGravity, false);
   if (refs.orbitalCcDepth?.setValue) refs.orbitalCcDepth.setValue(state.orbitalCcDepth, false);
@@ -875,6 +877,8 @@ export function initOrbital() {
       state.orbitalEccentricity = p.ecc[0] ?? 0.2;
       state.orbitalGravity = p.gravity;
       state.orbitalSpeed = p.speed;
+      state.modelSpeed = p.speed;
+      if (refs.speed?.setValue) refs.speed.setValue(p.speed, false);
       initPlanetarySystem(pid);
       syncControlsFromState();
       renderOrbitCanvas();
@@ -909,18 +913,6 @@ export function initOrbital() {
     }
   });
   R("orbitalBodies", kBodies);
-
-  const kSpeed = knob({
-    label: "SPEED",
-    min: 0.2, max: 3.0, step: 0.1,
-    value: state.orbitalSpeed ?? 1.0,
-    unit: "x",
-    title: "Celestial simulation velocity scaling factor",
-    onChange: (v) => {
-      state.orbitalSpeed = v;
-    }
-  });
-  R("orbitalSpeed", kSpeed);
 
   const kEcc = knob({
     label: "ECCENTRIC",
@@ -970,7 +962,7 @@ export function initOrbital() {
   });
   R("orbitalGateLen", kGate);
 
-  paramGrid.append(kBodies, kSpeed, kEcc, kGrav, kCc, kGate);
+  paramGrid.append(kBodies, kEcc, kGrav, kCc, kGate);
   paramCard.appendChild(paramGrid);
 
   // Card 3: Notes & Musical Pitch Controls

@@ -536,9 +536,11 @@ function freeLoop(time) {
   const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
   lastFrameTime = time;
 
+  const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+
   // Run cannon trigger clock when transport is playing
   if (isHanenbowPlaying) {
-    const fireInterval = 1.0 / Math.max(0.1, state.hanenbowFireRate ?? 1.5);
+    const fireInterval = 1.0 / (Math.max(0.1, state.hanenbowFireRate ?? 1.5) * speedMult);
     fireTimer += dt;
     if (fireTimer >= fireInterval) {
       fireTimer = 0;
@@ -547,7 +549,7 @@ function freeLoop(time) {
   }
 
   // Always step ballistics so launched projectiles continue flying and ricocheting smoothly
-  stepBallistics(dt);
+  stepBallistics(dt * speedMult);
 
   renderPondCanvas();
   animFrameId = requestAnimationFrame(freeLoop);

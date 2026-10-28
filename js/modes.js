@@ -1,4 +1,5 @@
 // modes.js — Sequencing models switcher and landing page manager.
+import { refs } from "./state.js";
 
 export const MODELS = [
   {
@@ -360,6 +361,12 @@ export function showLanding(updateHash = true) {
   if (rhythmBar) rhythmBar.style.display = "block";
   if (grooveBar) grooveBar.style.display = "flex";
 
+  if (refs.tempo) refs.tempo.style.display = "";
+  if (refs.speed) refs.speed.style.display = "none";
+  if (refs.rate) refs.rate.style.display = "";
+  if (refs.length) refs.length.style.display = "";
+  if (refs.gate) refs.gate.style.display = "";
+
   if (viewLanding) viewLanding.style.display = "block";
   if (viewWorkspace) viewWorkspace.style.display = "none";
   if (viewDxpatch) viewDxpatch.style.display = "none";
@@ -421,6 +428,13 @@ export function showModel(id, updateHash = true) {
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
+
+  // Option A: Swap Tempo/Rate/Length/Gate with generic Speed knob in global bar
+  if (refs.tempo) refs.tempo.style.display = isStepModel ? "" : "none";
+  if (refs.speed) refs.speed.style.display = isStepModel ? "none" : "";
+  if (refs.rate) refs.rate.style.display = isStepModel ? "" : "none";
+  if (refs.length) refs.length.style.display = isStepModel ? "" : "none";
+  if (refs.gate) refs.gate.style.display = isStepModel ? "" : "none";
 
   if (id === "dxpatch") {
     if (viewWorkspace) viewWorkspace.style.display = "none";

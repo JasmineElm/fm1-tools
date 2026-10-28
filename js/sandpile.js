@@ -616,7 +616,8 @@ function sandpileLoop(timestamp) {
   lastFrameTime = timestamp;
 
   const S = Math.min(MAX_GRID_SIZE, Math.max(15, state.sandpileGridSize ?? 33));
-  const rate = Math.max(0.5, state.sandpileDropRate ?? 10);
+  const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+  const rate = Math.max(0.5, state.sandpileDropRate ?? 10) * speedMult;
   const amount = Math.min(16, Math.max(1, state.sandpileDropAmount ?? 1));
   const pattern = state.sandpileDropPattern || "center";
 
@@ -642,8 +643,8 @@ function sandpileLoop(timestamp) {
   // Update ripple wave radii
   for (let i = 0; i < MAX_RIPPLES; i++) {
     if (rippleAlpha[i] > 0.05) {
-      rippleRadius[i] += dt * 75;
-      rippleAlpha[i] -= dt * 2.2;
+      rippleRadius[i] += dt * 75 * speedMult;
+      rippleAlpha[i] -= dt * 2.2 * speedMult;
     } else {
       rippleAlpha[i] = 0;
     }

@@ -261,8 +261,9 @@ class Boid {
       this.vy = (this.vy / speed) * maxSpeed;
     }
 
-    this.x += this.vx;
-    this.y += this.vy;
+    const modelSpd = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+    this.x += this.vx * modelSpd;
+    this.y += this.vy * modelSpd;
 
     // Toroidal wrap-around boundaries
     if (this.x < 0) this.x = width;

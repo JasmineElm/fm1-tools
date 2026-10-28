@@ -115,7 +115,8 @@ export class KrellVoice {
 
     // 4. Trigger Note On if audio/preview is active
     this.currentVel = Math.min(127, Math.max(35, 60 + Math.round(this.sampledRandV * 55)));
-    const estDurationMs = (this.curRise + this.curFall) * 1000;
+    const speed = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+    const estDurationMs = ((this.curRise + this.curFall) / speed) * 1000;
     if (isLive() && typeof this.currentNote === "number" && isFinite(this.currentNote)) {
       liveNoteOn(this.currentNote, this.currentVel, estDurationMs);
       audio.noteOn(this.currentNote, this.currentVel);
@@ -127,14 +128,16 @@ export class KrellVoice {
   }
 
   update(dt) {
+    const speed = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+    const effDt = dt * speed;
     if (this.stage === "RISE") {
-      this.rawEnv += dt / this.curRise;
+      this.rawEnv += effDt / this.curRise;
       if (this.rawEnv >= 1.0) {
         this.rawEnv = 1.0;
         this.stage = "FALL";
       }
     } else if (this.stage === "FALL") {
-      this.rawEnv -= dt / this.curFall;
+      this.rawEnv -= effDt / this.curFall;
       if (this.rawEnv <= 0.0) {
         this.rawEnv = 0.0;
         if (this.currentNote !== null) {
@@ -151,7 +154,7 @@ export class KrellVoice {
         }
       }
     } else if (this.stage === "REST") {
-      this.dwellTimer -= dt;
+      this.dwellTimer -= effDt;
       if (this.dwellTimer <= 0) {
         this.triggerNewCycle();
       }

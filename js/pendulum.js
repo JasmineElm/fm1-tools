@@ -425,7 +425,8 @@ function stepPendulumLoop() {
       }
     }
 
-    const dt = 0.02;
+    const speed = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+    const dt = 0.02 * speed;
     const subTicks = 4;
     for (let t = 0; t < subTicks; t++) {
       [simTheta1, simTheta2, simOmega1, simOmega2] = rk4Step(

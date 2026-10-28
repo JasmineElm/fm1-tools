@@ -98,6 +98,7 @@ export function refreshLoopRanges() {
 
 export function syncRack() {
   for (const [k, el] of Object.entries(refs)) if (el && el.setValue && state[k] !== undefined) el.setValue(state[k], false);
+  if (refs.speed?.setValue) refs.speed.setValue(state.modelSpeed ?? 1.0, false);
   if (mene311NotesSection) mene311NotesSection.sync();
   if (mene311HumaniseSection) mene311HumaniseSection.sync();
   if (mene311VelocitySection) mene311VelocitySection.sync();
@@ -159,6 +160,11 @@ export function buildGlobalBar() {
         });
       },
       tip: "BPM is device-global on the FM-1 — the unit's own BPM governs playback. The app syncs to the device when it connects; double-click re-reads now." })),
+    R("speed", knob({ label: "Speed", min: 0.2, max: 4.0, step: 0.1, value: state.modelSpeed ?? 1.0, def: 1.0, size: "sm",
+      format: (v) => `${v.toFixed(1)}x`, onInput: (v) => {
+        state.modelSpeed = Number(v);
+      },
+      tip: "Simulation speed multiplier for autonomous models" })),
     R("seed", seedControl({
       label: "Pattern",
       value: state.seed,
@@ -184,6 +190,7 @@ export function buildGlobalBar() {
       format: (v) => `${Math.round(v)}%`, onInput: setState("gate"),
       tip: "Gate length: duration of each note as a percentage of step time." }))
   );
+  if (refs.speed) refs.speed.style.display = "none";
 }
 
 export function buildGrooveBar() {

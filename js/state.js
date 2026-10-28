@@ -11,7 +11,7 @@ export const DEFAULT = {
   randVel: false,
   randVelAmt: 0,
   seed: (Math.random() * 1e9) | 0,
-  length: 64, rate: 6, tempo: 120, swing: 50, gate: 50,
+  length: 64, rate: 6, tempo: 120, modelSpeed: 1.0, swing: 50, gate: 50,
   gateProb: 70, velocity: 100, velMin: 1, velMax: 127, humanize: 0, gateQuant: 0, snapGrid: 4,
   gateBlend: 0, euclidRot: 0, euclidDiv: "16", euclidHits: 4, euclidMode: "hits",
   scale: "pentMinor",
