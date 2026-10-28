@@ -122,6 +122,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 │   ├── lsystem.js      # L-System Morphogenetic Grammar sequencer model
 │   ├── lotka_volterra.js # Lotka-Volterra Predator-Prey Ecological Phase Space model
 │   ├── orbital.js      # Keplerian Orbital Resonance & N-Body Chimes model
+│   ├── hanenbow.js     # Electroplankton Hanenbow Leaf Deflection Ballistics model
 │   ├── rhythm.js       # 64-step grid & Euclidean rhythm generator
 │   ├── scale.js        # Scale quantizer & pitch controls
 │   ├── humanise.js     # Micro-timing jitter & swing engine

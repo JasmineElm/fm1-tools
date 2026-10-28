@@ -41,6 +41,9 @@ test("key ownership: shared keys go to every model, prefixed keys only to their 
   assert.ok(ownsKey("orbital", "orbitalBodies"));
   assert.ok(!ownsKey("turing", "orbitalBodies"));
   assert.ok(!ownsKey("orbital", "turingProb"));
+  assert.ok(ownsKey("hanenbow", "hanenbowLeaves"));
+  assert.ok(!ownsKey("turing", "hanenbowLeaves"));
+  assert.ok(!ownsKey("hanenbow", "turingProb"));
   assert.deepEqual(Object.keys(pickParams("turing", DEFAULTS)).sort(), ["customScale", "seed", "scale", "tempo", "turingProb"].sort());
 });
 

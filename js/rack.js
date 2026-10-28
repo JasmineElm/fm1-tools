@@ -29,6 +29,7 @@ import { initKrell, activateKrellModel, deactivateKrellModel } from "./krell.js?
 import { initLsystem, activateLsystemModel, deactivateLsystemModel, syncLsystemFromRegen } from "./lsystem.js?v=1";
 import { initLotkaVolterra, activateLotkaVolterraModel, deactivateLotkaVolterraModel, syncLotkaVolterraFromRegen, updateLotkaVolterraScaleAndOctave } from "./lotka_volterra.js?v=1";
 import { initOrbital, activateOrbitalModel, deactivateOrbitalModel, syncOrbitalFromRegen } from "./orbital.js?v=1";
+import { initHanenbow, activateHanenbowModel, deactivateHanenbowModel, syncHanenbowFromRegen } from "./hanenbow.js?v=1";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -51,6 +52,8 @@ onRegen(() => {
     syncLotkaVolterraFromRegen();
   } else if (getActiveModel() === "orbital") {
     syncOrbitalFromRegen();
+  } else if (getActiveModel() === "hanenbow") {
+    syncHanenbowFromRegen();
   }
 });
 
@@ -543,6 +546,7 @@ initKrell();
 initLsystem();
 initLotkaVolterra();
 initOrbital();
+initHanenbow();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -722,9 +726,27 @@ initModes({
       deactivateKrellModel();
       deactivateLsystemModel();
       deactivateLotkaVolterraModel();
+      deactivateHanenbowModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateOrbitalModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "hanenbow") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateHanenbowModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -748,6 +770,7 @@ initModes({
     try { deactivateLsystemModel(); } catch (e) { console.warn("Error deactivating lsystem model:", e); }
     try { deactivateLotkaVolterraModel(); } catch (e) { console.warn("Error deactivating lotka_volterra model:", e); }
     try { deactivateOrbitalModel(); } catch (e) { console.warn("Error deactivating orbital model:", e); }
+    try { deactivateHanenbowModel(); } catch (e) { console.warn("Error deactivating hanenbow model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

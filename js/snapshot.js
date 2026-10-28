@@ -57,6 +57,7 @@ const PREFIX = {
   lsystem: /^lsystem[A-Z]/,
   lotka_volterra: /^lv[A-Z]/,
   orbital: /^orbital[A-Z]/,
+  hanenbow: /^hanenbow[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

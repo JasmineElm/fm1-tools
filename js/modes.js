@@ -164,6 +164,22 @@ export const MODELS = [
       <circle cx="19" cy="12" r="1.5" fill="currentColor" />
       <circle cx="5" cy="9" r="1.2" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "hanenbow",
+    name: "Hanenbow Ballistics",
+    kicker: "Electroplankton Toy · Specular Ricochet · Damped Leaf Springs",
+    available: true,
+    desc: "Acoustic ballistics simulator inspired by Toshio Iwai's Electroplankton. Plankton creatures shoot from an interactive spring-cannon into a pond of flexible leaves. Impacts cause leaves to oscillate elastically, triggering crystal bells and ricocheting plankton into syncopated arpeggio cascades.",
+    tags: ["Electroplankton", "Toshio Iwai", "Specular Ballistics", "Leaf Springs", "8-Voice Polyphony", "Interactive Angles"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 20c4-8 12-14 16-16" stroke-dasharray="2 2" />
+      <path d="M11 15l5-3" stroke-width="2.2" />
+      <circle cx="16" cy="12" r="1.5" fill="currentColor" />
+      <path d="M7 11l6-2" stroke-width="2.2" />
+      <circle cx="13" cy="9" r="1.5" fill="currentColor" />
+      <circle cx="4" cy="20" r="2.5" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -317,6 +333,7 @@ export function showLanding(updateHash = true) {
   const modelLsystem = document.getElementById("model-lsystem");
   const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
   const modelOrbital = document.getElementById("model-orbital");
+  const modelHanenbow = document.getElementById("model-hanenbow");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -342,6 +359,7 @@ export function showLanding(updateHash = true) {
   if (modelLsystem) modelLsystem.style.display = "none";
   if (modelLotkaVolterra) modelLotkaVolterra.style.display = "none";
   if (modelOrbital) modelOrbital.style.display = "none";
+  if (modelHanenbow) modelHanenbow.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
 
@@ -351,7 +369,7 @@ export function showLanding(updateHash = true) {
 }
 
 export function showModel(id, updateHash = true) {
-  if (id !== "mene311" && id !== "cellular" && id !== "turing" && id !== "particles" && id !== "pendulum" && id !== "flock" && id !== "rungler" && id !== "krell" && id !== "lsystem" && id !== "lotka_volterra" && id !== "orbital" && id !== "dxpatch" && id !== "librarian") return;
+  if (id !== "mene311" && id !== "cellular" && id !== "turing" && id !== "particles" && id !== "pendulum" && id !== "flock" && id !== "rungler" && id !== "krell" && id !== "lsystem" && id !== "lotka_volterra" && id !== "orbital" && id !== "hanenbow" && id !== "dxpatch" && id !== "librarian") return;
 
   const viewLanding = document.getElementById("view-landing");
   const viewWorkspace = document.getElementById("view-workspace") || document.getElementById("view-mene311");
@@ -368,6 +386,7 @@ export function showModel(id, updateHash = true) {
   const modelLsystem = document.getElementById("model-lsystem");
   const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
   const modelOrbital = document.getElementById("model-orbital");
+  const modelHanenbow = document.getElementById("model-hanenbow");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -425,6 +444,7 @@ export function showModel(id, updateHash = true) {
     if (modelLsystem) modelLsystem.style.display = id === "lsystem" ? "block" : "none";
     if (modelLotkaVolterra) modelLotkaVolterra.style.display = id === "lotka_volterra" ? "block" : "none";
     if (modelOrbital) modelOrbital.style.display = id === "orbital" ? "block" : "none";
+    if (modelHanenbow) modelHanenbow.style.display = id === "hanenbow" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -442,6 +462,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "lsystem") modeTag.textContent = "L-System Grammar";
       else if (id === "lotka_volterra") modeTag.textContent = "Lotka-Volterra Attractor";
       else if (id === "orbital") modeTag.textContent = "Orbital Resonance";
+      else if (id === "hanenbow") modeTag.textContent = "Hanenbow Ballistics";
       modeTag.style.display = "inline-block";
     }
   }

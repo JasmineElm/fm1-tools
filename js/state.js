@@ -214,6 +214,25 @@ export const DEFAULT = {
   orbitalCcDest: 74,
   orbitalCcDepth: 80,
   orbitalGateLen: 220,
+
+  // Electroplankton Hanenbow Ballistics model parameters
+  hanenbowLeaves: 5,
+  hanenbowGravity: 980,
+  hanenbowElasticity: 0.85,
+  hanenbowFireRate: 1.5,
+  hanenbowLaunchSpeed: 650,
+  hanenbowLaunchAngle: -60,
+  hanenbowPreset: "cascade",
+  hanenbowMode: "sync",
+  hanenbowSpan: 3,
+  hanenbowScale: "pentMinor",
+  hanenbowCustomScale: [0, 3, 5, 7, 10],
+  hanenbowRoot: 48,
+  hanenbowRootNote: 0,
+  hanenbowRootOctave: 3,
+  hanenbowCcDest: 74,
+  hanenbowCcDepth: 85,
+  hanenbowGateLen: 240,
 };
 
 export const state = { ...DEFAULT };
