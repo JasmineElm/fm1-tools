@@ -42,7 +42,8 @@ const pY = new Float32Array(MAX_PLANKTON);
 const pVx = new Float32Array(MAX_PLANKTON);
 const pVy = new Float32Array(MAX_PLANKTON);
 const pActive = new Uint8Array(MAX_PLANKTON);
-const pRadius = 5.0;
+const pRadius = 7.5;
+const pColors = ["#00f0ff", "#39ff14", "#ffb700", "#ff007f", "#38bdf8", "#eab308"];
 
 // Plankton tail trail buffers (last 6 positions per plankton)
 const TRAIL_PTS = 6;
@@ -394,20 +395,21 @@ function stepBallistics(dt) {
 
 // ---- Continuous Free Animation Loop ----
 function freeLoop(time) {
-  if (state.hanenbowMode === "free") {
-    const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
-    lastFrameTime = time;
+  const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
+  lastFrameTime = time;
 
-    // Cannon fire clock
+  if (state.hanenbowMode === "free") {
+    // Cannon fire clock in free mode
     const fireInterval = 1.0 / Math.max(0.2, state.hanenbowFireRate ?? 1.5);
     fireTimer += dt;
     if (fireTimer >= fireInterval) {
       fireTimer = 0;
       firePlankton();
     }
-
-    stepBallistics(dt);
   }
+
+  // Always step ballistics so launched fish continue flying and ricocheting smoothly
+  stepBallistics(dt);
 
   renderPondCanvas();
   animFrameId = requestAnimationFrame(freeLoop);
@@ -715,31 +717,114 @@ function renderPondCanvas() {
   ctx.arc(bx, by, 3 * scaleX, 0, Math.PI * 2);
   ctx.fill();
 
-  // 4. Draw Plankton projectiles
+  // Cannon aiming trajectory guide arc (subtle dashed line)
+  ctx.save();
+  ctx.strokeStyle = "rgba(0, 240, 255, 0.35)";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  let arcX = cannonX;
+  let arcY = cannonY;
+  const spd = state.hanenbowLaunchSpeed ?? cannonSpeed;
+  let arcVx = Math.cos(cannonAngle) * spd;
+  let arcVy = Math.sin(cannonAngle) * spd;
+  const grav = state.hanenbowGravity ?? 980;
+  const stepT = 0.025;
+  ctx.moveTo(arcX * scaleX, arcY * scaleY);
+  for (let s = 0; s < 26; s++) {
+    arcVy += grav * stepT;
+    arcX += arcVx * stepT;
+    arcY += arcVy * stepT;
+    if (arcY > 520 || arcX < 0 || arcX > 800) break;
+    ctx.lineTo(arcX * scaleX, arcY * scaleY);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // 4. Draw Plankton fish creatures
+  const nowMs = performance.now();
   for (let p = 0; p < MAX_PLANKTON; p++) {
     if (pActive[p] === 0) continue;
 
     const px = pX[p] * scaleX;
     const py = pY[p] * scaleY;
+    const vx = pVx[p];
+    const vy = pVy[p];
+    const heading = Math.atan2(vy, vx);
+    const col = pColors[p % pColors.length];
 
-    // Draw tadpole tail
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(0, 240, 255, 0.4)";
+    // Trailing luminous wake ribbon
+    ctx.save();
+    ctx.lineWidth = 3.5 * scaleX;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = col;
+    ctx.globalAlpha = 0.45;
     ctx.beginPath();
     ctx.moveTo(px, py);
     for (let t = 0; t < TRAIL_PTS; t++) {
       ctx.lineTo(pTrailX[p * TRAIL_PTS + t] * scaleX, pTrailY[p * TRAIL_PTS + t] * scaleY);
     }
     ctx.stroke();
+    ctx.restore();
 
-    // Draw plankton head
-    ctx.fillStyle = "#00f0ff"; // Cyan Plankton
+    // Draw swimming fish creature oriented along velocity vector
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(heading);
+
+    const fScale = Math.max(0.9, Math.min(1.5, scaleX * 1.35));
+    const tailWiggle = Math.sin(nowMs * 0.022 + p * 1.5) * (4.5 * fScale);
+
+    // Outer soft aura
     ctx.beginPath();
-    ctx.arc(px, py, pRadius * scaleX, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 15 * fScale, 9 * fScale, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 240, 255, 0.2)";
     ctx.fill();
-    ctx.lineWidth = 1;
+
+    // Tail fin (flaring out behind fish)
+    ctx.beginPath();
+    ctx.moveTo(-7 * fScale, 0);
+    ctx.lineTo(-19 * fScale, -7 * fScale + tailWiggle);
+    ctx.lineTo(-14 * fScale, tailWiggle * 0.5);
+    ctx.lineTo(-19 * fScale, 7 * fScale + tailWiggle);
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.lineWidth = 1.2;
     ctx.strokeStyle = "#ffffff";
     ctx.stroke();
+
+    // Main fish body (streamlined teardrop)
+    ctx.beginPath();
+    ctx.moveTo(14 * fScale, 0); // nose tip
+    ctx.quadraticCurveTo(4 * fScale, -8 * fScale, -8 * fScale, -4 * fScale); // top dorsal
+    ctx.lineTo(-8 * fScale, 4 * fScale); // rear
+    ctx.quadraticCurveTo(4 * fScale, 8 * fScale, 14 * fScale, 0); // bottom belly
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+
+    // Dorsal / side fin
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.beginPath();
+    ctx.ellipse(0, 4 * fScale, 4 * fScale, 2 * fScale, Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Fish eye (white sclera with dark pupil)
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(6 * fScale, -3 * fScale, 3 * fScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#111215";
+    ctx.beginPath();
+    ctx.arc(7.2 * fScale, -3 * fScale, 1.4 * fScale, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 }
 
@@ -1126,6 +1211,9 @@ export function activateHanenbowModel() {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(freeLoop);
   }
+
+  // Auto-launch a fish on entering so the pond is immediately active and visible
+  firePlankton();
 }
 
 export function deactivateHanenbowModel() {
