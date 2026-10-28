@@ -17,7 +17,7 @@ import {
   setModelGenerator, setModelRandomizer, RATE_NAMES
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, setModelStepHandler } from "./player.js?v=1";
+import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
 import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
@@ -76,6 +76,64 @@ let lastLiveStep = -1;
 let animFrameId = null;
 let lastFrameTime = 0;
 
+// Transport & Autonomous Playback State
+let isHanenbowPlaying = false;
+let btnPlay = null;
+
+export function isHanenbowRunning() {
+  return isHanenbowPlaying;
+}
+
+export function startHanenbow() {
+  if (isHanenbowPlaying) return;
+  isHanenbowPlaying = true;
+  audio.unlock();
+  fireTimer = 0;
+  firePlankton();
+  updatePlayBtnUI();
+  status("Hanenbow: Playing · Ballistics leaf collision triggers", "ok");
+}
+
+export function stopHanenbow() {
+  isHanenbowPlaying = false;
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
+  activeVoices.clear();
+  voiceSlots.fill(null);
+  updatePlayBtnUI();
+  status("stopped");
+}
+
+export function toggleHanenbowRunning() {
+  if (isHanenbowPlaying) {
+    stopHanenbow();
+    return false;
+  } else {
+    startHanenbow();
+    return true;
+  }
+}
+
+function updatePlayBtnUI() {
+  if (btnPlay) {
+    btnPlay.textContent = isHanenbowPlaying ? "■ Stop" : "▶ Play";
+    if (isHanenbowPlaying) {
+      btnPlay.classList.add("playing");
+    } else {
+      btnPlay.classList.remove("playing");
+    }
+  }
+  const headerBtn = document.getElementById("audition");
+  if (headerBtn) {
+    headerBtn.textContent = isHanenbowPlaying ? "■ Stop" : "▶ Play";
+    if (isHanenbowPlaying) {
+      headerBtn.classList.add("playing");
+    } else {
+      headerBtn.classList.remove("playing");
+    }
+  }
+}
+
 // Dragging & Interaction State
 let isDragging = null; // null | { type: "leaf-angle"|"leaf-pos"|"cannon-angle"|"cannon-pos", idx: number }
 let hoveredLeaf = -1;
@@ -83,7 +141,6 @@ let hoveredLeaf = -1;
 // UI DOM references
 let hanenbowContainer = null;
 let pondCanvas = null;
-let modeToggleBtn = null;
 let presetSelect = null;
 let notesSection = null;
 
@@ -459,9 +516,9 @@ function freeLoop(time) {
   const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
   lastFrameTime = time;
 
-  if (state.hanenbowMode === "free") {
-    // Cannon fire clock in free mode
-    const fireInterval = 1.0 / Math.max(0.2, state.hanenbowFireRate ?? 1.5);
+  // Run cannon trigger clock when transport is playing
+  if (isHanenbowPlaying) {
+    const fireInterval = 1.0 / Math.max(0.1, state.hanenbowFireRate ?? 1.5);
     fireTimer += dt;
     if (fireTimer >= fireInterval) {
       fireTimer = 0;
@@ -476,159 +533,33 @@ function freeLoop(time) {
   animFrameId = requestAnimationFrame(freeLoop);
 }
 
-// ---- Transport Step Handler (Sync Mode) ----
-export function onHanenbowLiveStep(step) {
-  if (state.hanenbowMode !== "sync") return;
-  if (step === lastLiveStep) return;
-  lastLiveStep = step;
-
-  // Fire cannon on transport step divisions based on fireRate
-  const fireDiv = Math.max(1, Math.round(8 / Math.max(0.2, state.hanenbowFireRate ?? 1.5)));
-  if (step % fireDiv === 0) {
-    firePlankton();
-  }
-
-  const curBank = getBank();
-  const seq = curBank?.[getSelected()] || curBank?.[0];
-  if (!seq || !seq.steps) return;
-
-  const st = seq.steps[step];
-  if (!st || !st.notes || st.notes.length === 0) return;
-
-  // Visual bloom for active leaf on this step
-  const leafIdx = step % Math.max(1, state.hanenbowLeaves ?? 5);
-  leafBloom[leafIdx] = 1.0;
-}
+// Retained for interface compatibility; note triggers are based solely on leaf collisions
+export function onHanenbowLiveStep(step) {}
 
 // ---- Bank Generator Contract (`return bank`) ----
-export function generateHanenbowBank(st) {
-  const seqLen = Math.max(1, Math.min(64, st.length || 16));
+// Note triggering is based solely on physical leaf collisions; bank steps contain no step-clock notes.
+export function generateHanenbowBank(st = state) {
+  const seqLen = Math.max(1, Math.min(64, st?.length || 16));
+  const rateIdx = typeof st?.rate === "number" ? st.rate : (RATE_NAMES.indexOf(st?.rate) >= 0 ? RATE_NAMES.indexOf(st?.rate) : 6);
   const bank = [];
-  const intervals = getActiveScaleIntervals();
-  const root = getRootMidi();
-  const num = Math.min(MAX_LEAVES, Math.max(2, st.hanenbowLeaves ?? 5));
-  const span = st.hanenbowSpan ?? 3;
-  const rateIdx = typeof st.rate === "number" ? st.rate : (RATE_NAMES.indexOf(st.rate) >= 0 ? RATE_NAMES.indexOf(st.rate) : 6);
 
   for (let s = 0; s < 16; s++) {
-    const pattern = {
-      length: seqLen,
-      rate: rateIdx,
-      steps: []
-    };
-
-    // Forward deterministic projectile simulation across the sequence steps
-    const simDt = 0.02;
-    const simGrav = st.hanenbowGravity ?? 880;
-    const simRest = st.hanenbowElasticity ?? 0.96;
-    const period = st.hanenbowTimingPeriod ?? 1.5;
-    let simTimeSec = 0;
-    const simLastHit = new Float64Array(num).fill(-999);
-    const simCycleCount = new Int32Array(num);
-
-    let simPx = cannonX + Math.cos(cannonAngle) * 22;
-    let simPy = cannonY + Math.sin(cannonAngle) * 22;
-    const spd = (st.hanenbowLaunchSpeed ?? 650) * (0.95 + s * 0.01);
-    let simVx = Math.cos(cannonAngle) * spd;
-    let simVy = Math.sin(cannonAngle) * spd;
-
+    const steps = [];
     for (let step = 0; step < seqLen; step++) {
-      const stepNotes = [];
-
-      // Advance physics by sub-steps per sequence step
-      for (let sub = 0; sub < 4; sub++) {
-        simVy += simGrav * simDt;
-        simPx += simVx * simDt;
-        simPy += simVy * simDt;
-
-        if (simPy > 580 || simPx < -30 || simPx > 860) {
-          // Respawn at cannon for continuous cycle
-          simPx = cannonX + Math.cos(cannonAngle) * 22;
-          simPy = cannonY + Math.sin(cannonAngle) * 22;
-          simVx = Math.cos(cannonAngle) * spd;
-          simVy = Math.sin(cannonAngle) * spd;
-        }
-
-        // Check leaf collisions
-        for (let j = 0; j < num; j++) {
-          const lx = leafX[j];
-          const ly = leafY[j];
-          const len = leafLength[j];
-          const ang = leafAngle[j];
-
-          const cosA = Math.cos(ang);
-          const sinA = Math.sin(ang);
-          const halfL = len * 0.5;
-
-          const segP1x = lx - cosA * halfL;
-          const segP1y = ly - sinA * halfL;
-          const segDx = cosA * len;
-          const segDy = sinA * len;
-          const segLenSq = len * len;
-
-          const u = Math.max(0, Math.min(1, ((simPx - segP1x) * segDx + (simPy - segP1y) * segDy) / segLenSq));
-          const closeX = segP1x + u * segDx;
-          const closeY = segP1y + u * segDy;
-          const dist = Math.hypot(simPx - closeX, simPy - closeY);
-          const hitDist = pRadius + 5.0;
-
-          if (dist < hitDist) {
-            const { nx, ny } = getLeafNormal(simPx, simPy, closeX, closeY, ang, u, dist);
-            const dot = simVx * nx + simVy * ny;
-
-            if (dot < 0) {
-              simVx -= (1 + simRest) * dot * nx;
-              simVy -= (1 + simRest) * dot * ny;
-              simPx = closeX + nx * (hitDist + 0.6);
-              simPy = closeY + ny * (hitDist + 0.6);
-
-              // Cycle upwards through scale if triggered within global timing period
-              simTimeSec += simDt;
-              const elapsed = simTimeSec - simLastHit[j];
-              if (elapsed > 0.04 && elapsed <= period) {
-                simCycleCount[j]++;
-              } else if (elapsed > period) {
-                simCycleCount[j] = 0;
-              }
-              simLastHit[j] = simTimeSec;
-
-              const normHeight = 1.0 - Math.min(1.0, Math.max(0.0, (ly - 140) / 360));
-              const baseOctave = Math.floor(normHeight * (span - 1));
-              const totalDeg = (leafPitchIdx[j] + s) + simCycleCount[j];
-              const numIntervals = Math.max(1, intervals.length);
-              const octShift = Math.floor(totalDeg / numIntervals);
-              const deg = ((totalDeg % numIntervals) + numIntervals) % numIntervals;
-              const note = quantize(Math.min(127, Math.max(0, root + (baseOctave + octShift) * 12 + (intervals[deg] || 0))));
-              const vel = Math.min(127, Math.max(45, Math.round(Math.abs(dot) * 0.22)));
-
-              if (!stepNotes.some(sn => sn.note === note) && stepNotes.length < 3) {
-                stepNotes.push({ note, vel });
-              }
-            }
-          }
-        }
-      }
-
-      // If no collision occurred on this step, provide sparse acoustic chimes
-      if (stepNotes.length === 0 && (step % (Math.max(2, Math.floor(seqLen / num))) === 0)) {
-        const leafIdx = (step / 2) % num;
-        const normHeight = 1.0 - Math.min(1.0, Math.max(0.0, (leafY[leafIdx] - 140) / 360));
-        const oct = Math.floor(normHeight * (span - 1));
-        const deg = (leafPitchIdx[leafIdx] + s) % intervals.length;
-        const note = quantize(root + oct * 12 + (intervals[deg] || 0));
-        stepNotes.push({ note, vel: 65 });
-      }
-
-      pattern.steps.push({
-        notes: stepNotes,
+      steps.push({
+        notes: [],
         rate: rateIdx,
-        gate: stepNotes.length > 0
+        gate: false
       });
     }
-
-    bank.push(pattern);
+    bank.push({
+      length: seqLen,
+      rate: rateIdx,
+      steps
+    });
   }
 
+  setBank(bank);
   return bank;
 }
 
@@ -905,14 +836,12 @@ function syncControlsFromState() {
   if (refs.hanenbowElasticity?.setValue) refs.hanenbowElasticity.setValue(state.hanenbowElasticity, false);
   if (refs.hanenbowFireRate?.setValue) refs.hanenbowFireRate.setValue(state.hanenbowFireRate, false);
   if (refs.hanenbowLaunchSpeed?.setValue) refs.hanenbowLaunchSpeed.setValue(state.hanenbowLaunchSpeed, false);
-  if (refs.hanenbowCcDepth?.setValue) refs.hanenbowCcDepth.setValue(state.hanenbowCcDepth, false);
   if (refs.hanenbowTimingPeriod?.setValue) refs.hanenbowTimingPeriod.setValue(state.hanenbowTimingPeriod, false);
-  if (refs.hanenbowRate?.setValue) {
-    const r = typeof state.rate === "number" ? state.rate : (RATE_NAMES.indexOf(state.rate) >= 0 ? RATE_NAMES.indexOf(state.rate) : 6);
-    refs.hanenbowRate.setValue(r, false);
-  }
+  if (refs.hanenbowGateLen?.setValue) refs.hanenbowGateLen.setValue(state.hanenbowGateLen, false);
+  if (refs.hanenbowCcDepth?.setValue) refs.hanenbowCcDepth.setValue(state.hanenbowCcDepth, false);
   if (presetSelect) presetSelect.value = state.hanenbowPreset || "cascade";
   if (notesSection?.sync) notesSection.sync();
+  updatePlayBtnUI();
 }
 
 // ---- UI Assembly & Model Initialization ----
@@ -928,7 +857,7 @@ export function initHanenbow() {
   const module = document.createElement("div");
   module.className = "module hanenbow-module";
 
-  // Card 1: Header, Mode Toggle, and Actions
+  // Card 1: Header, Transport, and Actions
   const headerCard = document.createElement("div");
   headerCard.className = "card";
   headerCard.style.padding = "8px 12px";
@@ -945,17 +874,14 @@ export function initHanenbow() {
   actionsGroup.style.display = "flex";
   actionsGroup.style.gap = "4px";
 
-  modeToggleBtn = document.createElement("button");
-  modeToggleBtn.className = "btn-action";
-  modeToggleBtn.style.fontSize = "10px";
-  modeToggleBtn.style.padding = "3px 8px";
-  modeToggleBtn.textContent = state.hanenbowMode === "free" ? "Free Loop" : "Sync Step";
-  modeToggleBtn.title = "Toggle between transport step sync and free-running continuous ballistics";
-  modeToggleBtn.addEventListener("click", () => {
-    state.hanenbowMode = state.hanenbowMode === "free" ? "sync" : "free";
-    modeToggleBtn.textContent = state.hanenbowMode === "free" ? "Free Loop" : "Sync Step";
-    renderPondCanvas();
-    status(`Hanenbow mode: ${state.hanenbowMode.toUpperCase()}`, "ok");
+  btnPlay = document.createElement("button");
+  btnPlay.className = "btn-action";
+  btnPlay.style.fontSize = "10px";
+  btnPlay.style.padding = "3px 8px";
+  btnPlay.textContent = isHanenbowPlaying ? "■ Stop" : "▶ Play";
+  btnPlay.title = "Start or stop continuous ballistics triggering (Spacebar)";
+  btnPlay.addEventListener("click", () => {
+    toggleHanenbowRunning();
   });
 
   const btnFire = document.createElement("button");
@@ -963,7 +889,7 @@ export function initHanenbow() {
   btnFire.style.fontSize = "10px";
   btnFire.style.padding = "3px 8px";
   btnFire.textContent = "Launch";
-  btnFire.title = "Launch a plankton creature from the cannon";
+  btnFire.title = "Launch a projectile from the cannon";
   btnFire.addEventListener("click", () => {
     firePlankton();
   });
@@ -978,7 +904,7 @@ export function initHanenbow() {
     randomizeHanenbow();
   });
 
-  actionsGroup.append(modeToggleBtn, btnFire, btnRnd);
+  actionsGroup.append(btnPlay, btnFire, btnRnd);
   topRow.append(titleGroup, actionsGroup);
 
   // Preset Selector Dropdown
@@ -1016,10 +942,6 @@ export function initHanenbow() {
       state.hanenbowFireRate = p.fireRate;
       initHanenbowSystem(pid);
       syncControlsFromState();
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
-      syncRhythmGrid();
       status(`Hanenbow layout: ${p.name}`, "ok");
     }
   });
@@ -1045,10 +967,6 @@ export function initHanenbow() {
     onChange: (v) => {
       state.hanenbowLeaves = Math.round(v);
       initHanenbowSystem(state.hanenbowPreset);
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
-      syncRhythmGrid();
     }
   });
   R("hanenbowLeaves", kLeaves);
@@ -1061,9 +979,6 @@ export function initHanenbow() {
     title: "Downward gravity acceleration",
     onChange: (v) => {
       state.hanenbowGravity = v;
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
     }
   });
   R("hanenbowGravity", kGrav);
@@ -1076,78 +991,34 @@ export function initHanenbow() {
     title: "Specular restitution coefficient of leaves",
     onChange: (v) => {
       state.hanenbowElasticity = v;
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
     }
   });
   R("hanenbowElasticity", kElast);
 
-  const kTrigRate = knob({
-    label: "RATE",
-    min: 0, max: 9, step: 1,
-    value: typeof state.rate === "number" ? state.rate : (RATE_NAMES.indexOf(state.rate) >= 0 ? RATE_NAMES.indexOf(state.rate) : 6),
-    format: (v) => RATE_NAMES[Math.round(v)] || "1/16",
-    unit: "",
-    title: "Sequencer trigger speed / step note value (controllable live while running)",
-    onChange: (v) => {
-      const rateIdx = Math.round(v);
-      state.rate = rateIdx;
-
-      // Update active bank patterns so player.js liveLoop immediately steps at the new rate
-      const curBank = getBank();
-      if (curBank) {
-        for (const p of curBank) {
-          if (p) {
-            p.rate = rateIdx;
-            if (p.steps) {
-              for (const st of p.steps) {
-                if (st) st.rate = rateIdx;
-              }
-            }
-          }
-        }
-      }
-
-      if (refs.rate?.setValue) refs.rate.setValue(rateIdx, false);
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
-      syncRhythmGrid();
-      status(`Trigger speed: ${RATE_NAMES[rateIdx] || rateIdx}`, "ok");
-    }
-  });
-  R("hanenbowRate", kTrigRate);
-
-  const kLaunch = knob({
-    label: "LAUNCH",
+  const kTrigSpeed = knob({
+    label: "TRIG SPD",
     min: 0.2, max: 8.0, step: 0.1,
     value: state.hanenbowFireRate ?? 1.5,
     unit: "Hz",
-    title: "Plankton projectile launch fire rate (controllable live while running)",
+    title: "Overall speed of cannon ball triggers (controllable live while running)",
     onChange: (v) => {
       state.hanenbowFireRate = v;
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
+      status(`Trigger speed: ${v.toFixed(1)} Hz`, "ok");
     }
   });
-  R("hanenbowFireRate", kLaunch);
+  R("hanenbowFireRate", kTrigSpeed);
 
-  const kSpd = knob({
-    label: "SPEED",
+  const kLaunchSpeed = knob({
+    label: "VELOCITY",
     min: 300, max: 950, step: 25,
     value: state.hanenbowLaunchSpeed ?? 650,
     unit: "",
     title: "Cannon launch velocity magnitude",
     onChange: (v) => {
       state.hanenbowLaunchSpeed = v;
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
     }
   });
-  R("hanenbowLaunchSpeed", kSpd);
+  R("hanenbowLaunchSpeed", kLaunchSpeed);
 
   const kPeriod = knob({
     label: "PERIOD",
@@ -1157,12 +1028,21 @@ export function initHanenbow() {
     title: "Global timing period: repeated leaf triggers within this period cycle note upwards through scale",
     onChange: (v) => {
       state.hanenbowTimingPeriod = v;
-      forceRegenRhythm = true;
-      doGenerate(true);
-      forceRegenRhythm = false;
     }
   });
   R("hanenbowTimingPeriod", kPeriod);
+
+  const kGate = knob({
+    label: "GATE",
+    min: 50, max: 800, step: 10,
+    value: state.hanenbowGateLen ?? 240,
+    unit: "ms",
+    title: "Note duration (gate length) in milliseconds",
+    onChange: (v) => {
+      state.hanenbowGateLen = v;
+    }
+  });
+  R("hanenbowGateLen", kGate);
 
   const kCc = knob({
     label: "FM CC74",
@@ -1170,19 +1050,18 @@ export function initHanenbow() {
     value: state.hanenbowCcDepth ?? 85,
     unit: "",
     title: "FM-1 CC #74 Brightness modulation depth driven by impact kinetic force",
-    onChange: (v) => { state.hanenbowCcDepth = v; }
+    onChange: (v) => {
+      state.hanenbowCcDepth = v;
+    }
   });
   R("hanenbowCcDepth", kCc);
 
-  paramGrid.append(kLeaves, kGrav, kElast, kTrigRate, kLaunch, kSpd, kPeriod, kCc);
+  paramGrid.append(kLeaves, kGrav, kElast, kTrigSpeed, kLaunchSpeed, kPeriod, kGate, kCc);
   paramCard.appendChild(paramGrid);
 
   // Card 3: Notes & Scale Controls
   notesSection = createNotesSection("hanenbow", () => {
-    forceRegenRhythm = true;
-    doGenerate(true);
-    forceRegenRhythm = false;
-    syncRhythmGrid();
+    renderPondCanvas();
   });
   notesSection.sectEl.classList.add("card");
   notesSection.sectEl.style.padding = "8px 12px";
@@ -1321,17 +1200,15 @@ export function initHanenbow() {
 export function activateHanenbowModel() {
   setModelGenerator(generateHanenbowBank);
   setModelRandomizer(randomizeHanenbow);
-  setModelStepHandler(onHanenbowLiveStep);
+  setModelStepHandler(null);
+  setModelTransportHandler({
+    toggle: toggleHanenbowRunning,
+    stop: stopHanenbow,
+    start: startHanenbow,
+    isRunning: isHanenbowRunning
+  });
 
-  const curBank = getBank();
-  const hasExistingSteps = curBank?.[0]?.steps?.some((st) => (st.notes && st.notes.length > 0) || st._savedNote);
-  if (!hasExistingSteps) {
-    forceRegenRhythm = true;
-  }
-  doGenerate(true);
-  forceRegenRhythm = false;
-
-  syncRhythmGrid();
+  doGenerate(false);
   renderPondCanvas();
 
   if (!animFrameId) {
@@ -1339,19 +1216,19 @@ export function activateHanenbowModel() {
     animFrameId = requestAnimationFrame(freeLoop);
   }
 
-  if (refs.hanenbowRate) {
-    const r = typeof state.rate === "number" ? state.rate : (RATE_NAMES.indexOf(state.rate) >= 0 ? RATE_NAMES.indexOf(state.rate) : 6);
-    refs.hanenbowRate.setValue(r, false);
-  }
-
-  // Auto-launch a projectile on entering so the pond is immediately active and visible
-  firePlankton();
+  updatePlayBtnUI();
+  status("Hanenbow Ballistics: Ready (Press Play or Spacebar to start)", "ok");
 }
 
 export function deactivateHanenbowModel() {
-  panicPreview();
-  audio.allOff();
+  stopHanenbow();
   setModelStepHandler(null);
+  setModelTransportHandler(null);
+  setModelGenerator(null);
+  setModelRandomizer(null);
+
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   activeVoices.clear();
   voiceSlots.fill(null);
   lastLiveStep = -1;
