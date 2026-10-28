@@ -78,7 +78,6 @@ let lastFrameTime = 0;
 
 // Transport & Autonomous Playback State
 let isHanenbowPlaying = false;
-let btnPlay = null;
 
 export function isHanenbowRunning() {
   return isHanenbowPlaying;
@@ -115,14 +114,6 @@ export function toggleHanenbowRunning() {
 }
 
 function updatePlayBtnUI() {
-  if (btnPlay) {
-    btnPlay.textContent = isHanenbowPlaying ? "■ Stop" : "▶ Play";
-    if (isHanenbowPlaying) {
-      btnPlay.classList.add("playing");
-    } else {
-      btnPlay.classList.remove("playing");
-    }
-  }
   const headerBtn = document.getElementById("audition");
   if (headerBtn) {
     headerBtn.textContent = isHanenbowPlaying ? "■ Stop" : "▶ Play";
@@ -237,7 +228,7 @@ export const HANENBOW_PRESETS = [
 ];
 
 // ---- Pond & Ballistics Initialization ----
-export function initHanenbowSystem(presetId = state.hanenbowPreset || "cascade") {
+export function initHanenbowSystem(presetId = state.hanenbowPreset || "cascade", preserveProjectiles = false) {
   const p = HANENBOW_PRESETS.find(pr => pr.id === presetId) || HANENBOW_PRESETS[0];
   const num = Math.min(MAX_LEAVES, Math.max(2, state.hanenbowLeaves ?? p.leaves));
 
@@ -262,13 +253,15 @@ export function initHanenbowSystem(presetId = state.hanenbowPreset || "cascade")
     }
   }
 
-  // Clear plankton projectile pool
-  for (let i = 0; i < MAX_PLANKTON; i++) {
-    pActive[i] = 0;
-    pX[i] = 0;
-    pY[i] = 0;
-    pVx[i] = 0;
-    pVy[i] = 0;
+  // Clear plankton projectile pool only if not preserving active balls during live playback
+  if (!preserveProjectiles) {
+    for (let i = 0; i < MAX_PLANKTON; i++) {
+      pActive[i] = 0;
+      pX[i] = 0;
+      pY[i] = 0;
+      pVx[i] = 0;
+      pVy[i] = 0;
+    }
   }
 }
 
@@ -753,6 +746,17 @@ function renderPondCanvas() {
   ctx.strokeStyle = colLineFocus;
   ctx.stroke();
 
+  // Cannon firing pulse ring
+  if (cannonPulse > 0.05) {
+    ctx.strokeStyle = colAccent;
+    ctx.lineWidth = 2 * scaleX;
+    ctx.globalAlpha = cannonPulse;
+    ctx.beginPath();
+    ctx.arc(cx, cy, cPulseRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+  }
+
   // Cannon barrel
   const barrelLen = (24 + cannonPulse * 6) * scaleX;
   const bx = cx + Math.cos(cannonAngle) * barrelLen;
@@ -770,6 +774,13 @@ function renderPondCanvas() {
   ctx.beginPath();
   ctx.arc(bx, by, 3 * scaleX, 0, Math.PI * 2);
   ctx.fill();
+
+  // Cannon launch label
+  ctx.fillStyle = colAccent;
+  ctx.font = `bold ${Math.round(9 * scaleX)}px monospace`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("LAUNCH", cx, cy + 22 * scaleY);
 
   // Cannon aiming trajectory guide arc (shows launch arc and multi-leaf deflections)
   ctx.save();
@@ -912,37 +923,18 @@ export function initHanenbow() {
   actionsGroup.style.display = "flex";
   actionsGroup.style.gap = "4px";
 
-  btnPlay = document.createElement("button");
-  btnPlay.className = "btn-action";
-  btnPlay.style.fontSize = "10px";
-  btnPlay.style.padding = "3px 8px";
-  btnPlay.textContent = isHanenbowPlaying ? "■ Stop" : "▶ Play";
-  btnPlay.title = "Start or stop continuous ballistics triggering (Spacebar)";
-  btnPlay.addEventListener("click", () => {
-    toggleHanenbowRunning();
-  });
-
   const btnFire = document.createElement("button");
   btnFire.className = "btn-action";
   btnFire.style.fontSize = "10px";
   btnFire.style.padding = "3px 8px";
   btnFire.textContent = "Launch";
-  btnFire.title = "Launch a projectile from the cannon";
+  btnFire.title = "Launch a projectile from the cannon (or click canvas launch node)";
   btnFire.addEventListener("click", () => {
     firePlankton();
+    renderPondCanvas();
   });
 
-  const btnRnd = document.createElement("button");
-  btnRnd.className = "btn-action primary";
-  btnRnd.style.fontSize = "10px";
-  btnRnd.style.padding = "3px 8px";
-  btnRnd.textContent = "Randomise";
-  btnRnd.title = "Generate a new pond leaf layout (or press R/G)";
-  btnRnd.addEventListener("click", () => {
-    randomizeHanenbow();
-  });
-
-  actionsGroup.append(btnPlay, btnFire, btnRnd);
+  actionsGroup.append(btnFire);
   topRow.append(titleGroup, actionsGroup);
 
   // Preset Selector Dropdown
@@ -978,8 +970,9 @@ export function initHanenbow() {
       state.hanenbowGravity = p.gravity;
       state.hanenbowElasticity = p.elasticity;
       state.hanenbowFireRate = p.fireRate;
-      initHanenbowSystem(pid);
+      initHanenbowSystem(pid, isHanenbowPlaying);
       syncControlsFromState();
+      renderPondCanvas();
       status(`Hanenbow layout: ${p.name}`, "ok");
     }
   });
@@ -1004,7 +997,17 @@ export function initHanenbow() {
     title: "Number of active acoustic leaves (strictly <= 8 voices)",
     onChange: (v) => {
       state.hanenbowLeaves = Math.round(v);
-      initHanenbowSystem(state.hanenbowPreset);
+      const p = HANENBOW_PRESETS.find(pr => pr.id === (state.hanenbowPreset || "cascade")) || HANENBOW_PRESETS[0];
+      for (let i = 0; i < state.hanenbowLeaves; i++) {
+        if (leafLength[i] <= 0) {
+          const ld = p.leafData[i] || { x: 200 + i * 70, y: 300 + (i % 2) * 60, len: 110, angle: 0.1, pitch: i };
+          leafX[i] = ld.x;
+          leafY[i] = ld.y;
+          leafLength[i] = ld.len;
+          leafAngle[i] = ld.angle;
+        }
+      }
+      renderPondCanvas();
     }
   });
   R("hanenbowLeaves", kLeaves);
@@ -1017,6 +1020,7 @@ export function initHanenbow() {
     title: "Downward gravity acceleration",
     onChange: (v) => {
       state.hanenbowGravity = v;
+      renderPondCanvas();
     }
   });
   R("hanenbowGravity", kGrav);
@@ -1029,6 +1033,7 @@ export function initHanenbow() {
     title: "Specular restitution coefficient of leaves",
     onChange: (v) => {
       state.hanenbowElasticity = v;
+      renderPondCanvas();
     }
   });
   R("hanenbowElasticity", kElast);
@@ -1054,6 +1059,8 @@ export function initHanenbow() {
     title: "Cannon launch velocity magnitude",
     onChange: (v) => {
       state.hanenbowLaunchSpeed = v;
+      cannonSpeed = v;
+      renderPondCanvas();
     }
   });
   R("hanenbowLaunchSpeed", kLaunchSpeed);
@@ -1066,6 +1073,7 @@ export function initHanenbow() {
     title: "Global timing period: repeated leaf triggers within this period cycle note upwards through scale",
     onChange: (v) => {
       state.hanenbowTimingPeriod = v;
+      renderPondCanvas();
     }
   });
   R("hanenbowTimingPeriod", kPeriod);
@@ -1127,7 +1135,7 @@ export function initHanenbow() {
   canvasHeader.style.marginBottom = "6px";
   canvasHeader.innerHTML = `
     <span style="font-size:10px; font-weight:700; color:var(--fg); letter-spacing:1px; text-transform:uppercase;">Pond Ballistics &amp; Leaf Ricochet Matrix</span>
-    <span style="font-size:9px; color:var(--dim);">Drag tips to resize &amp; rotate (larger = lower pitch) · Drag center to move</span>
+    <span style="font-size:9px; color:var(--dim);">Click launch node to fire · Drag to aim · Drag leaf tips to resize/rotate</span>
   `;
 
   pondCanvas = document.createElement("canvas");
@@ -1154,10 +1162,16 @@ export function initHanenbow() {
     const num = Math.min(MAX_LEAVES, Math.max(2, state.hanenbowLeaves ?? 5));
     isDragging = null;
 
-    // Check click on cannon
-    if (Math.hypot(mx - cannonX, my - cannonY) < 28) {
+    // Check click on cannon launch node: triggers another ball to be launched immediately!
+    const distBase = Math.hypot(mx - cannonX, my - cannonY);
+    const barrelTipX = cannonX + Math.cos(cannonAngle) * 24;
+    const barrelTipY = cannonY + Math.sin(cannonAngle) * 24;
+    const distBarrel = Math.hypot(mx - barrelTipX, my - barrelTipY);
+    if (distBase < 32 || distBarrel < 20) {
+      firePlankton(); // Fire another ball on click!
       isDragging = { type: "cannon-angle", idx: 0 };
       pondCanvas.setPointerCapture(e.pointerId);
+      renderPondCanvas();
       return;
     }
 
