@@ -180,6 +180,21 @@ export const MODELS = [
       <circle cx="13" cy="9" r="1.5" fill="currentColor" />
       <circle cx="4" cy="20" r="2.5" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "sandpile",
+    name: "Abelian Sandpile",
+    kicker: "Self-Organized Criticality · Avalanches · Lattice Cascades",
+    available: true,
+    desc: "Discrete 2D cellular automaton governed by the Bak-Tang-Wiesenfeld Abelian sandpile model. Sand grains accumulate on a critical grid until cells exceed capacity (z ≥ 4) and topple to neighbors. Cascades unfold across all scales following a 1/f pink noise power law, triggering center-of-mass polyphony, spatial quadrant chords, and avalanche dynamics.",
+    tags: ["BTW Sandpile", "Self-Organized Criticality", "1/f Pink Noise", "Lattice Avalanches", "Center-of-Mass Pitch", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l7 18H5l7-18z" />
+      <path d="M12 7v5m-2-2h4" stroke-dasharray="1 1" />
+      <circle cx="12" cy="16" r="1.5" fill="currentColor" />
+      <circle cx="9" cy="18" r="1" fill="currentColor" />
+      <circle cx="15" cy="18" r="1" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -387,6 +402,7 @@ export function showModel(id, updateHash = true) {
   const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
   const modelOrbital = document.getElementById("model-orbital");
   const modelHanenbow = document.getElementById("model-hanenbow");
+  const modelSandpile = document.getElementById("model-sandpile");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -445,6 +461,7 @@ export function showModel(id, updateHash = true) {
     if (modelLotkaVolterra) modelLotkaVolterra.style.display = id === "lotka_volterra" ? "block" : "none";
     if (modelOrbital) modelOrbital.style.display = id === "orbital" ? "block" : "none";
     if (modelHanenbow) modelHanenbow.style.display = id === "hanenbow" ? "block" : "none";
+    if (modelSandpile) modelSandpile.style.display = id === "sandpile" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -463,6 +480,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "lotka_volterra") modeTag.textContent = "Lotka-Volterra Attractor";
       else if (id === "orbital") modeTag.textContent = "Orbital Resonance";
       else if (id === "hanenbow") modeTag.textContent = "Hanenbow Ballistics";
+      else if (id === "sandpile") modeTag.textContent = "Abelian Sandpile";
       modeTag.style.display = "inline-block";
     }
   }
@@ -535,6 +553,12 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "lsystem") showModel("lsystem", false);
     } else if (h === "#lotka_volterra" || h === "#lotka-volterra" || h === "#lv") {
       if (activeModelId !== "lotka_volterra") showModel("lotka_volterra", false);
+    } else if (h === "#orbital") {
+      if (activeModelId !== "orbital") showModel("orbital", false);
+    } else if (h === "#hanenbow") {
+      if (activeModelId !== "hanenbow") showModel("hanenbow", false);
+    } else if (h === "#sandpile" || h === "#btw" || h === "#soc") {
+      if (activeModelId !== "sandpile") showModel("sandpile", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -567,6 +591,12 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("lsystem", false);
   } else if (initialHash === "#lotka_volterra" || initialHash === "#lotka-volterra" || initialHash === "#lv") {
     showModel("lotka_volterra", false);
+  } else if (initialHash === "#orbital") {
+    showModel("orbital", false);
+  } else if (initialHash === "#hanenbow") {
+    showModel("hanenbow", false);
+  } else if (initialHash === "#sandpile" || initialHash === "#btw" || initialHash === "#soc") {
+    showModel("sandpile", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

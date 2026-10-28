@@ -58,6 +58,7 @@ const PREFIX = {
   lotka_volterra: /^lv[A-Z]/,
   orbital: /^orbital[A-Z]/,
   hanenbow: /^hanenbow[A-Z]/,
+  sandpile: /^sandpile[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

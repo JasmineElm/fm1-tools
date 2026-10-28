@@ -43,7 +43,7 @@ The models are ordered first by the **fundamental algorithmic, mathematical, and
 | **02** | `lotka_volterra` | **Lotka-Volterra Predator-Prey** | Non-Linear Dynamics | Runge-Kutta 4th Order (RK4), Poincaré cutting plane triggers, phase loops | Low (1.5/5) | ✅ Complete |
 | **03** | `orbital` | **Keplerian Orbital Resonance** | Celestial Mechanics | Symplectic Velocity-Verlet, periapsis transit detection, angular conjunctions | Moderate (2/5) | ✅ Complete |
 | **04** | `hanenbow` | **Electroplankton Hanenbow Ballistics** | Physical Toy / Ballistics | 2D circle-to-line segment projection, specular momentum rebound, leaf springs | Moderate (2.5/5) | ✅ Complete |
-| **05** | `sandpile` | **Abelian Sandpile (SOC)** | Statistical Physics / Avalanches | 2D integer lattice, relaxation queue, center-of-mass pitch, $1/f$ pink noise | Moderate (3/5) | Pending |
+| **05** | `sandpile` | **Abelian Sandpile (SOC)** | Statistical Physics / Avalanches | 2D integer lattice, relaxation queue, center-of-mass pitch, $1/f$ pink noise | Moderate (3/5) | ✅ Complete |
 | **06** | `percolation` | **Percolation Cluster Phase Transition** | Fluid Porosity / Criticality | Disjoint Set Union (DSU / Union-Find), cluster scaling, conductive wave fronts | Mod-High (3.5/5) | Pending |
 | **07** | `dla` | **Diffusion-Limited Aggregation (DLA)** | Fractal Growth / Brownian Walks | 2D Brownian motion, perimeter boundary kill zones, sticky bitmask lookup | High (4/5) | Pending |
 | **08** | `epidemic` | **SIR Epidemic Network Dynamics** | Population / Epidemiology | Spatial contact proximity graphs, multi-state Markov transitions, $R_0$ density | High (4/5) | Pending |
@@ -406,7 +406,7 @@ export class HanenbowModel {
 
 ---
 
-### Model 05 (Step 5): Bak-Tang-Wiesenfeld Abelian Sandpile (SOC)
+### Model 05 (Step 5): Bak-Tang-Wiesenfeld Abelian Sandpile (SOC) — [COMPLETED]
 - **Model ID**: `sandpile`
 - **Category**: Physical / Statistical Avalanche Mechanics / Self-Organized Criticality.
 - **Why Fifth**: Establishes discrete 2D spatial grid processing, relaxation queues, and spatial center-of-mass pitch derivation.

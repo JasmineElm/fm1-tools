@@ -234,6 +234,27 @@ export const DEFAULT = {
   hanenbowCcDepth: 85,
   hanenbowGateLen: 240,
   hanenbowTimingPeriod: 1.5,
+
+  // Bak-Tang-Wiesenfeld Abelian Sandpile (SOC) model parameters
+  sandpileGridSize: 33,
+  sandpileDropRate: 10,
+  sandpileDropAmount: 1,
+  sandpileDropPattern: "center",
+  sandpileBoundary: "open",
+  sandpilePitchMapping: "radial",
+  sandpileOctaveSpread: 2,
+  sandpilePreset: "empty",
+  sandpileMode: "sync",
+  sandpileSpan: 2,
+  sandpileScale: "pentMinor",
+  sandpileCustomScale: [0, 3, 5, 7, 10],
+  sandpileRoot: 48,
+  sandpileRootNote: 0,
+  sandpileRootOctave: 3,
+  sandpileCcDest: 74,
+  sandpileCcDepth: 80,
+  sandpileGateLen: 180,
+  sandpileVelocity: 90,
 };
 
 export const state = { ...DEFAULT };
