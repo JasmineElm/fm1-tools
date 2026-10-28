@@ -8,8 +8,14 @@
 // 4. Zero GC churn with typed arrays and reusable buffer slices.
 
 import { state } from "./state.js";
-import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
+import {
+  liveNoteOn, liveNoteOff, panicPreview,
+  recordAndCheckSafeNote, resetSafeNoteHistory,
+  SAFE_WINDOW_MS, SAFE_MAX_NOTES
+} from "./player.js";
 import * as audio from "./audio.js";
+
+export { recordAndCheckSafeNote, resetSafeNoteHistory, SAFE_WINDOW_MS, SAFE_MAX_NOTES };
 
 export const MAX_HARDWARE_VOICES = 8;
 
@@ -149,6 +155,11 @@ export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeD
 
   if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
 
+  // Safe mode rate limiter: drop any note after 8th within 500ms to protect FM-1 sound engine
+  if (!recordAndCheckSafeNote()) {
+    return;
+  }
+
   const safeNote = Math.min(127, Math.max(0, Math.round(note)));
   const safeVel = Math.min(127, Math.max(1, Math.round(vel)));
   const safeDur = Math.max(30, Math.round(durMs));
@@ -174,8 +185,8 @@ export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeD
     activePolyVoices.delete(oldestSlot);
   }
 
-  // Dispatch Note On
-  try { liveNoteOn(safeNote, safeVel); } catch (_) {}
+  // Dispatch Note On (fromPoly = true prevents double counting)
+  try { liveNoteOn(safeNote, safeVel, true); } catch (_) {}
   try { audio.noteOn(safeNote, safeVel); } catch (_) {}
 
   // Schedule Note Off

@@ -89,6 +89,7 @@
           <div class="transport global-transport">
             <button id="audition" title="Loop the selected slot (Space)">▶ Play</button>
             <button id="mute" title="Mute / unmute browser audio (M) — starts muted">🔇</button>
+            <button id="safe-mode" class="btn-safe" title="Safe Mode: Limits notes to at most 8 per 500ms to protect the FM-1 sound engine from glitches">Safe: Off</button>
           </div>
           <div class="presets global-presets" id="presets">
             <div id="preset-slots" class="preset-slots"></div>
@@ -212,6 +213,11 @@
     <!-- MODEL 16: SIR EPIDEMIC NETWORK DYNAMICS -->
     <div id="model-epidemic" class="model-view" style="display: none;">
       <!-- Populated dynamically by js/epidemic.js -->
+    </div>
+
+    <!-- MODEL 17: ENGLISH CHANGE RINGING & CAMPANOLOGY -->
+    <div id="model-changes" class="model-view" style="display: none;">
+      <!-- Populated dynamically by js/changes.js -->
     </div>
   </section>
 

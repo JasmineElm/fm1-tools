@@ -14,7 +14,8 @@ export const POLYPHONIC_MODELS = new Set([
   "sandpile",
   "percolation",
   "dla",
-  "epidemic"
+  "epidemic",
+  "changes"
 ]);
 
 export const MODELS = [
@@ -262,6 +263,19 @@ export const MODELS = [
       <circle cx="17" cy="18" r="2" />
       <path d="M7 9l3 2m4 0l3-2m-8 6l2-2m4 0l2 2" stroke-dasharray="1 1" />
     </svg>`
+  },
+  {
+    id: "changes",
+    name: "Change Ringing",
+    kicker: "Campanology Permutations · English Full-Circle Bells · Blue Line",
+    available: true,
+    desc: "English church bell change ringing and method permutation sequencer. Bells navigate full-circle changes across stages 4 to 8 (Minimus to Major, matching the FM-1's 8 hardware voices) via Plain Hunt, Plain Bob, Grandsire, Stedman, and interactive Call Changes. Features authentic handstroke/backstroke open lead pauses, conductor Bob/Single calls, and real-time Blue Line method trajectory visualization.",
+    tags: ["Change Ringing", "Campanology", "Permutation Rules", "Method Ringing", "The Blue Line", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2a5 5 0 0 0-5 5v5a7 7 0 0 0-3 6h16a7 7 0 0 0-3-6V7a5 5 0 0 0-5-5z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -456,6 +470,8 @@ export function showLanding(updateHash = true) {
   if (modelPercolation) modelPercolation.style.display = "none";
   if (modelDla) modelDla.style.display = "none";
   if (modelEpidemic) modelEpidemic.style.display = "none";
+  const modelChanges = document.getElementById("model-changes");
+  if (modelChanges) modelChanges.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -489,6 +505,7 @@ export function showModel(id, updateHash = true) {
   const modelPercolation = document.getElementById("model-percolation");
   const modelDla = document.getElementById("model-dla");
   const modelEpidemic = document.getElementById("model-epidemic");
+  const modelChanges = document.getElementById("model-changes");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -502,8 +519,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, and Epidemic are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, and Changes are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -561,6 +578,7 @@ export function showModel(id, updateHash = true) {
     if (modelPercolation) modelPercolation.style.display = id === "percolation" ? "block" : "none";
     if (modelDla) modelDla.style.display = id === "dla" ? "block" : "none";
     if (modelEpidemic) modelEpidemic.style.display = id === "epidemic" ? "block" : "none";
+    if (modelChanges) modelChanges.style.display = id === "changes" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -583,6 +601,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "percolation") modeTag.textContent = "Percolation Clusters";
       else if (id === "dla") modeTag.textContent = "DLA Dendritic Crystal";
       else if (id === "epidemic") modeTag.textContent = "SIR Epidemic Network";
+      else if (id === "changes") modeTag.textContent = "Change Ringing";
       modeTag.style.display = "inline-block";
     }
   }
@@ -663,6 +682,12 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "sandpile") showModel("sandpile", false);
     } else if (h === "#percolation" || h === "#porosity" || h === "#cluster") {
       if (activeModelId !== "percolation") showModel("percolation", false);
+    } else if (h === "#dla" || h === "#fractal") {
+      if (activeModelId !== "dla") showModel("dla", false);
+    } else if (h === "#epidemic" || h === "#sir") {
+      if (activeModelId !== "epidemic") showModel("epidemic", false);
+    } else if (h === "#changes" || h === "#bells" || h === "#campanology") {
+      if (activeModelId !== "changes") showModel("changes", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -703,6 +728,12 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("sandpile", false);
   } else if (initialHash === "#percolation" || initialHash === "#porosity" || initialHash === "#cluster") {
     showModel("percolation", false);
+  } else if (initialHash === "#dla" || initialHash === "#fractal") {
+    showModel("dla", false);
+  } else if (initialHash === "#epidemic" || initialHash === "#sir") {
+    showModel("epidemic", false);
+  } else if (initialHash === "#changes" || initialHash === "#bells" || initialHash === "#campanology") {
+    showModel("changes", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

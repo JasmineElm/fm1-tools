@@ -901,10 +901,16 @@ kbd {
 .presets button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .presets button.armed { color: var(--accent); border-color: var(--accent); outline: 2px solid var(--accent); }
 .presets .pslot.filled { color: var(--accent); border-color: var(--accent); font-weight: 700; }
-.transport button#audition {
-  color: var(--fg); font-weight: 700; padding: 6px 16px; border-color: var(--dim);
-}
 .transport button#audition.playing { color: #ffffff; background: var(--accent); border-color: var(--accent); }
+.transport button#safe-mode {
+  font-weight: 600;
+  padding: 5px 10px;
+}
+.transport button#safe-mode.active {
+  color: #ffffff;
+  background: var(--ok);
+  border-color: var(--ok);
+}
 
 .themebar { display: flex; align-items: center; margin: 0; }
 .themebar .swatches { display: flex; gap: 4px; align-items: center; }

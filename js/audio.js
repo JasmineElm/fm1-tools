@@ -54,8 +54,16 @@ function ensure() {
   if (typeof window === "undefined") return null;
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    ctx = new AC();
+    try {
+      ctx = new AC();
+      if (!ctx || typeof ctx.createDynamicsCompressor !== "function") {
+        ctx = null;
+        return null;
+      }
+    } catch (_) {
+      ctx = null;
+      return null;
+    }
 
     // Chords stack up to 9 voices plus release overlap; the compressor keeps
     // the voice sum out of clipping before the master output stage
