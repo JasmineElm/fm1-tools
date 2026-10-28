@@ -201,3 +201,10 @@ export function releasePolyVoices() {
   try { panicPreview(); } catch (_) {}
   try { audio.allOff(); } catch (_) {}
 }
+
+/**
+ * Returns the number of currently sounding polyphonic voices.
+ */
+export function getActiveVoiceCount() {
+  return activePolyVoices.size;
+}

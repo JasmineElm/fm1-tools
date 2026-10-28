@@ -24,7 +24,7 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
-import { selectPolyVoices, playVoice, releasePolyVoices } from "./poly.js";
+import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
@@ -694,7 +694,7 @@ function updateReadoutMetrics() {
   const condPct = Math.round(currentConduction * 100);
   const restVal = state.percolationRest ?? 40;
   const evoVal = state.percolationEvo ?? 25;
-  statReadoutEl.textContent = `Lattice: ${W}×${H} · p: ${pVal} (pc ≈ 0.593) · Clusters: ${totalClusters} · Spanning: ${spanStr} · Rest: ${restVal}% · Evo: ${evoVal}% · Voices: ${activeVoices.size}/${state.percolationPolyphony ?? 4}`;
+  statReadoutEl.textContent = `Lattice: ${W}×${H} · p: ${pVal} (pc ≈ 0.593) · Clusters: ${totalClusters} · Spanning: ${spanStr} · Rest: ${restVal}% · Evo: ${evoVal}% · Voices: ${getActiveVoiceCount()}/${state.polyphony ?? 4}`;
 }
 
 // ---- Canvas Rendering (Flat Workbench Aesthetic, Zero Gradients) ----
@@ -1234,9 +1234,7 @@ export function deactivatePercolationModel() {
   setModelGenerator(null);
   setModelRandomizer(null);
 
-  panicPreview();
-  try { audio.allOff(); } catch (_) {}
-  activeVoices.clear();
+  releasePolyVoices();
 
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);

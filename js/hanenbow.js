@@ -95,9 +95,7 @@ export function startHanenbow() {
 
 export function stopHanenbow() {
   isHanenbowPlaying = false;
-  panicPreview();
-  try { audio.allOff(); } catch (_) {}
-  activeVoices.clear();
+  releasePolyVoices();
   voiceSlots.fill(null);
   updatePlayBtnUI();
   status("stopped");

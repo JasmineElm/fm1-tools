@@ -96,9 +96,7 @@ export function startOrbital() {
 
 export function stopOrbital() {
   isOrbitalPlaying = false;
-  panicPreview();
-  try { audio.allOff(); } catch (_) {}
-  activeVoices.clear();
+  releasePolyVoices();
   voiceSlots.fill(null);
   updatePlayBtnUI();
   status("stopped");

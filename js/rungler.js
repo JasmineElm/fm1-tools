@@ -22,7 +22,7 @@ import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
-import { playVoice } from "./poly.js";
+import { playVoice, releasePolyVoices } from "./poly.js";
 import * as midi from "./midi.js";
 
 // ---- Constants & State ----
@@ -602,12 +602,7 @@ export function deactivateRunglerModel() {
   setModelStepHandler(null);
   setModelGenerator(null);
   setModelRandomizer(null);
-  panicPreview();
-  activeVoices.forEach((tid, note) => {
-    clearTimeout(tid);
-    liveNoteOff(note);
-  });
-  activeVoices.clear();
+  releasePolyVoices();
   activeSoundingNote = null;
 }
 

@@ -25,7 +25,7 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
-import { selectPolyVoices, playVoice, releasePolyVoices } from "./poly.js";
+import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
@@ -578,7 +578,7 @@ function updateReadoutMetrics() {
   if (!statReadoutEl) return;
   const S = Math.min(MAX_GRID_SIZE, Math.max(15, state.sandpileGridSize ?? 33));
   const avg = (totalGrains / (S * S)).toFixed(2);
-  statReadoutEl.textContent = `Lattice: ${S}×${S} · Grains: ${totalGrains} (avg ${avg}) · Last Avalanche: ${lastAvalancheSize} · Peak: ${peakAvalancheSize} · Voices: ${activeVoices.size}/8`;
+  statReadoutEl.textContent = `Lattice: ${S}×${S} · Grains: ${totalGrains} (avg ${avg}) · Last Avalanche: ${lastAvalancheSize} · Peak: ${peakAvalancheSize} · Voices: ${getActiveVoiceCount()}/8`;
 }
 
 // ---- Canvas Rendering (Flat Workbench Aesthetic, Zero Gradients) ----
@@ -1219,9 +1219,7 @@ export function deactivateSandpileModel() {
   setModelGenerator(null);
   setModelRandomizer(null);
 
-  panicPreview();
-  try { audio.allOff(); } catch (_) {}
-  activeVoices.clear();
+  releasePolyVoices();
 
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);
