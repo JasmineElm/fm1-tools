@@ -196,6 +196,23 @@ export const MODELS = [
       <circle cx="9" cy="18" r="1" fill="currentColor" />
       <circle cx="15" cy="18" r="1" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "percolation",
+    name: "Percolation Clusters",
+    kicker: "Critical Phase Transition · Fluid Porosity · Disjoint Set Union",
+    available: true,
+    desc: "2D lattice fluid porosity and electrical conduction simulator governed by percolation theory. Sites randomly occupy with probability p; as p crosses the critical phase threshold (pc ≈ 0.5927), disconnected droplets coalesce into a giant spanning cluster. Conduction pulses sweep through porous channels triggering polyphonic chords, staccato droplet cascades, and resonant timbre modulation.",
+    tags: ["Percolation", "Phase Transition", "Criticality (pc=0.59)", "DSU Union-Find", "Spanning Cluster", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <rect x="7" y="7" width="2.5" height="2.5" fill="currentColor" />
+      <rect x="14.5" y="7" width="2.5" height="2.5" fill="currentColor" />
+      <rect x="10.75" y="10.75" width="2.5" height="2.5" fill="currentColor" />
+      <rect x="7" y="14.5" width="2.5" height="2.5" fill="currentColor" />
+      <rect x="14.5" y="14.5" width="2.5" height="2.5" fill="currentColor" />
+      <path d="M9.5 8.25h5M8.25 9.5v5M12 9.5v5M15.75 9.5v5" stroke-dasharray="1 1" />
+    </svg>`
   }
 ];
 
@@ -351,6 +368,7 @@ export function showLanding(updateHash = true) {
   const modelOrbital = document.getElementById("model-orbital");
   const modelHanenbow = document.getElementById("model-hanenbow");
   const modelSandpile = document.getElementById("model-sandpile");
+  const modelPercolation = document.getElementById("model-percolation");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -384,6 +402,7 @@ export function showLanding(updateHash = true) {
   if (modelOrbital) modelOrbital.style.display = "none";
   if (modelHanenbow) modelHanenbow.style.display = "none";
   if (modelSandpile) modelSandpile.style.display = "none";
+  if (modelPercolation) modelPercolation.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
 
@@ -413,6 +432,7 @@ export function showModel(id, updateHash = true) {
   const modelOrbital = document.getElementById("model-orbital");
   const modelHanenbow = document.getElementById("model-hanenbow");
   const modelSandpile = document.getElementById("model-sandpile");
+  const modelPercolation = document.getElementById("model-percolation");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -423,8 +443,8 @@ export function showModel(id, updateHash = true) {
 
   if (viewLanding) viewLanding.style.display = "none";
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, and Orbital are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, and Percolation are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -479,6 +499,7 @@ export function showModel(id, updateHash = true) {
     if (modelOrbital) modelOrbital.style.display = id === "orbital" ? "block" : "none";
     if (modelHanenbow) modelHanenbow.style.display = id === "hanenbow" ? "block" : "none";
     if (modelSandpile) modelSandpile.style.display = id === "sandpile" ? "block" : "none";
+    if (modelPercolation) modelPercolation.style.display = id === "percolation" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -498,6 +519,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "orbital") modeTag.textContent = "Orbital Resonance";
       else if (id === "hanenbow") modeTag.textContent = "Hanenbow Ballistics";
       else if (id === "sandpile") modeTag.textContent = "Abelian Sandpile";
+      else if (id === "percolation") modeTag.textContent = "Percolation Clusters";
       modeTag.style.display = "inline-block";
     }
   }
@@ -576,6 +598,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "hanenbow") showModel("hanenbow", false);
     } else if (h === "#sandpile" || h === "#btw" || h === "#soc") {
       if (activeModelId !== "sandpile") showModel("sandpile", false);
+    } else if (h === "#percolation" || h === "#porosity" || h === "#cluster") {
+      if (activeModelId !== "percolation") showModel("percolation", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -614,6 +638,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("hanenbow", false);
   } else if (initialHash === "#sandpile" || initialHash === "#btw" || initialHash === "#soc") {
     showModel("sandpile", false);
+  } else if (initialHash === "#percolation" || initialHash === "#porosity" || initialHash === "#cluster") {
+    showModel("percolation", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

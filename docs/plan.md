@@ -44,7 +44,7 @@ The models are ordered first by the **fundamental algorithmic, mathematical, and
 | **03** | `orbital` | **Keplerian Orbital Resonance** | Celestial Mechanics | Symplectic Velocity-Verlet, periapsis transit detection, angular conjunctions | Moderate (2/5) | ✅ Complete |
 | **04** | `hanenbow` | **Electroplankton Hanenbow Ballistics** | Physical Toy / Ballistics | 2D circle-to-line segment projection, specular momentum rebound, leaf springs | Moderate (2.5/5) | ✅ Complete |
 | **05** | `sandpile` | **Abelian Sandpile (SOC)** | Statistical Physics / Avalanches | 2D integer lattice, relaxation queue, center-of-mass pitch, $1/f$ pink noise | Moderate (3/5) | ✅ Complete |
-| **06** | `percolation` | **Percolation Cluster Phase Transition** | Fluid Porosity / Criticality | Disjoint Set Union (DSU / Union-Find), cluster scaling, conductive wave fronts | Mod-High (3.5/5) | Pending |
+| **06** | `percolation` | **Percolation Cluster Phase Transition** | Fluid Porosity / Criticality | Disjoint Set Union (DSU / Union-Find), cluster scaling, conductive wave fronts | Mod-High (3.5/5) | ✅ Complete |
 | **07** | `dla` | **Diffusion-Limited Aggregation (DLA)** | Fractal Growth / Brownian Walks | 2D Brownian motion, perimeter boundary kill zones, sticky bitmask lookup | High (4/5) | Pending |
 | **08** | `epidemic` | **SIR Epidemic Network Dynamics** | Population / Epidemiology | Spatial contact proximity graphs, multi-state Markov transitions, $R_0$ density | High (4/5) | Pending |
 | **09** | `physarum` | **Physarum Slime Mould Network** | Biological Foraging / Transport | 3-sensor agent steering, 2D Float32Array pheromone diffusion/decay, flux tubes | Highest (5/5) | Pending |
@@ -473,7 +473,7 @@ export class SandpileModel {
 
 ---
 
-### Model 06 (Step 6): Percolation Cluster & Fluid Porosity Phase Transition
+### Model 06 (Step 6): Percolation Cluster & Fluid Porosity Phase Transition — [COMPLETED]
 - **Model ID**: `percolation`
 - **Category**: Physical / Statistical Mechanics / Critical Phase Transitions.
 - **Why Sixth**: Builds upon the 2D grid processing from Step 5, introducing the Disjoint Set Union (DSU / Union-Find) data structure for connected cluster analysis.
