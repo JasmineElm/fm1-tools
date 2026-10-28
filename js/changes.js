@@ -487,7 +487,7 @@ function stepSimulation(deltaTime) {
 }
 
 /**
- * Canvas rendering function: Belfry Bell Wheels (Left) + The Blue Line Sheet (Right).
+ * Canvas rendering function: The Blue Line Method Sheet (Expanded full-canvas layout).
  */
 export function renderCanvas() {
   if (!canvas || !ctx) return;
@@ -511,158 +511,76 @@ export function renderCanvas() {
   ctx.fillStyle = colorBg;
   ctx.fillRect(0, 0, w, h);
 
-  const splitX = Math.floor(w * 0.46);
-
-  // Divider line between Belfry and Blue Line
-  ctx.strokeStyle = colorLine;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(splitX, 0);
-  ctx.lineTo(splitX, h);
-  ctx.stroke();
-
+  const N = currentStage;
   // Selected working bell for the Blue Line
-  const workingBell = Math.max(1, Math.min(currentStage, Number(state.changesSelectedBell) || 2));
+  const workingBell = Math.max(1, Math.min(N, Number(state.changesSelectedBell) || 2));
 
-  // ==========================================
-  // LEFT PANEL: BELFRY WHEEL & BELL CHAIR
-  // ==========================================
-  const belfryW = splitX;
-  const belfryH = h;
-  const centerX = belfryW / 2;
-  const centerY = belfryH / 2;
-  const radius = Math.min(centerX, centerY) - 36;
+  // Full canvas bounds for the Method Sheet
+  const sheetX = 24;
+  const sheetY = 16;
+  const sheetW = w - 48;
+  const sheetH = h - 32;
 
-  // Header / Status
+  // Header Bar across the top
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = "bold 11px monospace";
+  ctx.fillStyle = colorFg;
+  ctx.fillText("METHOD SHEET · THE BLUE LINE", sheetX, sheetY);
+
+  // Stroke indicator
   ctx.font = "10px monospace";
-  ctx.fillStyle = colorDim;
-  ctx.fillText("BELFRY RING", 12, 18);
   ctx.fillStyle = stroke === 0 ? colorAccent : colorDim;
-  ctx.fillText(stroke === 0 ? "HANDSTROKE [SALLY]" : "BACKSTROKE [TAIL]", 12, 32);
+  const strokeText = stroke === 0 ? "HANDSTROKE [SALLY]" : "BACKSTROKE [TAIL]";
+  ctx.fillText(strokeText, sheetX + 220, sheetY);
 
+  // Active Conductor Call (e.g. Bob!, Single!)
   if (currentCall !== "none") {
     ctx.fillStyle = colorOk;
     ctx.font = "bold 11px monospace";
-    ctx.fillText(currentCall, 12, 46);
+    ctx.fillText(`CALL: ${currentCall.toUpperCase()}`, sheetX + 370, sheetY);
   }
 
-  // Draw radial circle guide
-  ctx.strokeStyle = colorLine;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Draw bells in radial order according to current row permutation
-  const N = currentStage;
-  for (let pos = 0; pos < N; pos++) {
-    const bellNum = currentRow[pos];
-    const bellIdx = bellNum - 1;
-    // Angle in circle: position 0 is top (-PI/2), moving clockwise
-    const theta = -Math.PI / 2 + (pos * (Math.PI * 2) / N);
-    const bx = centerX + Math.cos(theta) * radius;
-    const by = centerY + Math.sin(theta) * radius;
-
-    const isCurrentStriking = (pos === currentStrikePos && isChangesPlaying);
-    const isWorking = (bellNum === workingBell);
-    const isTreble = (bellNum === 1);
-    const isTenor = (bellNum === N);
-    const flash = bellFlash[bellIdx] || 0;
-
-    // Bell wheel radius scaled by bell weight (Treble smaller, Tenor larger)
-    const bellRadius = 14 + (bellNum / N) * 8;
-
-    // Draw resonant impact halo on strike
-    if (flash > 0.05) {
-      ctx.strokeStyle = isWorking ? colorAccent : (isTreble ? colorErr : colorFg);
-      ctx.lineWidth = 1 + flash * 2;
-      ctx.beginPath();
-      ctx.arc(bx, by, bellRadius + (1.0 - flash) * 16, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-
-    // Bell wheel outer circle
-    ctx.fillStyle = isCurrentStriking ? colorPanel2 : colorBg;
-    ctx.strokeStyle = isWorking ? colorAccent : (isCurrentStriking ? colorFg : colorLine);
-    ctx.lineWidth = isWorking ? 2 : 1;
-    ctx.beginPath();
-    ctx.arc(bx, by, bellRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Wheel spokes and swinging clapper
-    const swingAngle = bellAngles[bellIdx] || 0;
-    ctx.strokeStyle = colorLineFocus;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(bx, by);
-    ctx.lineTo(bx + Math.sin(swingAngle) * (bellRadius - 4), by + Math.cos(swingAngle) * (bellRadius - 4));
-    ctx.stroke();
-
-    // Clapper ball
-    ctx.fillStyle = isCurrentStriking ? colorAccent : colorDim;
-    ctx.beginPath();
-    ctx.arc(bx + Math.sin(swingAngle) * (bellRadius - 4), by + Math.cos(swingAngle) * (bellRadius - 4), 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Bell label text: Bell number & Place
-    ctx.font = isWorking ? "bold 11px monospace" : "10px monospace";
-    ctx.fillStyle = isTreble ? colorErr : (isWorking ? colorAccent : colorFg);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(`${bellNum}`, bx, by - 1);
-
-    // Tiny position indicator below bell
-    ctx.font = "8px monospace";
-    ctx.fillStyle = colorDim;
-    ctx.fillText(`P${pos + 1}`, bx, by + bellRadius + 9);
-  }
-
-  // ==========================================
-  // RIGHT PANEL: THE BLUE LINE SHEET
-  // ==========================================
-  const sheetX = splitX + 16;
-  const sheetY = 16;
-  const sheetW = w - sheetX - 16;
-  const sheetH = h - 32;
-
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
+  // Right Header: Stage and selected Working Bell
+  ctx.textAlign = "right";
   ctx.font = "10px monospace";
   ctx.fillStyle = colorDim;
-  ctx.fillText("METHOD SHEET · THE BLUE LINE", sheetX, sheetY);
-  ctx.fillText(`STAGE: ${N} BELLS | WORKING BELL: #${workingBell}`, sheetX + sheetW - 200, sheetY);
+  ctx.fillText(`STAGE: ${N} BELLS | WORKING BELL: #${workingBell}`, sheetX + sheetW, sheetY);
 
-  const gridTop = sheetY + 16;
-  const gridBottom = sheetY + sheetH;
+  const gridTop = sheetY + 22;
+  const gridBottom = sheetY + sheetH - 16;
   const availableH = gridBottom - gridTop;
   const numRowsToDisplay = Math.min(historyCount, MAX_HISTORY_ROWS);
 
-  // Column spacing for the places: Lead (1st) to Lie (N-th)
+  // Column spacing for places: 1st (Lead) to N-th (Lie)
   const colStep = sheetW / (N + 1);
 
-  // Draw place column grid guidelines
-  ctx.strokeStyle = colorPanel2;
-  ctx.lineWidth = 1;
+  // Place column guidelines and top labels
   for (let c = 1; c <= N; c++) {
     const cx = sheetX + c * colStep;
+
+    // Guideline
+    ctx.strokeStyle = colorPanel2;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(cx, gridTop);
     ctx.lineTo(cx, gridBottom);
     ctx.stroke();
 
-    // Place labels at top
-    ctx.font = "9px monospace";
-    ctx.fillStyle = colorDim;
+    // Column Header Label
     ctx.textAlign = "center";
-    const label = c === 1 ? "1 (Lead)" : (c === N ? `${N} (Lie)` : `${c}`);
-    ctx.fillText(label, cx, gridTop - 4);
+    ctx.font = "9px monospace";
+    const isLead = (c === 1);
+    const isLie = (c === N);
+    ctx.fillStyle = isLead ? colorErr : (isLie ? colorAccent2 : colorDim);
+    const label = isLead ? "1·LEAD" : (isLie ? `${N}·LIE` : `P${c}`);
+    ctx.fillText(label, cx, gridTop - 6);
   }
 
   if (numRowsToDisplay > 1) {
-    const rowStep = availableH / (MAX_HISTORY_ROWS);
+    const rowStep = availableH / MAX_HISTORY_ROWS;
 
-    // Draw all bell paths softly
+    // 1. Draw all other bells faint paths
     for (let b = 1; b <= N; b++) {
       if (b === 1 || b === workingBell) continue; // Treble and Working bell drawn prominently below
 
@@ -673,7 +591,6 @@ export function renderCanvas() {
       for (let r = 0; r < numRowsToDisplay; r++) {
         const histIdx = (historyHead - numRowsToDisplay + r + MAX_HISTORY_ROWS) % MAX_HISTORY_ROWS;
         const rowOffset = histIdx * MAX_BELLS;
-        // Find position of bell b in this row
         let posOfBell = 0;
         for (let p = 0; p < N; p++) {
           if (historyRows[rowOffset + p] === b) {
@@ -689,9 +606,9 @@ export function renderCanvas() {
       ctx.stroke();
     }
 
-    // 1. Draw TREBLE line in RED (Centuries-old Campanology Convention)
+    // 2. Draw TREBLE line in RED (Centuries-old Campanology Convention)
     ctx.strokeStyle = colorErr;
-    ctx.lineWidth = 1.8;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     for (let r = 0; r < numRowsToDisplay; r++) {
       const histIdx = (historyHead - numRowsToDisplay + r + MAX_HISTORY_ROWS) % MAX_HISTORY_ROWS;
@@ -710,9 +627,9 @@ export function renderCanvas() {
     }
     ctx.stroke();
 
-    // 2. Draw THE BLUE LINE for the selected WORKING BELL
+    // 3. Draw THE BLUE LINE for the selected WORKING BELL
     ctx.strokeStyle = colorAccent;
-    ctx.lineWidth = 2.4;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     for (let r = 0; r < numRowsToDisplay; r++) {
       const histIdx = (historyHead - numRowsToDisplay + r + MAX_HISTORY_ROWS) % MAX_HISTORY_ROWS;
@@ -731,22 +648,67 @@ export function renderCanvas() {
     }
     ctx.stroke();
 
-    // Draw current active row playhead line at latest row
+    // Subtle blue line node dots
+    ctx.fillStyle = colorAccent;
+    for (let r = 0; r < numRowsToDisplay; r++) {
+      const histIdx = (historyHead - numRowsToDisplay + r + MAX_HISTORY_ROWS) % MAX_HISTORY_ROWS;
+      const rowOffset = histIdx * MAX_BELLS;
+      let posOfWorking = workingBell;
+      for (let p = 0; p < N; p++) {
+        if (historyRows[rowOffset + p] === workingBell) {
+          posOfWorking = p + 1;
+          break;
+        }
+      }
+      const px = sheetX + posOfWorking * colStep;
+      const py = gridTop + r * rowStep;
+      ctx.beginPath();
+      ctx.arc(px, py, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 4. Draw current active row playhead line at latest row
     const latestY = gridTop + (numRowsToDisplay - 1) * rowStep;
-    ctx.strokeStyle = colorFg;
+    ctx.strokeStyle = colorLineFocus;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(sheetX + colStep, latestY);
     ctx.lineTo(sheetX + N * colStep, latestY);
     ctx.stroke();
 
-    // Draw active strike dot on current striking bell position
-    if (isChangesPlaying && currentStrikePos < N) {
-      const activeX = sheetX + (currentStrikePos + 1) * colStep;
-      ctx.fillStyle = colorAccent;
+    // 5. Draw active row bell markers & strike excitation
+    for (let p = 0; p < N; p++) {
+      const bellNum = currentRow[p];
+      const bellIdx = bellNum - 1;
+      const bx = sheetX + (p + 1) * colStep;
+      const isCurrentStriking = (p === currentStrikePos && isChangesPlaying);
+      const isWorking = (bellNum === workingBell);
+      const isTreble = (bellNum === 1);
+      const flash = bellFlash[bellIdx] || 0;
+
+      // Resonant strike excitation ring
+      if (flash > 0.05) {
+        ctx.strokeStyle = isWorking ? colorAccent : (isTreble ? colorErr : colorFg);
+        ctx.lineWidth = 1 + flash * 2;
+        ctx.beginPath();
+        ctx.arc(bx, latestY, 8 + (1.0 - flash) * 14, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Bell marker node
+      ctx.fillStyle = isCurrentStriking ? (isWorking ? colorAccent : (isTreble ? colorErr : colorFg)) : colorPanel2;
+      ctx.strokeStyle = isWorking ? colorAccent : (isTreble ? colorErr : (isCurrentStriking ? colorFg : colorLineFocus));
+      ctx.lineWidth = isWorking ? 2 : 1;
       ctx.beginPath();
-      ctx.arc(activeX, latestY, 4, 0, Math.PI * 2);
+      ctx.arc(bx, latestY, isCurrentStriking ? 6 : 4, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+
+      // Bell number below marker
+      ctx.font = isWorking ? "bold 10px monospace" : "9px monospace";
+      ctx.fillStyle = isCurrentStriking ? colorFg : (isWorking ? colorAccent : (isTreble ? colorErr : colorDim));
+      ctx.textAlign = "center";
+      ctx.fillText(`${bellNum}`, bx, latestY + 14);
     }
   }
 
@@ -855,10 +817,14 @@ export function generateChangesBank(stateObj) {
 }
 
 /**
- * Handle direct canvas interaction (click to select working bell; Shift-click to swap adjacent bells).
+ * Handle direct canvas interaction across the expanded Method Sheet.
+ * Click any place column or bell path to set that bell as the Blue Line working bell;
+ * Shift-click to execute Call Change swaps between adjacent places.
  */
 function setupCanvasInteraction() {
   if (!canvas) return;
+
+  canvas.style.cursor = "pointer";
 
   canvas.addEventListener("click", (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -867,35 +833,47 @@ function setupCanvasInteraction() {
     const clickX = (e.clientX - rect.left) * scaleX;
     const clickY = (e.clientY - rect.top) * scaleY;
 
-    const splitX = Math.floor(canvas.width * 0.46);
+    const sheetX = 24;
+    const sheetW = canvas.width - 48;
+    const N = currentStage;
+    const colStep = sheetW / (N + 1);
 
-    // Left side: Belfry Wheel interaction
-    if (clickX <= splitX) {
-      const centerX = splitX / 2;
-      const centerY = canvas.height / 2;
-      const radius = Math.min(centerX, centerY) - 36;
-      const N = currentStage;
+    // Identify nearest place column
+    const approxCol = Math.round((clickX - sheetX) / colStep);
+    if (approxCol >= 1 && approxCol <= N) {
+      const cx = sheetX + approxCol * colStep;
+      if (Math.abs(clickX - cx) <= colStep * 0.48) {
+        let clickedBell = currentRow[approxCol - 1];
 
-      for (let pos = 0; pos < N; pos++) {
-        const theta = -Math.PI / 2 + (pos * (Math.PI * 2) / N);
-        const bx = centerX + Math.cos(theta) * radius;
-        const by = centerY + Math.sin(theta) * radius;
-        const dist = Math.hypot(clickX - bx, clickY - by);
+        // If clicking within the history rows area, identify the bell at that historic row & place
+        const gridTop = 16 + 22;
+        const gridBottom = 16 + (canvas.height - 32) - 16;
+        const availableH = gridBottom - gridTop;
+        const numRowsToDisplay = Math.min(historyCount, MAX_HISTORY_ROWS);
 
-        if (dist <= 22) {
-          const clickedBell = currentRow[pos];
+        if (numRowsToDisplay > 0 && clickY >= gridTop && clickY <= gridBottom) {
+          const rowStep = availableH / MAX_HISTORY_ROWS;
+          const clickedRowIdx = Math.max(0, Math.min(numRowsToDisplay - 1, Math.round((clickY - gridTop) / rowStep)));
+          const histIdx = (historyHead - numRowsToDisplay + clickedRowIdx + MAX_HISTORY_ROWS) % MAX_HISTORY_ROWS;
+          const rowOffset = histIdx * MAX_BELLS;
+          const bellAtHist = historyRows[rowOffset + (approxCol - 1)];
+          if (bellAtHist >= 1 && bellAtHist <= N) {
+            clickedBell = bellAtHist;
+          }
+        }
+
+        if (clickedBell >= 1 && clickedBell <= N) {
           if (e.shiftKey) {
-            // Shift-click: Call change swap with adjacent bell!
-            const nextPos = (pos + 1) % N;
-            swapAdjacentBells(pos, nextPos);
-            status(`Call Change: swapped bell ${clickedBell} and ${currentRow[pos]}`);
+            // Shift-click: Call change swap with adjacent place!
+            const nextPos = (approxCol < N) ? approxCol : approxCol - 2;
+            swapAdjacentBells(approxCol - 1, nextPos);
+            status(`Call Change: swapped bell ${clickedBell} and ${currentRow[approxCol - 1]}`);
           } else {
             // Normal click: set as Blue Line working bell
             setState({ changesSelectedBell: clickedBell });
-            status(`Working Bell: Bell #${clickedBell} (Blue Line)`);
+            status(`Working Bell: Bell #${clickedBell} (The Blue Line)`);
           }
           renderCanvas();
-          return;
         }
       }
     }
