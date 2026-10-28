@@ -349,6 +349,7 @@ export function showLanding(updateHash = true) {
   const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
   const modelOrbital = document.getElementById("model-orbital");
   const modelHanenbow = document.getElementById("model-hanenbow");
+  const modelSandpile = document.getElementById("model-sandpile");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -375,6 +376,7 @@ export function showLanding(updateHash = true) {
   if (modelLotkaVolterra) modelLotkaVolterra.style.display = "none";
   if (modelOrbital) modelOrbital.style.display = "none";
   if (modelHanenbow) modelHanenbow.style.display = "none";
+  if (modelSandpile) modelSandpile.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
 
@@ -384,7 +386,8 @@ export function showLanding(updateHash = true) {
 }
 
 export function showModel(id, updateHash = true) {
-  if (id !== "mene311" && id !== "cellular" && id !== "turing" && id !== "particles" && id !== "pendulum" && id !== "flock" && id !== "rungler" && id !== "krell" && id !== "lsystem" && id !== "lotka_volterra" && id !== "orbital" && id !== "hanenbow" && id !== "dxpatch" && id !== "librarian") return;
+  const isKnown = MODELS.some(m => m.id === id) || TOOLS.some(t => t.id === id) || id === "librarian";
+  if (!isKnown) return;
 
   const viewLanding = document.getElementById("view-landing");
   const viewWorkspace = document.getElementById("view-workspace") || document.getElementById("view-mene311");
