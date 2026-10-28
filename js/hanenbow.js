@@ -345,11 +345,13 @@ function playLeafVoice(leafIdx, note, vel, durMs) {
 
 // Resolves a scale-quantized pitch for leaf `i`.
 // Base pitch is inversely proportional to leaf size: larger leaves are pitched lower.
+// All pitches are strictly constrained within the Octave Spread value.
 // If `advance` is true and hit within `hanenbowTimingPeriod`, cycles upward through the scale.
 export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.001) {
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
-  const span = state.hanenbowSpan ?? 3;
+  // Constrain strictly to the Octave spread value (1..4 octaves)
+  const span = Math.min(4, Math.max(1, Number(state.hanenbowSpan ?? state.pitchSpan ?? 2)));
   const period = state.hanenbowTimingPeriod ?? 1.5;
 
   if (advance) {
@@ -371,21 +373,38 @@ export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.0
   const len = Math.max(MIN_LEN, Math.min(MAX_LEN, leafLength[i]));
   const normSize = (len - MIN_LEN) / (MAX_LEN - MIN_LEN); // 0.0 (smallest) to 1.0 (largest)
 
-  // Map inverse size across the available pitch span:
-  // normPitch: 1.0 = smallest leaf (highest note), 0.0 = largest leaf (lowest note)
-  const totalDegrees = Math.max(1, span * intervals.length);
-  const normPitch = 1.0 - normSize;
-  const sizeDeg = Math.round(normPitch * (totalDegrees - 1));
-
-  // If not advancing, check if timing period has expired for display readout
-  const activeCycle = (advance || (nowSec - leafLastHitTime[i] <= period)) ? leafCycleCount[i] : 0;
-  const totalDeg = sizeDeg + activeCycle;
-
+  // Total in-scale notes strictly spanning the Octave Spread (including top octave root)
   const numIntervals = Math.max(1, intervals.length);
-  const octShift = Math.floor(totalDeg / numIntervals);
-  const deg = ((totalDeg % numIntervals) + numIntervals) % numIntervals;
+  const totalDegrees = span * numIntervals + 1;
 
-  return quantize(Math.min(127, Math.max(0, root + octShift * 12 + (intervals[deg] || 0))));
+  // Base degree from leaf size: larger leaf = lower degree within octave spread
+  const normPitch = 1.0 - normSize; // 1.0 = smallest (highest), 0.0 = largest (lowest)
+  const baseDeg = Math.round(normPitch * (totalDegrees - 1));
+
+  // Cycling upwards upon repeated hits within timing period:
+  // Strictly constrained to the Octave spread value by wrapping within [0, totalDegrees - 1]
+  const activeCycle = (advance || (nowSec - leafLastHitTime[i] <= period)) ? leafCycleCount[i] : 0;
+  const constrainedDeg = (baseDeg + activeCycle) % totalDegrees;
+
+  // Compute direction-adjusted base root according to Spread Direction
+  const dir = (state.octaveMode || "up").toLowerCase();
+  let baseRoot = root;
+  if (dir === "down") {
+    baseRoot = root - span * 12;
+  } else if (dir === "both") {
+    baseRoot = root - Math.floor(span / 2) * 12;
+  }
+
+  const octaveOffset = Math.floor(constrainedDeg / numIntervals);
+  const scaleDeg = constrainedDeg % numIntervals;
+  const rawNote = baseRoot + octaveOffset * 12 + (intervals[scaleDeg] || 0);
+
+  // Strict boundary clamp ensuring notes never exceed the Octave Spread window
+  const minAllowed = Math.max(0, baseRoot);
+  const maxAllowed = Math.min(127, baseRoot + span * 12);
+  const boundedNote = Math.max(minAllowed, Math.min(maxAllowed, rawNote));
+
+  return quantize(boundedNote, intervals, root);
 }
 
 // Helper: Compute outward surface normal for leaf collision
@@ -857,6 +876,7 @@ function syncControlsFromState() {
   if (refs.hanenbowTimingPeriod?.setValue) refs.hanenbowTimingPeriod.setValue(state.hanenbowTimingPeriod, false);
   if (refs.hanenbowGateLen?.setValue) refs.hanenbowGateLen.setValue(state.hanenbowGateLen, false);
   if (refs.hanenbowCcDepth?.setValue) refs.hanenbowCcDepth.setValue(state.hanenbowCcDepth, false);
+  if (refs.hanenbowSpan?.setValue) refs.hanenbowSpan.setValue(String(state.hanenbowSpan ?? state.pitchSpan ?? 2), false);
   if (presetSelect) presetSelect.value = state.hanenbowPreset || "cascade";
   if (notesSection?.sync) notesSection.sync();
   updatePlayBtnUI();
@@ -1078,8 +1098,13 @@ export function initHanenbow() {
   paramCard.appendChild(paramGrid);
 
   // Card 3: Notes & Scale Controls
-  notesSection = createNotesSection("hanenbow", () => {
-    renderPondCanvas();
+  notesSection = createNotesSection({
+    pitchSpanKey: "hanenbowSpan",
+    defaultPitchSpan: 2,
+    onChange: () => {
+      state.pitchSpan = state.hanenbowSpan;
+      renderPondCanvas();
+    }
   });
   notesSection.sectEl.classList.add("card");
   notesSection.sectEl.style.padding = "8px 12px";
