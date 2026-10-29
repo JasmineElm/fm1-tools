@@ -24,7 +24,8 @@ export const POLYPHONIC_MODELS = new Set([
   "convection",
   "markov_matrix",
   "genetic_breeder",
-  "chladni"
+  "chladni",
+  "brownian_ratchet"
 ]);
 
 export const MODELS = [
@@ -417,6 +418,20 @@ export const MODELS = [
       <circle cx="12" cy="12" r="5" />
       <circle cx="12" cy="12" r="1.5" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "brownian_ratchet",
+    name: "Brownian Thermal Ratchet",
+    kicker: "Langevin Thermodynamics · Feynman Diode · Stochastic Work",
+    available: true,
+    desc: "Richard Feynman’s microscopic thermal ratchet and pawl engine. A paddle wheel in a fluctuating heat bath (T1) drives an asymmetric toothed cogwheel, restricted to forward rotation by a spring-loaded pawl in bath T2 against counter-torque load. Forward and reverse clicks trigger polyphonic pawl chimes while rotational energy modulates FM-1 CC #74 Brightness.",
+    tags: ["Brownian Ratchet", "Feynman Diode", "Langevin Dynamics", "Thermal Rectifier", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 4v4m0 8v4M4 12h4m8 0h4" />
+      <path d="M16 8l-4 4-2-2" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -631,6 +646,8 @@ export function showLanding(updateHash = true) {
   if (modelGeneticBreeder) modelGeneticBreeder.style.display = "none";
   const modelChladni = document.getElementById("model-chladni");
   if (modelChladni) modelChladni.style.display = "none";
+  const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
+  if (modelBrownianRatchet) modelBrownianRatchet.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -674,6 +691,7 @@ export function showModel(id, updateHash = true) {
   const modelMarkovMatrix = document.getElementById("model-markov_matrix");
   const modelGeneticBreeder = document.getElementById("model-genetic_breeder");
   const modelChladni = document.getElementById("model-chladni");
+  const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -687,8 +705,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, and Chladni are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, and Brownian Ratchet are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -756,6 +774,7 @@ export function showModel(id, updateHash = true) {
     if (modelMarkovMatrix) modelMarkovMatrix.style.display = id === "markov_matrix" ? "block" : "none";
     if (modelGeneticBreeder) modelGeneticBreeder.style.display = id === "genetic_breeder" ? "block" : "none";
     if (modelChladni) modelChladni.style.display = id === "chladni" ? "block" : "none";
+    if (modelBrownianRatchet) modelBrownianRatchet.style.display = id === "brownian_ratchet" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -788,6 +807,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "markov_matrix") modeTag.textContent = "Markov Melodic Memory";
       else if (id === "genetic_breeder") modeTag.textContent = "Melodic Genome Breeder";
       else if (id === "chladni") modeTag.textContent = "Chladni Cymatics";
+      else if (id === "brownian_ratchet") modeTag.textContent = "Brownian Ratchet";
       modeTag.style.display = "inline-block";
     }
   }
@@ -892,6 +912,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "genetic_breeder") showModel("genetic_breeder", false);
     } else if (h === "#chladni" || h === "#cymatics" || h === "#standing-waves" || h === "#nodal-plate") {
       if (activeModelId !== "chladni") showModel("chladni", false);
+    } else if (h === "#brownian_ratchet" || h === "#ratchet" || h === "#feynman-diode" || h === "#thermal-ratchet") {
+      if (activeModelId !== "brownian_ratchet") showModel("brownian_ratchet", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -956,6 +978,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("genetic_breeder", false);
   } else if (initialHash === "#chladni" || initialHash === "#cymatics" || initialHash === "#standing-waves" || initialHash === "#nodal-plate") {
     showModel("chladni", false);
+  } else if (initialHash === "#brownian_ratchet" || initialHash === "#ratchet" || initialHash === "#feynman-diode" || initialHash === "#thermal-ratchet") {
+    showModel("brownian_ratchet", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

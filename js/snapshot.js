@@ -72,6 +72,7 @@ const PREFIX = {
   markov_matrix: /^markov[A-Z]/,
   genetic_breeder: /^gene[A-Z]/,
   chladni: /^chladni[A-Z]/,
+  brownian_ratchet: /^ratchet[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

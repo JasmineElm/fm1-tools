@@ -8,8 +8,7 @@ This master plan tracks the implementation of remaining, unimplemented non-step,
 
 | Model ID | Model Name | Primary Domain | Core Mathematical / Physical Primitives | Complexity | Status |
 |---|---|---|---|---|---|
-| `brownian_ratchet` | **Brownian Thermal Ratchet** | Statistical Thermodynamics | Stochastic thermal Langevin fluctuations, asymmetric potential barrier | Low-Mod (2.5/5) | **Next / Pending** |
-| `tracy_ribbon` | **Electroplankton Tracy Ribbon** | Continuous Vector Trajectory | Organic spline path curvature, tangent velocity mapping, expressive FM envelopes | Moderate (2.5/5) | Backlog |
+| `tracy_ribbon` | **Electroplankton Tracy Ribbon** | Continuous Vector Trajectory | Organic spline path curvature, tangent velocity mapping, expressive FM envelopes | Moderate (2.5/5) | **Next / Pending** |
 | `self_avoiding_walk` | **Polymer Self-Avoiding Walk** | Molecular Folding / Jamming | Lattice self-avoidance, conformational steric hindrance, collapse cascades | Moderate (3/5) | Backlog |
 
 ---
@@ -40,20 +39,20 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ---
 
-## 3. Active Specification: Brownian Thermal Ratchet / Feynman Thermal Diode
+## 3. Active Specification: Electroplankton "Tracy" Ribbon Path Trajectory
 
-- **Model ID**: `brownian_ratchet`
-- **Category**: Statistical Mechanics / Non-Equilibrium Thermodynamics / Thermal Langevin Fluctuations.
-- **Architectural Scope**: Simulates Richard Feynman’s microscopic thermal ratchet: a paddle wheel immersed in a fluctuating thermal bath $(T_1)$ drives a toothed cogwheel restricted to unidirectional forward rotation by an asymmetric pawl and spring immersed in a separate heat bath $(T_2)$.
+- **Model ID**: `tracy_ribbon`
+- **Category**: Continuous Vector Trajectory / Organic Gestural Graphics / Spline Kinematics.
+- **Architectural Scope**: Inspired by Toshio Iwai’s Tracy plankton creature from Nintendo *Electroplankton*. The user draws or records continuous freehand vector gestures across an aquatic workbench canvas to construct a closed, looping ribbon contour. An autonomous Tracy creature navigates the closed ribbon with continuous momentum, centripetal acceleration, and organic swimming wiggle.
 - **Mathematical Formulation**:
-  - Overdamped Langevin equation of motion:
-    $$\gamma \frac{d\theta}{dt} = -\frac{dV(\theta)}{d\theta} - \tau_{\text{load}} + \sqrt{2 \gamma k_B T_1} \xi(t)$$
-  - Asymmetric sawtooth potential energy barrier $V(\theta)$ with spatial asymmetry ratio $L_1 / L_2 \neq 1$.
-  - Thermal rectifier work output: Forward stochastic ratcheting occurs whenever $T_1 > T_2$, while reverse slippage occurs under high counter-torque load.
+  - Closed Catmull-Rom or cubic B-spline interpolation parameterized by arc length $s \in [0, L]$.
+  - Tangent vector $\mathbf{T}(s) = \mathbf{r}'(s) / \|\mathbf{r}'(s)\|$, normal vector $\mathbf{N}(s)$, and local curvature $\kappa(s) = \|\mathbf{r}'(s) \times \mathbf{r}''(s)\| / \|\mathbf{r}'(s)\|^3$.
+  - Creature kinematics: Position $\mathbf{r}(t)$ advances with variable speed $v(t) = v_0 \cdot (1 - \beta \kappa(s))$ (creature slows naturally when rounding sharp bends, accelerates through long open straights).
 - **Musical Mapping**:
-  - Each ratchet forward tooth click triggers quantized rhythmic step advances across up to 8 polyphonic pawl chimes.
-  - Thermal temperature differential $\Delta T = T_1 - T_2$ and mechanical counter-torque modulate stepping probability and burst cadence.
-  - Instantaneous thermal velocity variance modulates continuous CC #74 Brightness.
+  - Spatial coordinates $(x(s), y(s))$ map to 2D scale pitch and octave degrees.
+  - Local path curvature $\kappa(s)$ modulates gate duration, velocity dynamics, and FM modulator depth (sharp turns trigger punchy staccato pings, while smooth arcs generate lyrical legato swells).
+  - Swimming tail oscillations spawn trailing polyphonic echo droplets (up to 8 polyphonic voices managed via `js/poly.js`).
+  - Speed $v(s)$ and tangential acceleration continuously modulate FM-1 CC #74 Brightness.
 
 ---
 
@@ -61,5 +60,4 @@ Every model implementation must strictly adhere to the following shared framewor
 
 For future reference and extension, these additional models are documented with concise descriptions:
 
-1. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
-2. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.
+1. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.

@@ -44,6 +44,7 @@ import { initConvection, activateConvectionModel, deactivateConvectionModel } fr
 import { initMarkovMatrix, activateMarkovMatrixModel, deactivateMarkovMatrixModel } from "./markov_matrix.js";
 import { initGeneticBreeder, activateGeneticBreederModel, deactivateGeneticBreederModel } from "./genetic_breeder.js";
 import { initChladni, activateChladniModel, deactivateChladniModel } from "./chladni.js";
+import { initBrownianRatchet, activateBrownianRatchetModel, deactivateBrownianRatchetModel } from "./brownian_ratchet.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -600,6 +601,7 @@ initConvection();
 initMarkovMatrix();
 initGeneticBreeder();
 initChladni();
+initBrownianRatchet();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -1151,9 +1153,42 @@ initModes({
       deactivateConvectionModel();
       deactivateMarkovMatrixModel();
       deactivateGeneticBreederModel();
+      deactivateBrownianRatchetModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateChladniModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "brownian_ratchet") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateRippleTankModel();
+      deactivateConvectionModel();
+      deactivateMarkovMatrixModel();
+      deactivateGeneticBreederModel();
+      deactivateChladniModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateBrownianRatchetModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -1192,6 +1227,7 @@ initModes({
     try { deactivateMarkovMatrixModel(); } catch (e) { console.warn("Error deactivating markov_matrix model:", e); }
     try { deactivateGeneticBreederModel(); } catch (e) { console.warn("Error deactivating genetic_breeder model:", e); }
     try { deactivateChladniModel(); } catch (e) { console.warn("Error deactivating chladni model:", e); }
+    try { deactivateBrownianRatchetModel(); } catch (e) { console.warn("Error deactivating brownian_ratchet model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }
