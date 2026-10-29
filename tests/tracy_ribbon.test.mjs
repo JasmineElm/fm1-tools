@@ -1,4 +1,4 @@
-// tests/tracy_ribbon.test.mjs — Unit tests for Electroplankton Tracy Ribbon model
+// tests/tracy_ribbon.test.mjs — Unit tests for Electroplankton Tracy Node Grid & Multi-Creature Sequencer
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -12,6 +12,7 @@ if (typeof window === "undefined") {
 if (typeof document === "undefined") {
   globalThis.document = {
     getElementById: () => null,
+    querySelector: () => null,
     createElement: () => ({
       getContext: () => ({
         fillRect: () => {},
@@ -43,29 +44,18 @@ if (typeof document === "undefined") {
 
 import {
   MAX_VOICES,
-  MAX_CTRL_POINTS,
-  SPLINE_SAMPLES,
-  MAX_TAIL_NODES,
-  ctrlX,
-  ctrlY,
-  numCtrlPoints,
-  lutX,
-  lutY,
-  lutCurv,
-  lutDist,
-  totalArcLength,
-  creatureS,
-  creatureSpeed,
-  creatureHeading,
-  tailX,
-  tailY,
-  dropletVoices,
+  MAX_CREATURES,
+  GRID_COLS,
+  GRID_ROWS,
+  TOTAL_NODES,
+  CREATURE_COLORS,
+  creatures,
+  getNodeColRow,
+  getNodeIndex,
+  getTracyNodePitch,
+  getTracyNote,
   TRACY_PRESETS,
   initTracyPreset,
-  setControlPoints,
-  buildSplineLut,
-  sampleSplineAtS,
-  getTracyNote,
   stepSimulation,
   generateTracyRibbonBank,
   startTracyRibbon,
@@ -74,111 +64,111 @@ import {
   isTracyRibbonRunning
 } from "../js/tracy_ribbon.js";
 import { getModelDef } from "../js/snapshot.js";
+import { state } from "../js/state.js";
 
-test("TRACY_PRESETS contains required organic and geometric vector paths", () => {
-  assert.equal(TRACY_PRESETS.length, 5);
-  const ids = TRACY_PRESETS.map(p => p.id);
-  assert.ok(ids.includes("figure_eight"));
-  assert.ok(ids.includes("clover_rosette"));
-  assert.ok(ids.includes("trefoil_knot"));
-  assert.ok(ids.includes("elliptical_orbit"));
-  assert.ok(ids.includes("meandering_river"));
-});
-
-test("Hardware polyphony ceiling: MAX_VOICES is strictly capped at 8", () => {
+test("Node Grid Dimensions & Constants", () => {
   assert.equal(MAX_VOICES, 8);
-  assert.equal(dropletVoices.length, 8);
+  assert.equal(MAX_CREATURES, 8);
+  assert.equal(GRID_COLS, 8);
+  assert.equal(GRID_ROWS, 6);
+  assert.equal(TOTAL_NODES, 48);
+  assert.equal(CREATURE_COLORS.length, 8);
+  assert.equal(creatures.length, 8);
 });
 
-test("initTracyPreset initializes control points and builds arc-length lookup table", () => {
-  initTracyPreset("figure_eight");
-
-  assert.ok(numCtrlPoints >= 4);
-  assert.ok(totalArcLength > 0.5, "Total arc length must be positive");
-
-  for (let i = 0; i < SPLINE_SAMPLES; i++) {
-    assert.ok(!isNaN(lutX[i]) && !isNaN(lutY[i]));
-    assert.ok(lutX[i] >= -1.0 && lutX[i] <= 1.0);
-    assert.ok(lutY[i] >= -1.0 && lutY[i] <= 1.0);
-    assert.ok(!isNaN(lutCurv[i]) && lutCurv[i] >= 0);
-  }
-});
-
-test("sampleSplineAtS evaluates position, curvature, and tangent heading on closed loop", () => {
-  initTracyPreset("clover_rosette");
-
-  for (let s = 0; s <= 1.0; s += 0.1) {
-    const pt = sampleSplineAtS(s);
-    assert.ok(!isNaN(pt.x) && !isNaN(pt.y));
-    assert.ok(pt.x >= -1.0 && pt.x <= 1.0);
-    assert.ok(pt.y >= -1.0 && pt.y <= 1.0);
-    assert.ok(typeof pt.curv === "number" && pt.curv >= 0);
-    assert.ok(typeof pt.heading === "number" && isFinite(pt.heading));
-  }
-
-  // Periodic continuity: sample(0.0) should match sample(1.0)
-  const pStart = sampleSplineAtS(0.0);
-  const pEnd = sampleSplineAtS(1.0);
-  assert.ok(Math.abs(pStart.x - pEnd.x) < 0.01);
-  assert.ok(Math.abs(pStart.y - pEnd.y) < 0.01);
-});
-
-test("getTracyNote quantizes 2D coordinates to valid scale MIDI pitches within audible bounds", () => {
-  for (let x = -0.9; x <= 0.9; x += 0.3) {
-    for (let y = -0.9; y <= 0.9; y += 0.3) {
-      const note = getTracyNote(x, y, 0);
-      assert.ok(Number.isInteger(note));
-      assert.ok(note >= 12 && note <= 127, `Note ${note} out of MIDI bounds`);
+test("Node Index and Col/Row Bidirectional Mapping", () => {
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const idx = getNodeIndex(c, r);
+      assert.ok(idx >= 0 && idx < TOTAL_NODES);
+      const mapped = getNodeColRow(idx);
+      assert.equal(mapped.col, c);
+      assert.equal(mapped.row, r);
     }
   }
 });
 
-test("stepSimulation advances creature arc length and updates tail kinematics", () => {
-  initTracyPreset("figure_eight");
-
-  const initialS = creatureS;
-  for (let i = 0; i < 50; i++) {
-    const res = stepSimulation(0.016);
-    assert.ok(typeof res.triggered === "boolean");
-    assert.ok(!isNaN(res.s) && res.s >= 0 && res.s <= 1.0);
-    assert.ok(Number.isInteger(res.noteIndex));
-  }
-
-  // S should have advanced forward
-  assert.notEqual(creatureS, initialS);
-
-  // Tail segments should have valid positions
-  for (let i = 0; i < 4; i++) {
-    assert.ok(!isNaN(tailX[i]) && !isNaN(tailY[i]));
-    assert.ok(tailX[i] >= -1.2 && tailX[i] <= 1.2);
-    assert.ok(tailY[i] >= -1.2 && tailY[i] <= 1.2);
+test("Each creature has distinct color, speed multiplier, and base pitch offset", () => {
+  for (let i = 0; i < MAX_CREATURES; i++) {
+    const c = creatures[i];
+    assert.equal(c.id, i);
+    assert.equal(c.color, CREATURE_COLORS[i]);
+    assert.ok(typeof c.speed === "number" && c.speed > 0);
+    assert.ok(Number.isInteger(c.basePitchOffset));
+    assert.ok(Array.isArray(c.nodes));
   }
 });
 
-test("Curvature modulates locomotion velocity: creature slows through sharp bends", () => {
-  initTracyPreset("clover_rosette");
+test("TRACY_PRESETS contains multi-creature path constellations", () => {
+  assert.equal(TRACY_PRESETS.length, 5);
+  const ids = TRACY_PRESETS.map(p => p.id);
+  assert.ok(ids.includes("counterpoint"));
+  assert.ok(ids.includes("parallel_waves"));
+  assert.ok(ids.includes("harmonic_quad"));
+  assert.ok(ids.includes("orbital_cross"));
+  assert.ok(ids.includes("cascade_canon"));
+});
 
-  // Sample across the rosette to find a sharp bend and a straighter segment
-  let maxCurv = -1;
-  let minCurv = 999;
-  let sAtMax = 0;
-  let sAtMin = 0;
+test("initTracyPreset initializes multi-creature routes and parameters", () => {
+  initTracyPreset("counterpoint");
 
-  for (let s = 0; s < 1.0; s += 0.05) {
-    const pt = sampleSplineAtS(s);
-    if (pt.curv > maxCurv) { maxCurv = pt.curv; sAtMax = s; }
-    if (pt.curv < minCurv) { minCurv = pt.curv; sAtMin = s; }
+  for (let i = 0; i < 4; i++) {
+    const c = creatures[i];
+    assert.ok(c.nodes.length >= 2, `Creature ${i} must have at least 2 route nodes`);
+    for (const nodeIdx of c.nodes) {
+      assert.ok(nodeIdx >= 0 && nodeIdx < TOTAL_NODES, `Node index ${nodeIdx} within grid bounds`);
+    }
+  }
+});
+
+test("getTracyNodePitch quantizes grid coordinates to valid scale MIDI pitches", () => {
+  state.scale = "pentMinor";
+  state.root = 60; // C4
+
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const pitch = getTracyNodePitch(c, r, 0, 0);
+      assert.ok(Number.isInteger(pitch));
+      assert.ok(pitch >= 12 && pitch <= 127, `Pitch ${pitch} within MIDI bounds`);
+    }
   }
 
-  assert.ok(maxCurv > minCurv, "Rosette must have distinct curvature variations");
+  // Base pitch offsets harmonize across scale degrees
+  const p0 = getTracyNodePitch(0, 2, 0, 0);
+  const p2 = getTracyNodePitch(0, 2, 2, 0);
+  assert.ok(p2 > p0, "Higher scale degree offset should yield higher or harmonized pitch");
+});
+
+test("getTracyNote compatibility wrapper produces valid pitches", () => {
+  for (let x = -0.8; x <= 0.8; x += 0.4) {
+    for (let y = -0.7; y <= 0.7; y += 0.4) {
+      const note = getTracyNote(x, y, 0);
+      assert.ok(Number.isInteger(note));
+      assert.ok(note >= 12 && note <= 127);
+    }
+  }
+});
+
+test("stepSimulation advances creatures along their node paths", () => {
+  initTracyPreset("parallel_waves");
+  state.tracyCreatureCount = 4;
+  state.tracySpeed = 1.0;
+
+  let stepTriggerCount = 0;
+  for (let i = 0; i < 60; i++) {
+    const res = stepSimulation(0.016);
+    if (res.triggered) stepTriggerCount++;
+  }
+
+  assert.ok(stepTriggerCount > 0, "Creatures traversing node circuits must trigger arrival notes");
 });
 
 test("Generator contract: generateTracyRibbonBank returns valid 64-step bank array", () => {
-  initTracyPreset("trefoil_knot");
+  initTracyPreset("harmonic_quad");
 
   const bank = generateTracyRibbonBank({
     length: 64,
-    tracyDivs: 16,
+    tracyCreatureCount: 4,
     tracyOctave: 0,
     rate: "1/16"
   });
@@ -193,24 +183,36 @@ test("Generator contract: generateTracyRibbonBank returns valid 64-step bank arr
     assert.ok(Number.isInteger(step.note));
     assert.ok(step.note >= 12 && step.note <= 127);
     assert.ok(step.vel >= 0 && step.vel <= 127);
-    assert.ok(step.gate >= 0 && step.gate <= 1.0);
-    assert.equal(typeof step.skip, "boolean");
+    assert.ok(Array.isArray(step.notes));
+    for (const n of step.notes) {
+      assert.ok(Number.isInteger(n.note));
+      assert.ok(n.note >= 12 && n.note <= 127);
+      assert.ok(n.vel >= 0 && n.vel <= 127);
+    }
   }
 });
 
-test("Snapshot capture and restore round-trip preserves ribbon path and creature state", () => {
+test("Snapshot capture and restore round-trip preserves all creature paths and speeds", () => {
   const def = getModelDef("tracy_ribbon");
   assert.ok(def, "tracy_ribbon model definition must be registered in snapshot.js");
 
-  initTracyPreset("meandering_river");
-  const snap = def.capture();
-  assert.equal(snap.preset, "meandering_river");
-  assert.ok(snap.points.length >= 4);
+  initTracyPreset("counterpoint");
+  creatures[0].speed = 1.65;
+  creatures[0].basePitchOffset = 3;
 
-  initTracyPreset("elliptical_orbit");
+  const snap = def.capture();
+  assert.equal(snap.preset, "counterpoint");
+  assert.ok(Array.isArray(snap.creatures));
+  assert.equal(snap.creatures[0].speed, 1.65);
+  assert.equal(snap.creatures[0].basePitchOffset, 3);
+
+  initTracyPreset("cascade_canon");
   def.restore(snap);
 
-  assert.equal(def.capture().preset, "meandering_river");
+  const restoredSnap = def.capture();
+  assert.equal(restoredSnap.preset, "counterpoint");
+  assert.equal(creatures[0].speed, 1.65);
+  assert.equal(creatures[0].basePitchOffset, 3);
 });
 
 test("Transport start/stop/toggle controls", () => {
