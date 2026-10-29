@@ -130,7 +130,7 @@ export function getRunglerDac() {
 export function getRunglerNote(dacVal = currentDacVal) {
   const norm = dacVal / 15;
   const root = getRootMidi();
-  const octaves = state.pitchSpan ?? state.runglerSpan ?? 2;
+  const octaves = state.pitchSpan ?? 2;
   const intervals = getActiveScaleIntervals(state.scale || state.runglerScale);
 
   const rawMidi = root + Math.round(norm * octaves * 12);
@@ -523,7 +523,7 @@ export function generateRunglerBank() {
   const steps = [];
   const root = getRootMidi();
   const intervals = getActiveScaleIntervals(state.scale || state.runglerScale);
-  const octaves = state.pitchSpan ?? state.runglerSpan ?? 2;
+  const octaves = state.pitchSpan ?? 2;
 
   const currentBank = getBank();
   const existingSteps = currentBank[0]?.steps || null;
@@ -575,14 +575,14 @@ export function generateRunglerBank() {
 export function startRunglerFree() {
   runningFreeLoop = true;
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(freeRunningTick);
   }
 }
 
 export function stopRunglerFree() {
   runningFreeLoop = false;
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -620,7 +620,7 @@ export function activateRunglerModel() {
     setModelTransportHandler(null);
     setModelStepHandler(handleRunglerStep);
     runningFreeLoop = false;
-    if (animFrameId) {
+    if (animFrameId && typeof cancelAnimationFrame === "function") {
       cancelAnimationFrame(animFrameId);
       animFrameId = null;
     }
@@ -633,7 +633,7 @@ export function activateRunglerModel() {
 
 export function deactivateRunglerModel() {
   runningFreeLoop = false;
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -854,21 +854,6 @@ export function initRungler() {
   });
   R("runglerFeedback", kFb);
 
-  const kSpan = knob({
-    label: "OCTAVES",
-    min: 1, max: 4, step: 1,
-    value: state.runglerSpan ?? state.pitchSpan ?? 2,
-    unit: "oct",
-    title: "Pitch octave span across active scale",
-    onChange: (v) => {
-      state.runglerSpan = v;
-      state.pitchSpan = v;
-      if (refs.pitchSpan?.setValue) refs.pitchSpan.setValue(v, false);
-      renderRunglerVisualizer();
-    }
-  });
-  R("runglerSpan", kSpan);
-
   const kCc = knob({
     label: "FM CC#74",
     min: 0, max: 127, step: 1,
@@ -889,7 +874,7 @@ export function initRungler() {
   });
   R("runglerGateLen", kGate);
 
-  paramGrid.append(kF1, kF2, kToOsc1, kToOsc2, kFb, kSpan, kCc, kGate);
+  paramGrid.append(kF1, kF2, kToOsc1, kToOsc2, kFb, kCc, kGate);
   paramCard.appendChild(paramGrid);
 
   // 4. Lissajous Scope & 4-Bit Stepped DAC Ladder Canvas Card
@@ -945,6 +930,12 @@ registerModel({
 
     currentDacVal = getRunglerDac().val;
     updateBitGrid();
+    renderRunglerVisualizer();
+  }
+});
+
+onRegen(() => {
+  if (getActiveModel() === "rungler") {
     renderRunglerVisualizer();
   }
 });

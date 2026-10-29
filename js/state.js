@@ -133,7 +133,6 @@ export const DEFAULT = {
   runglerToOsc2: 55,   // Rungler DAC -> Osc 2 depth (-100 to 100)
   runglerFeedback: 45, // Comparator feedback (0 to 100)
   runglerTaps: [12, 13, 14, 15], // 4 tap bit indices
-  runglerSpan: 2,      // Pitch span (octaves)
   runglerScale: "pentMinor",
   runglerCustomScale: [0, 3, 5, 7, 10],
   runglerRoot: 48,

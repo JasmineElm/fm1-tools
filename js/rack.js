@@ -301,12 +301,10 @@ export function buildNotesBar() {
       state.particleOctaves = state.pitchSpan;
       state.pendulumPitchSpan = state.pitchSpan;
       state.pendulumOctaves = state.pitchSpan;
-      state.runglerSpan = state.pitchSpan;
       state.krellSpan = state.pitchSpan;
       state.lsystemSpan = state.pitchSpan;
       state.lvSpan = state.pitchSpan;
       if (refs.turingSpan?.setValue) refs.turingSpan.setValue(state.pitchSpan, false);
-      if (refs.runglerSpan?.setValue) refs.runglerSpan.setValue(state.pitchSpan, false);
       if (refs.krellSpan?.setValue) refs.krellSpan.setValue(state.pitchSpan, false);
       if (refs.lsystemSpan?.setValue) refs.lsystemSpan.setValue(state.pitchSpan, false);
       state.caQuantSteps = state.quantSteps;
