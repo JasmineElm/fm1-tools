@@ -60,9 +60,83 @@ const leafBendVel = new Float32Array(MAX_LEAVES);
 const leafBloom = new Float32Array(MAX_LEAVES); // 0.0 (green) -> 1.0 (bloomed amber/pink)
 const leafPitchIdx = new Int32Array(MAX_LEAVES);
 
-// Scale cycling state: tracks last trigger timestamp and cycle count per leaf
+// Scale cycling state: tracks hit timestamps, decay, and cycle count per leaf
+export const BASE_PERIOD_SEC = 5.0;
+export const LEAF_INCREMENT_THRESHOLD = 1;
+
 const leafLastHitTime = new Float64Array(MAX_LEAVES).fill(-999);
+const leafLastDecayTime = new Float64Array(MAX_LEAVES).fill(-999);
 const leafCycleCount = new Int32Array(MAX_LEAVES);
+
+const MAX_HITS_PER_LEAF = 32;
+const leafHitTimes = new Float64Array(MAX_LEAVES * MAX_HITS_PER_LEAF).fill(-999);
+const leafHitIndices = new Int32Array(MAX_LEAVES);
+const leafHitTotal = new Int32Array(MAX_LEAVES);
+
+export function getLeafCycleCount(i) {
+  return leafCycleCount[i];
+}
+
+export function setLeafCycleCount(i, count) {
+  leafCycleCount[i] = count;
+}
+
+export function getLeafAssessedPeriod(i) {
+  const userMult = Math.min(4.0, Math.max(0.25, Number(state.hanenbowTimingPeriod ?? 1.0)));
+  const leafLen = leafLength[i] || 100;
+  return BASE_PERIOD_SEC * userMult * (leafLen / 100.0);
+}
+
+function recordLeafHit(i, nowSec) {
+  const idx = (leafHitIndices[i] + 1) % MAX_HITS_PER_LEAF;
+  leafHitIndices[i] = idx;
+  leafHitTimes[i * MAX_HITS_PER_LEAF + idx] = nowSec;
+  if (leafHitTotal[i] < MAX_HITS_PER_LEAF) leafHitTotal[i]++;
+  leafLastHitTime[i] = nowSec;
+}
+
+export function getLeafHitsInPeriod(i, period, nowSec) {
+  const cutoff = nowSec - period;
+  const base = i * MAX_HITS_PER_LEAF;
+  const total = leafHitTotal[i];
+  let count = 0;
+  for (let k = 0; k < total; k++) {
+    const t = leafHitTimes[base + k];
+    if (t >= cutoff && t <= nowSec) {
+      count++;
+    }
+  }
+  return count;
+}
+
+export function updateLeafPitch(i, advance, nowSec = performance.now() * 0.001) {
+  const period = getLeafAssessedPeriod(i);
+
+  // 1. Process time-based pitch decay if hits dropped below 0.5 of increment threshold
+  if (leafCycleCount[i] > 0) {
+    const lastHitOrDecay = Math.max(leafLastHitTime[i], leafLastDecayTime[i]);
+    const elapsed = nowSec - lastHitOrDecay;
+    if (elapsed >= period) {
+      // Check hits within the assessed period window
+      const hitsInWindow = getLeafHitsInPeriod(i, period, nowSec);
+      if (hitsInWindow < 0.5 * LEAF_INCREMENT_THRESHOLD) {
+        const dropSteps = Math.min(leafCycleCount[i], Math.floor(elapsed / period));
+        leafCycleCount[i] = Math.max(0, leafCycleCount[i] - dropSteps);
+        leafLastDecayTime[i] = nowSec;
+      }
+    }
+  }
+
+  // 2. Process hit increment if a ball hit this leaf
+  if (advance) {
+    const elapsedSinceLastHit = nowSec - leafLastHitTime[i];
+    if (elapsedSinceLastHit > 0.04 && elapsedSinceLastHit <= period) {
+      leafCycleCount[i] += 1;
+    }
+    recordLeafHit(i, nowSec);
+    leafLastDecayTime[i] = nowSec;
+  }
+}
 
 // Leaf Dimensions & Uniform Line Width (Usable across screen sizes)
 export const MIN_LEAF_LEN = 48; // minimum leaf length in reference units
@@ -283,6 +357,11 @@ export function initHanenbowSystem(presetId = state.hanenbowPreset || "cascade",
     } else {
       leafLength[i] = 0;
     }
+    leafCycleCount[i] = 0;
+    leafLastHitTime[i] = -999;
+    leafLastDecayTime[i] = -999;
+    leafHitTotal[i] = 0;
+    leafHitIndices[i] = 0;
   }
 
   // Clear plankton projectile pool only if not preserving active balls during live playback
@@ -336,19 +415,8 @@ export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.0
   const root = getRootMidi();
   // Constrain strictly to the Octave spread value (1..4 octaves)
   const span = Math.min(4, Math.max(1, Number(state.hanenbowSpan ?? state.pitchSpan ?? 2)));
-  const period = state.hanenbowTimingPeriod ?? 1.5;
 
-  if (advance) {
-    const elapsed = nowSec - leafLastHitTime[i];
-    if (elapsed > 0.04 && elapsed <= period) {
-      // Triggered more than once within global timing period: cycle upward through the musical scale!
-      leafCycleCount[i] += 1;
-    } else if (elapsed > period) {
-      // Timing period expired: reset cycle back to leaf base note
-      leafCycleCount[i] = 0;
-    }
-    leafLastHitTime[i] = nowSec;
-  }
+  updateLeafPitch(i, advance, nowSec);
 
   // Base pitch mapping: larger leaves are pitched lower!
   // Length ranges from MIN_LEAF_LEN (smallest/highest) to MAX_LEAF_LEN (largest/lowest)
@@ -363,9 +431,9 @@ export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.0
   const normPitch = 1.0 - normSize; // 1.0 = smallest (highest), 0.0 = largest (lowest)
   const baseDeg = Math.round(normPitch * (totalDegrees - 1));
 
-  // Cycling upwards upon repeated hits within timing period:
+  // Cycling upwards upon repeated hits within assessed period:
   // Strictly constrained to the Octave spread value by wrapping within [0, totalDegrees - 1]
-  const activeCycle = (advance || (nowSec - leafLastHitTime[i] <= period)) ? leafCycleCount[i] : 0;
+  const activeCycle = leafCycleCount[i];
   const constrainedDeg = (baseDeg + activeCycle) % totalDegrees;
 
   // Compute direction-adjusted base root according to Spread Direction
@@ -503,14 +571,16 @@ function stepBallistics(dt) {
     pTrailY[p * TRAIL_PTS] = pY[p];
   }
 
-  // 3. Update leaf spring damped oscillations
+  // 3. Update leaf spring damped oscillations & pitch decay
   const omega0 = 24.0; // natural spring frequency
   const zeta = 0.22;   // damping ratio
+  const nowSec = performance.now() * 0.001;
   for (let j = 0; j < num; j++) {
     const accel = -omega0 * omega0 * leafBend[j] - 2 * zeta * omega0 * leafBendVel[j];
     leafBendVel[j] += accel * dt;
     leafBend[j] += leafBendVel[j] * dt;
     leafBloom[j] = Math.max(0.0, leafBloom[j] - dt * 0.4); // bloom decay
+    updateLeafPitch(j, false, nowSec);
   }
 
   if (cannonPulse > 0.01) {
@@ -702,8 +772,7 @@ function renderPondCanvas() {
     const nowSec = nowMs * 0.001;
     const curNote = getLeafNote(i, false, nowSec);
     const noteNameStr = midiName(curNote);
-    const period = state.hanenbowTimingPeriod ?? 1.5;
-    const isCycling = (nowSec - leafLastHitTime[i] <= period) && leafCycleCount[i] > 0;
+    const isCycling = leafCycleCount[i] > 0;
     const cycleLabel = isCycling ? `L${i + 1} ${noteNameStr} +${leafCycleCount[i]}` : `L${i + 1} ${noteNameStr}`;
 
     ctx.fillStyle = isCycling ? colAccent : colFg;
@@ -1048,10 +1117,10 @@ export function initHanenbow() {
 
   const kPeriod = knob({
     label: "PERIOD",
-    min: 0.2, max: 5.0, step: 0.1,
-    value: state.hanenbowTimingPeriod ?? 1.5,
-    unit: "s",
-    title: "Global timing period: repeated leaf triggers within this period cycle note upwards through scale",
+    min: 0.25, max: 4.0, step: 0.25,
+    value: state.hanenbowTimingPeriod ?? 1.0,
+    unit: "x",
+    title: "Assessed period multiplier (0.25x - 4x): base 5s * control * (leaf length / 100)",
     onChange: (v) => {
       state.hanenbowTimingPeriod = v;
       renderPondCanvas();

@@ -223,7 +223,7 @@ export const DEFAULT = {
   hanenbowRootNote: 0,
   hanenbowRootOctave: 3,
   hanenbowGateLen: 240,
-  hanenbowTimingPeriod: 1.5,
+  hanenbowTimingPeriod: 1.0,
 
   // Bak-Tang-Wiesenfeld Abelian Sandpile (SOC) model parameters
   sandpileGridSize: 33,

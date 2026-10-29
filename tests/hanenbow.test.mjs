@@ -88,8 +88,15 @@ import {
   MAX_LEAF_LEN,
   LEAF_LEN_DIVISOR,
   LEAF_LINE_WIDTH,
+  BASE_PERIOD_SEC,
+  LEAF_INCREMENT_THRESHOLD,
   getLeafLength,
   setLeafLength,
+  getLeafCycleCount,
+  setLeafCycleCount,
+  getLeafAssessedPeriod,
+  updateLeafPitch,
+  getLeafNote,
   getCannon,
   setCannonPosition,
   generateHanenbowBank
@@ -190,4 +197,67 @@ test("resizing leaf changes length of leaf only and clamps within bounds", () =>
   assert.equal(getLeafLength(0), MAX_LEAF_LEN);
   assert.equal(LEAF_LINE_WIDTH, 8);
 });
+
+test("assessed period equals base 5s * user-control multiplier (0.25 to 4.0) * (leaf length / 100)", () => {
+  assert.equal(BASE_PERIOD_SEC, 5.0);
+
+  // Leaf length 100, control 1.0 -> 5.0 * 1.0 * (100 / 100) = 5.0s
+  setLeafLength(0, 100);
+  state.hanenbowTimingPeriod = 1.0;
+  assert.equal(getLeafAssessedPeriod(0), 5.0);
+
+  // Leaf length 48 (minimum), control 1.0 -> 5.0 * 1.0 * (48 / 100) = 2.4s
+  setLeafLength(0, 48);
+  assert.equal(getLeafAssessedPeriod(0), 2.4);
+
+  // Leaf length 200, control 0.25 -> 5.0 * 0.25 * (200 / 100) = 2.5s
+  setLeafLength(0, 200);
+  state.hanenbowTimingPeriod = 0.25;
+  assert.equal(getLeafAssessedPeriod(0), 2.5);
+
+  // Leaf length 200, control 4.0 -> 5.0 * 4.0 * (200 / 100) = 40.0s
+  state.hanenbowTimingPeriod = 4.0;
+  assert.equal(getLeafAssessedPeriod(0), 40.0);
+});
+
+test("pitch increments on leaf hits and drops when hit count falls below 0.5 of threshold", () => {
+  // Configure leaf 1: length 100, period multiplier 1.0 -> assessed period = 5.0s
+  setLeafLength(1, 100);
+  state.hanenbowTimingPeriod = 1.0;
+  setLeafCycleCount(1, 0);
+
+  const t0 = 100.0; // base timestamp
+
+  // Hit 1: initial trigger
+  updateLeafPitch(1, true, t0);
+  assert.equal(getLeafCycleCount(1), 0); // initial hit starts cycle tracking
+
+  // Hit 2: hit within assessed period increments pitch
+  updateLeafPitch(1, true, t0 + 1.0);
+  assert.equal(getLeafCycleCount(1), 1);
+
+  // Hit 3: another hit within assessed period increments pitch again
+  updateLeafPitch(1, true, t0 + 2.5);
+  assert.equal(getLeafCycleCount(1), 2);
+
+  // Sustained hit rate: hit at t0 + 6.0s (within 5.0s of previous hit at t0 + 2.5s)
+  // Hits in last 5s [1.0s, 6.0s] are at 2.5s and 6.0s (>= 0.5 threshold)
+  updateLeafPitch(1, false, t0 + 6.0);
+  assert.equal(getLeafCycleCount(1), 2, "pitch remains elevated when hit rate is maintained");
+
+  // Inactivity: assessed period of 5.0s elapses with NO hits (hits in [3.0s, 8.0s] = 0 < 0.5 threshold)
+  // Pitch should drop again by 1 step (from 2 down to 1)
+  updateLeafPitch(1, false, t0 + 8.0);
+  assert.equal(getLeafCycleCount(1), 1, "pitch drops by 1 step when hits drop below 0.5 of increment threshold");
+
+  // Further inactivity: another assessed period of 5.0s elapses with NO hits
+  // Pitch drops again from 1 to 0
+  updateLeafPitch(1, false, t0 + 13.5);
+  assert.equal(getLeafCycleCount(1), 0, "pitch drops back to base pitch (0)");
+
+  // Pitch never drops below base 0
+  updateLeafPitch(1, false, t0 + 25.0);
+  assert.equal(getLeafCycleCount(1), 0, "pitch clamped at base pitch");
+});
+
 
