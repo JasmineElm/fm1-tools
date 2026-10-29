@@ -13,6 +13,9 @@ if (typeof document === "undefined") {
   globalThis.document = {
     getElementById: () => null,
     querySelector: () => null,
+    querySelectorAll: () => [],
+    addEventListener: () => {},
+    removeEventListener: () => {},
     createElement: () => ({
       getContext: () => ({
         fillRect: () => {},
@@ -56,13 +59,18 @@ import {
   getTracyNote,
   TRACY_PRESETS,
   initTracyPreset,
+  generateRandomCreaturePath,
+  randomizeTracy,
   stepSimulation,
   generateTracyRibbonBank,
   startTracyRibbon,
   stopTracyRibbon,
   toggleTracyRibbonRunning,
-  isTracyRibbonRunning
+  isTracyRibbonRunning,
+  activateTracyRibbonModel,
+  deactivateTracyRibbonModel
 } from "../js/tracy_ribbon.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 import { getModelDef } from "../js/snapshot.js";
 import { state } from "../js/state.js";
 
@@ -277,4 +285,68 @@ test("Transport start/stop/toggle controls", () => {
   toggleTracyRibbonRunning();
   assert.equal(isTracyRibbonRunning(), true);
   stopTracyRibbon();
+});
+
+test("generateRandomCreaturePath creates valid closed looping node circuits", () => {
+  for (let trial = 0; trial < 20; trial++) {
+    const path = generateRandomCreaturePath();
+    assert.ok(Array.isArray(path));
+    assert.ok(path.length >= 3 && path.length <= 8, `Path length ${path.length} must be in [3, 8]`);
+    for (const idx of path) {
+      assert.ok(Number.isInteger(idx));
+      assert.ok(idx >= 0 && idx < TOTAL_NODES, `Node index ${idx} within bounds [0, 47]`);
+    }
+  }
+});
+
+test("randomizeTracy randomizes creature count, pitch offsets, and paths", () => {
+  initTracyPreset("counterpoint");
+
+  // Record initial state
+  const prevCount = state.tracyCreatureCount;
+  const prevOffsets = creatures.map(c => c.basePitchOffset);
+  const prevNodes = creatures.map(c => [...c.nodes]);
+
+  randomizeTracy();
+
+  // 1. Verify creature count randomized within [1, 8]
+  assert.ok(typeof state.tracyCreatureCount === "number");
+  assert.ok(state.tracyCreatureCount >= 1 && state.tracyCreatureCount <= 8);
+
+  // 2. Verify pitch offsets randomized
+  const newOffsets = creatures.map(c => c.basePitchOffset);
+  let anyOffsetDiff = false;
+  for (let i = 0; i < MAX_CREATURES; i++) {
+    assert.ok(Number.isInteger(newOffsets[i]));
+    if (newOffsets[i] !== prevOffsets[i]) anyOffsetDiff = true;
+  }
+  assert.ok(anyOffsetDiff, "Pitch offsets must be randomized across creatures");
+
+  // 3. Verify closed node loop paths randomized
+  for (let i = 0; i < MAX_CREATURES; i++) {
+    const c = creatures[i];
+    assert.ok(Array.isArray(c.nodes));
+    assert.ok(c.nodes.length >= 3, `Creature ${i} must have valid looping route`);
+    for (const nodeIdx of c.nodes) {
+      assert.ok(nodeIdx >= 0 && nodeIdx < TOTAL_NODES);
+    }
+  }
+
+  // 4. Verify preset state changed to "custom"
+  assert.equal(state.tracyPreset, "custom");
+});
+
+test("Global randomize button triggers randomizeTracy when tracy_ribbon is active", () => {
+  activateTracyRibbonModel();
+  const currentRandomizer = getCurrentModelRandomizer();
+  assert.equal(currentRandomizer, randomizeTracy, "Active model randomizer must be randomizeTracy");
+
+  // Call active model randomizer (same as global randomize button dispatch)
+  currentRandomizer();
+
+  assert.ok(state.tracyCreatureCount >= 1 && state.tracyCreatureCount <= 8);
+  assert.equal(state.tracyPreset, "custom");
+
+  deactivateTracyRibbonModel();
+  assert.equal(getCurrentModelRandomizer(), null, "Deactivating model must unbind model randomizer");
 });

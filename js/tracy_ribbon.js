@@ -335,6 +335,115 @@ export function initTracyPreset(presetId) {
 }
 
 /**
+ * Generates an aesthetic, connected closed node loop circuit for a creature.
+ */
+export function generateRandomCreaturePath() {
+  const pathLength = Math.floor(Math.random() * 4) + 4; // 4 to 7 nodes
+  const nodes = [];
+  const mode = Math.random();
+
+  if (mode < 0.45) {
+    // Elliptical / circular orbital circuit around a random center
+    const cx = 1.5 + Math.random() * (GRID_COLS - 3);
+    const cy = 1.0 + Math.random() * (GRID_ROWS - 2);
+    const rx = 1.0 + Math.random() * 2.2;
+    const ry = 0.8 + Math.random() * 1.5;
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const startAngle = Math.random() * Math.PI * 2;
+
+    for (let s = 0; s < pathLength; s++) {
+      const angle = startAngle + dir * ((s / pathLength) * Math.PI * 2);
+      const col = Math.max(0, Math.min(GRID_COLS - 1, Math.round(cx + Math.cos(angle) * rx)));
+      const row = Math.max(0, Math.min(GRID_ROWS - 1, Math.round(cy + Math.sin(angle) * ry)));
+      const idx = getNodeIndex(col, row);
+      if (nodes.length === 0 || nodes[nodes.length - 1] !== idx) {
+        nodes.push(idx);
+      }
+    }
+  } else if (mode < 0.75) {
+    // Stepwise wandering walk
+    let col = Math.floor(Math.random() * GRID_COLS);
+    let row = Math.floor(Math.random() * GRID_ROWS);
+    nodes.push(getNodeIndex(col, row));
+
+    for (let s = 1; s < pathLength; s++) {
+      const dCol = Math.floor(Math.random() * 3) - 1;
+      const dRow = Math.floor(Math.random() * 3) - 1;
+      col = Math.max(0, Math.min(GRID_COLS - 1, col + (dCol === 0 && dRow === 0 ? 1 : dCol)));
+      row = Math.max(0, Math.min(GRID_ROWS - 1, row + dRow));
+      const idx = getNodeIndex(col, row);
+      if (nodes[nodes.length - 1] !== idx) {
+        nodes.push(idx);
+      }
+    }
+  } else {
+    // Undulating horizontal corridor
+    const startCol = Math.floor(Math.random() * 3);
+    const baseRow = Math.floor(Math.random() * (GRID_ROWS - 2)) + 1;
+    for (let s = 0; s < pathLength; s++) {
+      const col = (startCol + s) % GRID_COLS;
+      const rowOffset = (s % 2 === 0 ? 1 : -1);
+      const row = Math.max(0, Math.min(GRID_ROWS - 1, baseRow + rowOffset));
+      const idx = getNodeIndex(col, row);
+      if (nodes.length === 0 || nodes[nodes.length - 1] !== idx) {
+        nodes.push(idx);
+      }
+    }
+  }
+
+  // Ensure at least 3 distinct nodes in the loop
+  if (nodes.length < 3) {
+    return [
+      getNodeIndex(1, 1),
+      getNodeIndex(3, 4),
+      getNodeIndex(6, 2)
+    ];
+  }
+
+  return nodes;
+}
+
+/**
+ * Global Randomize Action:
+ * Randomizes the number of creatures (1-8), their scale pitch offsets, and their closed node loop paths.
+ */
+export function randomizeTracy() {
+  // 1. Randomize number of active creatures (1 to 8)
+  const count = Math.floor(Math.random() * 8) + 1;
+  state.tracyCreatureCount = count;
+  state.tracyPreset = "custom";
+  if (refs.tracyPreset?.setValue) refs.tracyPreset.setValue("custom");
+  if (refs.tracyCreatureCount?.setValue) refs.tracyCreatureCount.setValue(count);
+
+  // 2. Randomize scale degree pitch offsets across creatures
+  const candidateOffsets = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const shuffledOffsets = [...candidateOffsets].sort(() => Math.random() - 0.5);
+
+  // 3. Randomize closed node loop paths and reset traversal state
+  for (let i = 0; i < MAX_CREATURES; i++) {
+    const c = creatures[i];
+    c.active = (i < count);
+    c.basePitchOffset = shuffledOffsets[i % shuffledOffsets.length];
+    c.nodes = generateRandomCreaturePath();
+    c.segIndex = 0;
+    c.segT = 0.0;
+    c.lastTriggeredNode = -1;
+    c.pulseAnim = 0;
+    if (c.nodes.length > 0) {
+      const pos = getNodeColRow(c.nodes[0]);
+      c.x = pos.col;
+      c.y = pos.row;
+    }
+  }
+
+  updateCreatureTabs();
+  syncCreatureControls();
+  renderCanvas();
+  scheduleRegen();
+  status(`Randomized Tracy: ${count} creatures, new routes & pitch offsets`);
+}
+
+/**
  * Numerically advance all active creatures along their node paths and trigger notes.
  */
 export function stepSimulation(dt = 0.016) {
@@ -753,7 +862,9 @@ function animLoop(timestamp) {
   }
 
   renderCanvas();
-  animFrameId = requestAnimationFrame(animLoop);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(animLoop);
+  }
 }
 
 export function startTracyRibbon() {
@@ -1011,6 +1122,10 @@ export function initTracyRibbon() {
   globalActions.style.gap = "6px";
   globalActions.style.marginTop = "8px";
 
+  const btnRandomize = actionBtn("Randomize", () => {
+    randomizeTracy();
+  }, "Randomize number of creatures, pitch offsets, and node routes");
+
   const btnResetAll = actionBtn("Reset All", () => {
     for (let i = 0; i < MAX_CREATURES; i++) {
       creatures[i].segIndex = 0;
@@ -1029,6 +1144,7 @@ export function initTracyRibbon() {
     status("Cleared all creature paths");
   }, "Clear paths for all creatures");
 
+  globalActions.appendChild(btnRandomize);
   globalActions.appendChild(btnResetAll);
   globalActions.appendChild(btnClearAll);
 
@@ -1050,6 +1166,7 @@ export function initTracyRibbon() {
 
   // Wire model hooks
   setModelGenerator("tracy_ribbon", generateTracyRibbonBank);
+  setModelRandomizer(randomizeTracy);
   setModelStepHandler("tracy_ribbon", () => {
     if (!isTracyPlaying) {
       stepSimulation(0.02);
@@ -1057,7 +1174,7 @@ export function initTracyRibbon() {
   });
 
   // Start rendering loop
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animLoop);
   }
 }
@@ -1103,6 +1220,8 @@ function syncControls() {
 export function activateTracyRibbonModel() {
   if (container) container.style.display = "block";
   stopTracyRibbon();
+  setModelGenerator("tracy_ribbon", generateTracyRibbonBank);
+  setModelRandomizer(randomizeTracy);
   setModelTransportHandler({
     start: startTracyRibbon,
     stop: stopTracyRibbon,
@@ -1110,7 +1229,7 @@ export function activateTracyRibbonModel() {
     isRunning: isTracyRibbonRunning
   });
   renderCanvas();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(animLoop);
   }
@@ -1119,8 +1238,9 @@ export function activateTracyRibbonModel() {
 export function deactivateTracyRibbonModel() {
   stopTracyRibbon();
   setModelTransportHandler(null);
+  setModelRandomizer(null);
   if (container) container.style.display = "none";
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
