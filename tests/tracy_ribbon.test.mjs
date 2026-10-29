@@ -219,7 +219,6 @@ test("Generator contract: generateTracyRibbonBank returns valid 64-step bank arr
   const bank = generateTracyRibbonBank({
     length: 64,
     tracyCreatureCount: 4,
-    tracyOctave: 0,
     rate: "1/16"
   });
 

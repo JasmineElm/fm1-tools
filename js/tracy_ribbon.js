@@ -292,7 +292,6 @@ export function initTracyPreset(presetId) {
   state.tracyPreset = p.id;
   state.tracySpeed = state.tracySpeed ?? 1.0;
   state.tracyCreatureCount = state.tracyCreatureCount ?? 4;
-  state.tracyOctave = state.tracyOctave ?? 0;
 
   for (let i = 0; i < MAX_CREATURES; i++) {
     const cData = p.creatures?.[i];
@@ -341,7 +340,6 @@ export function initTracyPreset(presetId) {
 export function stepSimulation(dt = 0.016) {
   const numActive = Math.min(MAX_CREATURES, Math.max(1, state.tracyCreatureCount ?? 4));
   const masterSpeed = Math.max(0.1, Number(state.tracySpeed ?? 1.0));
-  const masterOctave = state.tracyOctave ?? 0;
   let anyTriggered = false;
 
   for (let k = 0; k < numActive; k++) {
@@ -372,7 +370,7 @@ export function stepSimulation(dt = 0.016) {
 
       // Trigger note on node arrival!
       const { col, row } = getNodeColRow(targetNodeIdx);
-      const note = getTracyNodePitch(col, row, c.basePitchOffset, masterOctave);
+      const note = getTracyNodePitch(col, row, c.basePitchOffset);
       const vel = Math.round(75 + ((k * 11) % 35));
       const durMs = Math.round(Math.max(60, 180 / effectiveSpeed));
 
@@ -431,7 +429,6 @@ export function stepSimulation(dt = 0.016) {
 export function generateTracyRibbonBank(s) {
   const seqLen = s?.length || 64;
   const numActive = Math.min(MAX_CREATURES, Math.max(1, s?.tracyCreatureCount ?? state.tracyCreatureCount ?? 4));
-  const masterOctave = s?.tracyOctave ?? state.tracyOctave ?? 0;
   const steps = [];
 
   for (let step = 0; step < seqLen; step++) {
@@ -447,13 +444,13 @@ export function generateTracyRibbonBank(s) {
         const pathIdx = Math.floor(step / stepInterval) % pathLen;
         const nodeIdx = c.nodes[pathIdx];
         const { col, row } = getNodeColRow(nodeIdx);
-        const note = getTracyNodePitch(col, row, c.basePitchOffset, masterOctave);
+        const note = getTracyNodePitch(col, row, c.basePitchOffset);
         const vel = Math.round(70 + ((k * 13) % 40));
         stepNotes.push({ note, vel });
       }
     }
 
-    const firstNote = stepNotes[0]?.note ?? getTracyNodePitch(step % GRID_COLS, 2, 0, masterOctave);
+    const firstNote = stepNotes[0]?.note ?? getTracyNodePitch(step % GRID_COLS, 2, 0);
     const firstVel = stepNotes[0]?.vel ?? 90;
 
     steps.push({
@@ -1004,24 +1001,10 @@ export function initTracyRibbon() {
   sectSelectedCreature.appendChild(rowCreaturePitch);
   sectSelectedCreature.appendChild(creatureActions);
 
-  // Section C: Global Pitch & Actions
+  // Section C: Global Gestural Route Actions
   const sectPitch = document.createElement("div");
   sectPitch.className = "chladni-card";
-  sectPitch.innerHTML = `<div class="chladni-card-title">Master Pitch & Gestural Actions</div>`;
-
-  const rowOctave = R("tracyOctave", knob({
-    label: "Master Oct",
-    min: -2,
-    max: 2,
-    step: 1,
-    value: state.tracyOctave ?? 0,
-    format: v => (v > 0 ? `+${v}` : `${v}`),
-    onInput: v => {
-      state.tracyOctave = Math.round(v);
-      renderCanvas();
-    },
-    tip: "Master octave transposition shift across all creatures"
-  }));
+  sectPitch.innerHTML = `<div class="chladni-card-title">Gestural Actions</div>`;
 
   const globalActions = document.createElement("div");
   globalActions.style.display = "flex";
@@ -1049,7 +1032,6 @@ export function initTracyRibbon() {
   globalActions.appendChild(btnResetAll);
   globalActions.appendChild(btnClearAll);
 
-  sectPitch.appendChild(rowOctave);
   sectPitch.appendChild(globalActions);
 
   controlsGrid.appendChild(sectPath);
@@ -1113,7 +1095,6 @@ export function updateTracyScaleAndOctave() {
 function syncControls() {
   if (refs.tracySpeed?.setValue) refs.tracySpeed.setValue(state.tracySpeed);
   if (refs.tracyCreatureCount?.setValue) refs.tracyCreatureCount.setValue(state.tracyCreatureCount);
-  if (refs.tracyOctave?.setValue) refs.tracyOctave.setValue(state.tracyOctave);
   if (refs.tracyPreset?.setValue) refs.tracyPreset.setValue(state.tracyPreset);
   syncCreatureControls();
   updateCreatureTabs();
