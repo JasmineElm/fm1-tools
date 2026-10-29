@@ -8,7 +8,9 @@ This master plan tracks the implementation of remaining, unimplemented non-step,
 
 | Model ID | Model Name | Primary Domain | Core Mathematical / Physical Primitives | Complexity | Status |
 |---|---|---|---|---|---|
-| `self_avoiding_walk` | **Polymer Self-Avoiding Walk** | Molecular Folding / Jamming | 2D lattice self-avoidance, conformational steric hindrance, collapse cascades | Moderate (3/5) | **Next / Pending** |
+| `self_avoiding_walk` | **Polymer Self-Avoiding Walk** | Molecular Folding / Jamming | 2D lattice self-avoidance, conformational steric hindrance, collapse cascades | Moderate (3/5) | **Completed** |
+
+**All generative and non-step sequencer models across the FM-1 Pulses roadmap are now 100% complete!**
 
 ---
 

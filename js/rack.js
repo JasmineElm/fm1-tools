@@ -46,6 +46,7 @@ import { initGeneticBreeder, activateGeneticBreederModel, deactivateGeneticBreed
 import { initChladni, activateChladniModel, deactivateChladniModel } from "./chladni.js";
 import { initBrownianRatchet, activateBrownianRatchetModel, deactivateBrownianRatchetModel } from "./brownian_ratchet.js";
 import { initTracyRibbon, activateTracyRibbonModel, deactivateTracyRibbonModel } from "./tracy_ribbon.js";
+import { initSelfAvoidingWalk, activateSelfAvoidingWalkModel, deactivateSelfAvoidingWalkModel } from "./self_avoiding_walk.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -604,6 +605,7 @@ initGeneticBreeder();
 initChladni();
 initBrownianRatchet();
 initTracyRibbon();
+initSelfAvoidingWalk();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -1222,9 +1224,44 @@ initModes({
       deactivateGeneticBreederModel();
       deactivateChladniModel();
       deactivateBrownianRatchetModel();
+      deactivateSelfAvoidingWalkModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateTracyRibbonModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "self_avoiding_walk") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateRippleTankModel();
+      deactivateConvectionModel();
+      deactivateMarkovMatrixModel();
+      deactivateGeneticBreederModel();
+      deactivateChladniModel();
+      deactivateBrownianRatchetModel();
+      deactivateTracyRibbonModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateSelfAvoidingWalkModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -1265,6 +1302,7 @@ initModes({
     try { deactivateChladniModel(); } catch (e) { console.warn("Error deactivating chladni model:", e); }
     try { deactivateBrownianRatchetModel(); } catch (e) { console.warn("Error deactivating brownian_ratchet model:", e); }
     try { deactivateTracyRibbonModel(); } catch (e) { console.warn("Error deactivating tracy_ribbon model:", e); }
+    try { deactivateSelfAvoidingWalkModel(); } catch (e) { console.warn("Error deactivating self_avoiding_walk model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

@@ -26,7 +26,8 @@ export const POLYPHONIC_MODELS = new Set([
   "genetic_breeder",
   "chladni",
   "brownian_ratchet",
-  "tracy_ribbon"
+  "tracy_ribbon",
+  "self_avoiding_walk"
 ]);
 
 export const MODELS = [
@@ -447,6 +448,22 @@ export const MODELS = [
       <path d="M7 10c1-2 3-2 4 0" />
       <circle cx="9" cy="8" r="1" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "self_avoiding_walk",
+    name: "Polymer Self-Avoiding Walk",
+    kicker: "Lattice Self-Avoidance · Steric Jamming · Folding Cascades",
+    available: true,
+    desc: "Growing polymer chain simulation on a 2D discrete lattice. Monomers advance to unoccupied adjacent lattice nodes subject to strict self-avoidance. When encountering steric hindrance dead-ends (jamming traps), the chain collapses and anneals, discharging an explosive polyphonic chord cascade across up to 8 voices while radius of gyration modulates FM-1 CC #74 Brightness.",
+    tags: ["Polymer", "Self-Avoiding Walk", "Steric Jamming", "Protein Folding", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 4h8v8H4z" stroke-dasharray="2 2" />
+      <path d="M4 12h8v8h8" />
+      <circle cx="4" cy="12" r="2" fill="currentColor" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+      <circle cx="12" cy="20" r="2" fill="currentColor" />
+      <circle cx="20" cy="20" r="2.5" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -665,6 +682,8 @@ export function showLanding(updateHash = true) {
   if (modelBrownianRatchet) modelBrownianRatchet.style.display = "none";
   const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
   if (modelTracyRibbon) modelTracyRibbon.style.display = "none";
+  const modelSelfAvoidingWalk = document.getElementById("model-self_avoiding_walk");
+  if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -710,6 +729,7 @@ export function showModel(id, updateHash = true) {
   const modelChladni = document.getElementById("model-chladni");
   const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
   const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
+  const modelSelfAvoidingWalk = document.getElementById("model-self_avoiding_walk");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -723,8 +743,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, Brownian Ratchet, and Tracy Ribbon are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, Brownian Ratchet, Tracy Ribbon, and Self-Avoiding Walk are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -794,6 +814,7 @@ export function showModel(id, updateHash = true) {
     if (modelChladni) modelChladni.style.display = id === "chladni" ? "block" : "none";
     if (modelBrownianRatchet) modelBrownianRatchet.style.display = id === "brownian_ratchet" ? "block" : "none";
     if (modelTracyRibbon) modelTracyRibbon.style.display = id === "tracy_ribbon" ? "block" : "none";
+    if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = id === "self_avoiding_walk" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -828,6 +849,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "chladni") modeTag.textContent = "Chladni Cymatics";
       else if (id === "brownian_ratchet") modeTag.textContent = "Brownian Ratchet";
       else if (id === "tracy_ribbon") modeTag.textContent = "Tracy Ribbon";
+      else if (id === "self_avoiding_walk") modeTag.textContent = "Self-Avoiding Walk";
       modeTag.style.display = "inline-block";
     }
   }
@@ -936,6 +958,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "brownian_ratchet") showModel("brownian_ratchet", false);
     } else if (h === "#tracy_ribbon" || h === "#tracy" || h === "#ribbon" || h === "#electroplankton") {
       if (activeModelId !== "tracy_ribbon") showModel("tracy_ribbon", false);
+    } else if (h === "#self_avoiding_walk" || h === "#saw" || h === "#polymer" || h === "#polymer-walk") {
+      if (activeModelId !== "self_avoiding_walk") showModel("self_avoiding_walk", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -1004,6 +1028,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("brownian_ratchet", false);
   } else if (initialHash === "#tracy_ribbon" || initialHash === "#tracy" || initialHash === "#ribbon" || initialHash === "#electroplankton") {
     showModel("tracy_ribbon", false);
+  } else if (initialHash === "#self_avoiding_walk" || initialHash === "#saw" || initialHash === "#polymer" || initialHash === "#polymer-walk") {
+    showModel("self_avoiding_walk", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {
