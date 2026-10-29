@@ -64,6 +64,7 @@ const PREFIX = {
   epidemic: /^epidemic[A-Z]/,
   changes: /^changes[A-Z]/,
   physarum: /^physarum[A-Z]/,
+  reaction_diffusion: /^rd[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

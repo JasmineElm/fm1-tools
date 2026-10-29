@@ -16,7 +16,8 @@ export const POLYPHONIC_MODELS = new Set([
   "dla",
   "epidemic",
   "changes",
-  "physarum"
+  "physarum",
+  "reaction_diffusion"
 ]);
 
 export const MODELS = [
@@ -294,6 +295,20 @@ export const MODELS = [
       <circle cx="21" cy="12" r="1.5" />
       <path d="M5.5 5.5l3 3m7 7l3 3m-13 0l3-3m7-7l3-3" stroke-dasharray="1 1" />
     </svg>`
+  },
+  {
+    id: "reaction_diffusion",
+    name: "Reaction-Diffusion",
+    kicker: "Turing Morphogenesis · Non-Linear Chemical PDEs · Resonance Probes",
+    available: true,
+    desc: "Gray-Scott chemical morphogenesis simulation where substrate U and autocatalytic morphogen V react and diffuse across a 2D substrate. Produces self-replicating mitosis spots, coral labyrinths, expanding solitonic wave rings, and spiral chaos. 8 spatial resonance probes detect local chemical wavefronts, triggering scale-quantized notes respecting the FM-1's strict 8-voice polyphony limit.",
+    tags: ["Turing Morphogenesis", "Reaction-Diffusion", "Gray-Scott", "Chemical PDEs", "Solitons", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 0 0 18c2.5 0 4-2 4-4s-1.5-4-4-4c-2.5 0-4-2-4-4s1.5-6 4-6z" />
+      <circle cx="12" cy="7.5" r="1.5" fill="currentColor" />
+      <circle cx="12" cy="16.5" r="1.5" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -492,6 +507,8 @@ export function showLanding(updateHash = true) {
   if (modelChanges) modelChanges.style.display = "none";
   const modelPhysarum = document.getElementById("model-physarum");
   if (modelPhysarum) modelPhysarum.style.display = "none";
+  const modelReactionDiffusion = document.getElementById("model-reaction_diffusion");
+  if (modelReactionDiffusion) modelReactionDiffusion.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -527,6 +544,7 @@ export function showModel(id, updateHash = true) {
   const modelEpidemic = document.getElementById("model-epidemic");
   const modelChanges = document.getElementById("model-changes");
   const modelPhysarum = document.getElementById("model-physarum");
+  const modelReactionDiffusion = document.getElementById("model-reaction_diffusion");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -540,8 +558,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, and Physarum are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, and Reaction-Diffusion are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -601,6 +619,7 @@ export function showModel(id, updateHash = true) {
     if (modelEpidemic) modelEpidemic.style.display = id === "epidemic" ? "block" : "none";
     if (modelChanges) modelChanges.style.display = id === "changes" ? "block" : "none";
     if (modelPhysarum) modelPhysarum.style.display = id === "physarum" ? "block" : "none";
+    if (modelReactionDiffusion) modelReactionDiffusion.style.display = id === "reaction_diffusion" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -625,6 +644,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "epidemic") modeTag.textContent = "SIR Epidemic Network";
       else if (id === "changes") modeTag.textContent = "Change Ringing";
       else if (id === "physarum") modeTag.textContent = "Physarum Slime Mould";
+      else if (id === "reaction_diffusion") modeTag.textContent = "Reaction-Diffusion";
       modeTag.style.display = "inline-block";
     }
   }
@@ -713,6 +733,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "changes") showModel("changes", false);
     } else if (h === "#physarum" || h === "#slime" || h === "#mould") {
       if (activeModelId !== "physarum") showModel("physarum", false);
+    } else if (h === "#reaction_diffusion" || h === "#rd" || h === "#reaction-diffusion" || h === "#turing-patterns") {
+      if (activeModelId !== "reaction_diffusion") showModel("reaction_diffusion", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -761,6 +783,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("changes", false);
   } else if (initialHash === "#physarum" || initialHash === "#slime" || initialHash === "#mould") {
     showModel("physarum", false);
+  } else if (initialHash === "#reaction_diffusion" || initialHash === "#rd" || initialHash === "#reaction-diffusion" || initialHash === "#turing-patterns") {
+    showModel("reaction_diffusion", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {
