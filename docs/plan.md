@@ -8,8 +8,7 @@ This master plan tracks the implementation of remaining, unimplemented non-step,
 
 | Model ID | Model Name | Primary Domain | Core Mathematical / Physical Primitives | Complexity | Status |
 |---|---|---|---|---|---|
-| `fitzhugh_nagumo` | **FitzHugh-Nagumo Spiking Network** | Neuromorphic Electrophysiology | Fast excitation / slow recovery ODEs, action potential gate spikes, refractory periods | Moderate (3.5/5) | **Next / Pending** |
-| `ripple_tank` | **2D Acoustic Ripple Tank (FDTD)** | Physical Wave Mechanics | Height field wave equation, hydrophone virtual pickups, reflection barriers | High (4/5) | Backlog |
+| `ripple_tank` | **2D Acoustic Ripple Tank (FDTD)** | Physical Wave Mechanics | Discrete 2D wave equation, virtual hydrophone pickups, damping & reflection | High (4/5) | **Next / Pending** |
 | `convection` | **Rayleigh-Bénard Thermal Convection** | Atmospheric Thermodynamics | Buoyancy vs thermal dissipation, dew point saturation triggers, convective rolls | Mod-High (3.5/5) | Backlog |
 | `markov_matrix` | **High-Order Markov Transition Matrix** | Stochastic Melodic Memory | Conditional $N$-gram transition probability tables, mutation temperature | Moderate (2.5/5) | Backlog |
 | `genetic_breeder` | **Interactive Genetic Algorithm** | Evolutionary Melodic Breeding | Musical chromosome crossover/mutation, interactive fitness scoring | Moderate (3/5) | Backlog |
@@ -46,34 +45,28 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ---
 
-## 3. Active Specification: FitzHugh-Nagumo Biological Neuromorphic Spiking Network
+## 3. Active Specification: 2D Acoustic Wave Equation Ripple Tank (FDTD)
 
-- **Model ID**: `fitzhugh_nagumo`
-- **Category**: Neuromorphic Electrophysiology / Spiking Neural Networks / Excitable Media.
-- **Architectural Scope**: A network of up to 8 excitable biological neurons governed by the non-linear FitzHugh-Nagumo dynamical system. All-or-nothing action potential spike events emit velocity-sensitive MIDI notes, while refractory recovery periods naturally enforce musical phrasing and prevent voice crowding.
+- **Model ID**: `ripple_tank`
+- **Category**: Physical Wave Mechanics / Acoustic Wave Propagation / Finite-Difference Time-Domain (FDTD).
+- **Architectural Scope**: A discrete 2D height field simulating surface waves propagating from droplet sources and reflecting off acoustic boundaries. Up to 8 hydrophone pickup sensors placed on the tank detect wavefront crests, triggering scale-quantized notes respecting the FM-1's strict 8-voice polyphony limit.
 
 ### Mathematical Formulation
-Coupled fast-slow excitation system for $N$ biological neurons ($i \in \{1 \dots N\}$, where $N \le 8$ matches the FM-1 hardware voice limit):
-$$\frac{dv_i}{dt} = v_i - \frac{v_i^3}{3} - w_i + I_i(t) + \sum_{j=1}^N W_{ij} s_j(t)$$
-$$\frac{dw_i}{dt} = \epsilon (v_i + a - b w_i)$$
+Discrete 2D wave equation integrated via leapfrog finite differences:
+$$u^{t+1}_{x, y} = 2 u^t_{x, y} - u^{t-1}_{x, y} + c^2 \Delta t^2 \left( \frac{u^t_{x+1, y} + u^t_{x-1, y} + u^t_{x, y+1} + u^t_{x, y-1} - 4 u^t_{x, y}}{\Delta x^2} \right) - \gamma (u^t_{x,y} - u^{t-1}_{x,y})$$
 
 Where:
-- $v_i$ is the fast membrane potential variable (generates the rapid depolarization upstroke of an action potential).
-- $w_i$ is the slow recovery / potassium gate variable (produces the hyperpolarizing refractory recovery period).
-- $I_i(t)$ is the external injected stimulus current (governing the resting baseline excitability: sub-threshold quiescent vs limit-cycle tonic pacing).
-- $W_{ij}$ is the synaptic connection weight matrix (excitatory $W_{ij} > 0$ and inhibitory $W_{ij} < 0$).
-- $s_j(t) = 1$ when pre-synaptic neuron $j$ fires an action potential, injecting synaptic current into post-synaptic neuron $i$.
-- $\epsilon, a, b$ are biophysical parameters controlling threshold sensitivity and refractory timescale.
+- $u(x, y)$ is the instantaneous surface height / acoustic pressure field.
+- $c$ is the wave propagation velocity (governed by the Speed / Medium Density knob).
+- $\gamma$ is the physical damping dissipation factor (absorbing vs resonant reverberant tank).
+- Boundary conditions: absorbing non-reflecting boundaries or rigid Neumann reflective walls.
 
 ### Musical Mapping
-- **Neuron Voices**: Up to 8 biological neurons mapped 1-to-1 to voice slots `0`–`7`. Each neuron is tuned to a scale-quantized pitch (using `scale.js`).
-- **Trigger Events**: Crossing the action potential voltage threshold ($v_i \ge 1.0$ with $dv_i/dt > 0$) emits a note gate pulse.
-- **Refractory Phrasing**: During the recovery phase ($w_i \gg 0$), the neuron is in an absolute refractory period, preventing repeated note triggers. This mimics human breathing and natural acoustic instrumental articulation.
-- **Network Topologies**:
-  - **Synfire Chain**: Feedforward cascade of spikes producing rhythmic arpeggios and linear phrases.
-  - **Central Pattern Generator (CPG)**: Reciprocal inhibitory loops producing rhythmic walking and breathing gates.
-  - **Bursting Hubs**: Master pacemakers driving subordinate follower ensembles.
-- **Timbre Modulation (CC #74)**: Mean network membrane potential and instantaneous population firing rate modulate CC #74 Brightness via `dispatchTimbreCc()`.
+- **Hydrophone Sensors**: Up to 8 virtual hydrophone sensors placed on the tank grid, mapped to voices `0`–`7`.
+- **Wavefront Crest Triggers**: When local height $u(x_{probe}, y_{probe})$ crosses a threshold with upward slope, an action note triggers.
+- **Velocity & Pan**: Trigger velocity is proportional to wavefront amplitude $|\dot{u}|$; spatial position maps to stereo pan (CC #10).
+- **Direct Manipulation**: Click or drag on the tank to drop stones/droplets; toggle reflective barrier walls or slits (double-slit interference).
+- **Continuous CC #74 Modulation**: Total acoustic energy in the tank $\sum (u^2 + \dot{u}^2)$ drives CC #74 Brightness.
 
 ---
 
@@ -81,11 +74,10 @@ Where:
 
 For future reference and extension, these additional models are documented with concise descriptions:
 
-1. **2D Acoustic Wave Equation Ripple Tank (Finite-Difference Time Domain)**: A discrete height field simulates physical acoustic surface ripples propagating from interactive drop points and reflecting off user-drawn spatial barrier walls. Acoustic wavefront crests crossing virtual hydrophone pickup sensors trigger scale-quantized notes whose velocity and stereo pan mirror real-time wave pressure and propagation vectors.
-2. **Atmospheric Rayleigh-Bénard Convection & Cloud Formation**: Simulates thermal fluid parcels rising from a warm ground plate into a cool upper boundary, where water vapor condenses into cloud billows upon reaching saturation dew points. Dew point condensation events sound resonant bell tones in high octave registers, while sinking downdrafts trigger low-frequency grounding bass pulses.
-3. **High-Order Markov Chain Stochastic Pitch-Transition Matrix**: A stochastic transition network models musical memory by choosing subsequent notes based on conditional transition probability tables derived from the previous $N$ melodic intervals. As the user alters transition temperature or introduces mutation entropy, melodic phrases smoothly transition between rigid stylistic motifs and surprising aleatoric improvisations.
-4. **Interactive Genetic Algorithm Melodic Genome Breeder**: Maintains a breeding population of musical chromosome vectors encoding rhythm, scale degree intervals, and gate envelopes, subjected to mutation and crossover operations. The user tags sounding motifs with positive or negative interactive fitness scores, steering the evolutionary survival and emergence of complex, personalized musical themes over successive generations.
-5. **Chladni Acoustic Resonant Plate & Nodal Sand Patterns**: Simulates Ernst Chladni’s vibrating square acoustic plates where virtual sand grains are propelled off anti-nodal zones and settle onto geometric nodal lines defined by 2D standing wave eigenfunctions $\cos(n \pi x / L)\cos(m \pi y / L) - \cos(m \pi x / L)\cos(n \pi y / L) = 0$. Grains settling into equilibrium nodal pockets trigger micro-tonal chime harmonics that shift dramatically as modal vibrational frequencies $m$ and $n$ are swept.
-6. **Brownian Ratchet / Feynman Thermal Diode**: A microscopic mechanical paddle immersed in a fluctuating thermal bath attempts to drive a cogwheel restricted to unidirectional rotation by an asymmetric spring-loaded pawl. Stochastic thermal collisions occasionally overcome the pawl barrier, generating aperiodic rhythmic step advances whose statistical burst frequencies are governed by temperature and mechanical load.
-7. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
-8. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.
+1. **Atmospheric Rayleigh-Bénard Convection & Cloud Formation**: Simulates thermal fluid parcels rising from a warm ground plate into a cool upper boundary, where water vapor condenses into cloud billows upon reaching saturation dew points. Dew point condensation events sound resonant bell tones in high octave registers, while sinking downdrafts trigger low-frequency grounding bass pulses.
+2. **High-Order Markov Chain Stochastic Pitch-Transition Matrix**: A stochastic transition network models musical memory by choosing subsequent notes based on conditional transition probability tables derived from the previous $N$ melodic intervals. As the user alters transition temperature or introduces mutation entropy, melodic phrases smoothly transition between rigid stylistic motifs and surprising aleatoric improvisations.
+3. **Interactive Genetic Algorithm Melodic Genome Breeder**: Maintains a breeding population of musical chromosome vectors encoding rhythm, scale degree intervals, and gate envelopes, subjected to mutation and crossover operations. The user tags sounding motifs with positive or negative interactive fitness scores, steering the evolutionary survival and emergence of complex, personalized musical themes over successive generations.
+4. **Chladni Acoustic Resonant Plate & Nodal Sand Patterns**: Simulates Ernst Chladni’s vibrating square acoustic plates where virtual sand grains are propelled off anti-nodal zones and settle onto geometric nodal lines defined by 2D standing wave eigenfunctions $\cos(n \pi x / L)\cos(m \pi y / L) - \cos(m \pi x / L)\cos(n \pi y / L) = 0$. Grains settling into equilibrium nodal pockets trigger micro-tonal chime harmonics that shift dramatically as modal vibrational frequencies $m$ and $n$ are swept.
+5. **Brownian Ratchet / Feynman Thermal Diode**: A microscopic mechanical paddle immersed in a fluctuating thermal bath attempts to drive a cogwheel restricted to unidirectional rotation by an asymmetric spring-loaded pawl. Stochastic thermal collisions occasionally overcome the pawl barrier, generating aperiodic rhythmic step advances whose statistical burst frequencies are governed by temperature and mechanical load.
+6. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
+7. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.

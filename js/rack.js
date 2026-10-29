@@ -38,6 +38,7 @@ import { initChanges, activateChangesModel, deactivateChangesModel } from "./cha
 import { initPhysarum, activatePhysarumModel, deactivatePhysarumModel } from "./physarum.js";
 import { initReactionDiffusion, activateReactionDiffusionModel, deactivateReactionDiffusionModel } from "./reaction_diffusion.js";
 import { initKuramoto, activateKuramotoModel, deactivateKuramotoModel } from "./kuramoto.js";
+import { initFitzhughNagumo, activateFitzhughNagumoModel, deactivateFitzhughNagumoModel } from "./fitzhugh_nagumo.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -588,6 +589,7 @@ initChanges();
 initPhysarum();
 initReactionDiffusion();
 initKuramoto();
+initFitzhughNagumo();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -962,9 +964,36 @@ initModes({
       deactivateChangesModel();
       deactivatePhysarumModel();
       deactivateReactionDiffusionModel();
+      deactivateFitzhughNagumoModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateKuramotoModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "fitzhugh_nagumo") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateFitzhughNagumoModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -997,6 +1026,7 @@ initModes({
     try { deactivatePhysarumModel(); } catch (e) { console.warn("Error deactivating physarum model:", e); }
     try { deactivateReactionDiffusionModel(); } catch (e) { console.warn("Error deactivating reaction_diffusion model:", e); }
     try { deactivateKuramotoModel(); } catch (e) { console.warn("Error deactivating kuramoto model:", e); }
+    try { deactivateFitzhughNagumoModel(); } catch (e) { console.warn("Error deactivating fitzhugh_nagumo model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

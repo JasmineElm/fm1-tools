@@ -18,7 +18,8 @@ export const POLYPHONIC_MODELS = new Set([
   "changes",
   "physarum",
   "reaction_diffusion",
-  "kuramoto"
+  "kuramoto",
+  "fitzhugh_nagumo"
 ]);
 
 export const MODELS = [
@@ -325,6 +326,21 @@ export const MODELS = [
       <circle cx="12" cy="3" r="1.5" fill="currentColor" />
       <circle cx="21" cy="12" r="1.5" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "fitzhugh_nagumo",
+    name: "FitzHugh-Nagumo Spiking",
+    kicker: "Neuromorphic Spiking Network · Action Potentials · Refractory Phrasing",
+    available: true,
+    desc: "Biological neuromorphic neural network governed by coupled FitzHugh-Nagumo fast-slow electrophysiology ODEs. Action potential depolarization bursts trigger velocity-sensitive notes across up to 8 voices, while slow potassium recovery periods enforce realistic instrumental phrasing and prevent voice crowding.",
+    tags: ["Neuromorphic", "FitzHugh-Nagumo", "Action Potentials", "Synfire Chains", "Central Pattern Generator", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="18" cy="18" r="3" />
+      <path d="M9 11l6-4M9 13l6 4M18 9v6" />
+      <path d="M2 12h1m18-6h1m-1 12h1" stroke-dasharray="1 1" />
+    </svg>`
   }
 ];
 
@@ -527,6 +543,8 @@ export function showLanding(updateHash = true) {
   if (modelReactionDiffusion) modelReactionDiffusion.style.display = "none";
   const modelKuramoto = document.getElementById("model-kuramoto");
   if (modelKuramoto) modelKuramoto.style.display = "none";
+  const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
+  if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -564,6 +582,7 @@ export function showModel(id, updateHash = true) {
   const modelPhysarum = document.getElementById("model-physarum");
   const modelReactionDiffusion = document.getElementById("model-reaction_diffusion");
   const modelKuramoto = document.getElementById("model-kuramoto");
+  const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -577,8 +596,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, and Kuramoto are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, and FitzHugh-Nagumo are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -640,6 +659,7 @@ export function showModel(id, updateHash = true) {
     if (modelPhysarum) modelPhysarum.style.display = id === "physarum" ? "block" : "none";
     if (modelReactionDiffusion) modelReactionDiffusion.style.display = id === "reaction_diffusion" ? "block" : "none";
     if (modelKuramoto) modelKuramoto.style.display = id === "kuramoto" ? "block" : "none";
+    if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = id === "fitzhugh_nagumo" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -666,6 +686,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "physarum") modeTag.textContent = "Physarum Slime Mould";
       else if (id === "reaction_diffusion") modeTag.textContent = "Reaction-Diffusion";
       else if (id === "kuramoto") modeTag.textContent = "Kuramoto Oscillators";
+      else if (id === "fitzhugh_nagumo") modeTag.textContent = "FitzHugh-Nagumo";
       modeTag.style.display = "inline-block";
     }
   }
@@ -758,6 +779,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "reaction_diffusion") showModel("reaction_diffusion", false);
     } else if (h === "#kuramoto" || h === "#sync-oscillators" || h === "#phase-sync") {
       if (activeModelId !== "kuramoto") showModel("kuramoto", false);
+    } else if (h === "#fitzhugh_nagumo" || h === "#fitzhugh-nagumo" || h === "#fhn" || h === "#spiking-network" || h === "#neuromorphic") {
+      if (activeModelId !== "fitzhugh_nagumo") showModel("fitzhugh_nagumo", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -810,6 +833,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("reaction_diffusion", false);
   } else if (initialHash === "#kuramoto" || initialHash === "#sync-oscillators" || initialHash === "#phase-sync") {
     showModel("kuramoto", false);
+  } else if (initialHash === "#fitzhugh_nagumo" || initialHash === "#fitzhugh-nagumo" || initialHash === "#fhn" || initialHash === "#spiking-network" || initialHash === "#neuromorphic") {
+    showModel("fitzhugh_nagumo", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

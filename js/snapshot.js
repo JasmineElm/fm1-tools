@@ -66,6 +66,7 @@ const PREFIX = {
   physarum: /^physarum[A-Z]/,
   reaction_diffusion: /^rd[A-Z]/,
   kuramoto: /^kuramoto[A-Z]/,
+  fitzhugh_nagumo: /^fhn[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {
