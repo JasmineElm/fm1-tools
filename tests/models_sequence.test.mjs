@@ -105,6 +105,7 @@ if (typeof localStorage === "undefined") {
 import { state } from "../js/state.js";
 import { MODELS, POLYPHONIC_MODELS } from "../js/modes.js";
 import { getModelDef } from "../js/snapshot.js";
+import { isLive, toggleLive, stopLive } from "../js/player.js";
 
 // Import all models and their lifecycle/generator/step exports
 import * as mene311 from "../js/generator.js";
@@ -345,6 +346,46 @@ test("Scale quantization conforms across all bank generators in sequence", () =>
           }
         }
       }
+    }
+  }
+});
+
+test("Transport Play and Stop contract across all models: models start paused, run on Play, stop and silence on Stop", () => {
+  for (const m of MODELS) {
+    const mod = MODEL_MODULE_MAP[m.id];
+    if (!mod) continue;
+
+    const activateFn = mod[`activate${m.id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}Model`]
+      || mod[`activate${m.id.charAt(0).toUpperCase() + m.id.slice(1)}Model`];
+    const deactivateFn = mod[`deactivate${m.id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}Model`]
+      || mod[`deactivate${m.id.charAt(0).toUpperCase() + m.id.slice(1)}Model`];
+
+    // Ensure stopped before activating
+    stopLive();
+
+    if (activateFn) {
+      activateFn();
+    }
+
+    // 1. Model must initialize in a paused/stopped state
+    assert.equal(isLive(), false, `Model ${m.id} must initialize paused (isLive() === false)`);
+
+    // 2. Starting via toggleLive (Play button) must start playback
+    toggleLive();
+    assert.equal(isLive(), true, `Model ${m.id} must be running after toggleLive (isLive() === true)`);
+
+    // 3. Stopping via stopLive (Stop button) must halt playback and silence voices
+    stopLive();
+    assert.equal(isLive(), false, `Model ${m.id} must stop after stopLive (isLive() === false)`);
+
+    // 4. Any model-specific running state must be false
+    const isRunningFn = mod[`is${m.id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}Running`];
+    if (isRunningFn) {
+      assert.equal(isRunningFn(), false, `Model ${m.id} isRunning() must be false when stopped`);
+    }
+
+    if (deactivateFn) {
+      deactivateFn();
     }
   }
 });

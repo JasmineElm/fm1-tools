@@ -198,7 +198,7 @@ export const krellVoices = Array.from({ length: MAX_VOICES }, (_, i) => new Krel
 
 // ---- Real-Time Simulation Loop ----
 function krellTick(time) {
-  if (!isRunning) return;
+  if (!isRunning || !isKrellPlaying) return;
 
   if (!lastFrameTime) lastFrameTime = time;
   const dt = Math.min(0.05, (time - lastFrameTime) / 1000);
@@ -395,20 +395,31 @@ export function isKrellRunning() {
 export function startKrell() {
   if (isKrellPlaying) return;
   isKrellPlaying = true;
+  isRunning = true;
+  lastFrameTime = performance.now();
   audio.unlock();
   const numVoices = Math.min(MAX_VOICES, Math.max(1, state.krellVoices ?? 2));
   for (let i = 0; i < numVoices; i++) {
     krellVoices[i].dwellTimer = i * 0.35;
     krellVoices[i].stage = "REST";
   }
+  if (!animFrameId) {
+    animFrameId = requestAnimationFrame(krellTick);
+  }
   status("Buchla Krell patch playing · Continuous envelope generation", "ok");
 }
 
 export function stopKrell() {
   isKrellPlaying = false;
+  isRunning = false;
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+  }
   krellVoices.forEach(v => v.stop());
   panicPreview();
   try { audio.allOff(); } catch (_) {}
+  renderKrellVisualizer();
   status("stopped");
 }
 
@@ -457,9 +468,9 @@ export function activateKrellModel() {
     isRunning: isKrellRunning
   });
 
-  isRunning = true;
-  lastFrameTime = 0;
+  isRunning = false;
   isKrellPlaying = false;
+  lastFrameTime = 0;
 
   // Stagger voice starts
   const numVoices = Math.min(MAX_VOICES, Math.max(1, state.krellVoices ?? 2));
@@ -468,7 +479,6 @@ export function activateKrellModel() {
     krellVoices[i].stage = "REST";
   }
 
-  animFrameId = requestAnimationFrame(krellTick);
   doGenerate(false);
   renderKrellVisualizer();
   status("Buchla Krell Patch: Ready (Press Play to start)", "ok");

@@ -502,10 +502,9 @@ function sandpileLoop(timestamp) {
       const [dx, dy] = getDropCoordinate(pattern, S);
       dropGrains(dx, dy, amount);
     }
+    // Relax the sandpile via toppling
+    runAvalancheCascade(350, true);
   }
-
-  // Relax the sandpile via toppling
-  runAvalancheCascade(350, true);
 
   // Decay flash highlights
   for (let i = 0; i < S * S; i++) {
@@ -548,6 +547,8 @@ export function startSandpile() {
 export function stopSandpile() {
   isSandpilePlaying = false;
   releaseAllVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("stopped");
 }

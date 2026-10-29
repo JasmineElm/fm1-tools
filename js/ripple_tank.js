@@ -633,6 +633,8 @@ export function startRipple() {
 export function stopRipple() {
   isRipplePlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("Ripple Tank: Stopped", "warn");
 }
@@ -666,6 +668,7 @@ export function activateRippleTankModel() {
     isRunning: isRippleRunning
   });
 
+  stopRipple();
   lastFrameTime = performance.now();
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
@@ -688,7 +691,9 @@ function animationTick(now) {
     const dt = Math.min(50, now - lastFrameTime);
     lastFrameTime = now;
 
-    stepSimulation(dt);
+    if (isRipplePlaying) {
+      stepSimulation(dt);
+    }
     renderCanvas();
 
     animFrameId = requestAnimationFrame(animationTick);

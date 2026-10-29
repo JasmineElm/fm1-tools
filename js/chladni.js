@@ -515,6 +515,8 @@ export function startChladni() {
 export function stopChladni() {
   isChladniPlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("Chladni Cymatics: Stopped", "warn");
 }
@@ -548,6 +550,7 @@ export function activateChladniModel() {
     isRunning: isChladniRunning
   });
 
+  stopChladni();
   lastFrameTime = performance.now();
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
@@ -570,7 +573,9 @@ function animationTick(now) {
     const dt = Math.min(50, now - lastFrameTime);
     lastFrameTime = now;
 
-    stepSimulation(dt);
+    if (isChladniPlaying) {
+      stepSimulation(dt);
+    }
     renderCanvas();
 
     animFrameId = requestAnimationFrame(animationTick);

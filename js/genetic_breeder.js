@@ -600,6 +600,8 @@ export function startBreeder() {
 export function stopBreeder() {
   isBreederPlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("Genetic Breeder: Stopped", "warn");
 }
@@ -633,6 +635,7 @@ export function activateGeneticBreederModel() {
     isRunning: isBreederRunning
   });
 
+  stopBreeder();
   lastFrameTime = performance.now();
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
@@ -655,7 +658,9 @@ function animationTick(now) {
     const dt = Math.min(50, now - lastFrameTime);
     lastFrameTime = now;
 
-    stepSimulation(dt);
+    if (isBreederPlaying) {
+      stepSimulation(dt);
+    }
     renderCanvas();
 
     animFrameId = requestAnimationFrame(animationTick);

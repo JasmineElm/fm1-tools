@@ -96,7 +96,12 @@ export function startHanenbow() {
 export function stopHanenbow() {
   isHanenbowPlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   voiceSlots.fill(null);
+  for (let i = 0; i < MAX_PLANKTON; i++) {
+    pActive[i] = 0;
+  }
   updatePlayBtnUI();
   status("stopped");
 }
@@ -503,7 +508,7 @@ function freeLoop(time) {
 
   const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
 
-  // Run cannon trigger clock when transport is playing
+  // Run cannon trigger clock and step ballistics when transport is playing
   if (isHanenbowPlaying) {
     const fireInterval = 1.0 / (Math.max(0.1, state.hanenbowFireRate ?? 1.5) * speedMult);
     fireTimer += dt;
@@ -511,10 +516,8 @@ function freeLoop(time) {
       fireTimer = 0;
       firePlankton();
     }
+    stepBallistics(dt * speedMult);
   }
-
-  // Always step ballistics so launched projectiles continue flying and ricocheting smoothly
-  stepBallistics(dt * speedMult);
 
   renderPondCanvas();
   animFrameId = requestAnimationFrame(freeLoop);

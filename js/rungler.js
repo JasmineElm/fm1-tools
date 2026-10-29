@@ -15,7 +15,7 @@ import {
   setModelGenerator, setModelRandomizer
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, setModelStepHandler } from "./player.js?v=1";
+import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
 import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
@@ -572,6 +572,36 @@ export function generateRunglerBank() {
   return bank;
 }
 
+export function startRunglerFree() {
+  runningFreeLoop = true;
+  lastFrameTime = performance.now();
+  if (!animFrameId) {
+    animFrameId = requestAnimationFrame(freeRunningTick);
+  }
+}
+
+export function stopRunglerFree() {
+  runningFreeLoop = false;
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+  }
+  releasePolyVoices();
+  panicPreview();
+  activeSoundingNote = null;
+  renderRunglerVisualizer();
+}
+
+export function toggleRunglerFree() {
+  if (runningFreeLoop) {
+    stopRunglerFree();
+    return false;
+  } else {
+    startRunglerFree();
+    return true;
+  }
+}
+
 export function activateRunglerModel() {
   setSelected(0);
   setModelGenerator(generateRunglerBank);
@@ -579,13 +609,21 @@ export function activateRunglerModel() {
 
   if (state.runglerMode === "free") {
     setModelStepHandler(null);
-    runningFreeLoop = true;
-    lastFrameTime = 0;
-    animFrameId = requestAnimationFrame(freeRunningTick);
+    runningFreeLoop = false;
+    setModelTransportHandler({
+      start: startRunglerFree,
+      stop: stopRunglerFree,
+      toggle: toggleRunglerFree,
+      isRunning: () => runningFreeLoop
+    });
   } else {
+    setModelTransportHandler(null);
     setModelStepHandler(handleRunglerStep);
     runningFreeLoop = false;
-    if (animFrameId) cancelAnimationFrame(animFrameId);
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = null;
+    }
   }
 
   doGenerate(false);
@@ -599,10 +637,12 @@ export function deactivateRunglerModel() {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
+  setModelTransportHandler(null);
   setModelStepHandler(null);
   setModelGenerator(null);
   setModelRandomizer(null);
   releasePolyVoices();
+  panicPreview();
   activeSoundingNote = null;
 }
 

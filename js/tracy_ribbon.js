@@ -966,13 +966,6 @@ export function initTracyRibbon() {
     }
   });
 
-  setModelTransportHandler("tracy_ribbon", {
-    start: startTracyRibbon,
-    stop: stopTracyRibbon,
-    toggle: toggleTracyRibbonRunning,
-    isRunning: isTracyRibbonRunning
-  });
-
   // Start rendering loop
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animLoop);
@@ -994,15 +987,23 @@ function syncControls() {
 
 export function activateTracyRibbonModel() {
   if (container) container.style.display = "block";
+  stopTracyRibbon();
+  setModelTransportHandler({
+    start: startTracyRibbon,
+    stop: stopTracyRibbon,
+    toggle: toggleTracyRibbonRunning,
+    isRunning: isTracyRibbonRunning
+  });
+  renderCanvas();
   if (!animFrameId) {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(animLoop);
   }
-  startTracyRibbon();
 }
 
 export function deactivateTracyRibbonModel() {
   stopTracyRibbon();
+  setModelTransportHandler(null);
   if (container) container.style.display = "none";
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);

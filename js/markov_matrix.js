@@ -650,6 +650,8 @@ export function startMarkov() {
 export function stopMarkov() {
   isMarkovPlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("Markov Matrix: Stopped", "warn");
 }
@@ -683,6 +685,7 @@ export function activateMarkovMatrixModel() {
     isRunning: isMarkovRunning
   });
 
+  stopMarkov();
   lastFrameTime = performance.now();
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
@@ -705,7 +708,9 @@ function animationTick(now) {
     const dt = Math.min(50, now - lastFrameTime);
     lastFrameTime = now;
 
-    stepSimulation(dt);
+    if (isMarkovPlaying) {
+      stepSimulation(dt);
+    }
     renderCanvas();
 
     animFrameId = requestAnimationFrame(animationTick);

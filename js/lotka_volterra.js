@@ -15,7 +15,7 @@ import {
   setModelGenerator, setModelRandomizer
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, setModelStepHandler } from "./player.js?v=1";
+import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
 import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
@@ -525,15 +525,46 @@ export function onLotkaVolterraLiveStep(stepIndex) {
   }
 }
 
+let isLvFreePlaying = false;
+export function startLotkaVolterraFree() {
+  isLvFreePlaying = true;
+  lastFrameTime = performance.now();
+}
+
+export function stopLotkaVolterraFree() {
+  isLvFreePlaying = false;
+  releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
+  voiceSlots[0] = null;
+  voiceSlots[1] = null;
+  voiceSlots[2] = null;
+  renderPhaseCanvas();
+}
+
+export function toggleLotkaVolterraFree() {
+  if (isLvFreePlaying) {
+    stopLotkaVolterraFree();
+    return false;
+  } else {
+    startLotkaVolterraFree();
+    return true;
+  }
+}
+
 function freeLoop(now) {
   if (state.lvMode === "free") {
-    const dt = lastFrameTime ? Math.min(0.05, (now - lastFrameTime) / 1000) : 0.016;
-    lastFrameTime = now;
+    if (isLive()) {
+      const dt = lastFrameTime ? Math.min(0.05, (now - lastFrameTime) / 1000) : 0.016;
+      lastFrameTime = now;
 
-    rk4Step(dt * 2.0);
-    checkPoincareTriggers(state.lvGateLen ?? 160);
-    renderPhaseCanvas();
-    updateHud();
+      rk4Step(dt * 2.0);
+      checkPoincareTriggers(state.lvGateLen ?? 160);
+      renderPhaseCanvas();
+      updateHud();
+    } else {
+      lastFrameTime = now;
+    }
   }
 
   animFrameId = requestAnimationFrame(freeLoop);
@@ -711,6 +742,18 @@ export function initLotkaVolterra() {
   modeToggleBtn.addEventListener("click", () => {
     state.lvMode = state.lvMode === "free" ? "sync" : "free";
     modeToggleBtn.textContent = state.lvMode === "free" ? "Free Loop" : "Sync Step";
+    if (state.lvMode === "free") {
+      setModelTransportHandler({
+        start: startLotkaVolterraFree,
+        stop: stopLotkaVolterraFree,
+        toggle: toggleLotkaVolterraFree,
+        isRunning: () => isLvFreePlaying
+      });
+      isLvFreePlaying = false;
+    } else {
+      stopLotkaVolterraFree();
+      setModelTransportHandler(null);
+    }
     renderPhaseCanvas();
     status(`Lotka-Volterra mode: ${state.lvMode.toUpperCase()}`, "ok");
   });
@@ -1034,6 +1077,18 @@ export function activateLotkaVolterraModel() {
   setModelRandomizer(randomizeLotkaVolterra);
   setModelStepHandler(onLotkaVolterraLiveStep);
 
+  if (state.lvMode === "free") {
+    setModelTransportHandler({
+      start: startLotkaVolterraFree,
+      stop: stopLotkaVolterraFree,
+      toggle: toggleLotkaVolterraFree,
+      isRunning: () => isLvFreePlaying
+    });
+    isLvFreePlaying = false;
+  } else {
+    setModelTransportHandler(null);
+  }
+
   const curBank = getBank();
   const hasExistingSteps = curBank?.[0]?.steps?.some((st) => (st.notes && st.notes.length > 0) || st._savedNote);
   if (!hasExistingSteps) {
@@ -1053,6 +1108,8 @@ export function activateLotkaVolterraModel() {
 }
 
 export function deactivateLotkaVolterraModel() {
+  stopLotkaVolterraFree();
+  setModelTransportHandler(null);
   releasePolyVoices();
   setModelStepHandler(null);
   voiceSlots[0] = null;

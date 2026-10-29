@@ -256,6 +256,8 @@ export function stopLive() {
   live = false;
   liveToken++;
   clearPlayhead();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   const btn = document.getElementById("audition");
   if (btn) { btn.textContent = "▶ Play"; btn.classList.remove("playing"); }
   status("stopped");
@@ -264,15 +266,20 @@ export function stopLive() {
 export function toggleLive() {
   if (modelTransportHandler?.toggle) {
     const running = modelTransportHandler.toggle();
+    const isNowRunning = typeof running === "boolean" ? running : (modelTransportHandler.isRunning ? modelTransportHandler.isRunning() : false);
     const btn = document.getElementById("audition");
     if (btn) {
-      if (running) {
+      if (isNowRunning) {
         btn.textContent = "■ Stop";
         btn.classList.add("playing");
       } else {
         btn.textContent = "▶ Play";
         btn.classList.remove("playing");
       }
+    }
+    if (!isNowRunning) {
+      panicPreview();
+      try { audio.allOff(); } catch (_) {}
     }
     return;
   }

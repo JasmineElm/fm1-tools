@@ -612,6 +612,7 @@ doGenerate(true);
 initMidi();
 initModes({
   onEnterModel: (modelId) => {
+    try { stopLive(); } catch (_) {}
     renderPresets();
     if (mene311NotesSection) mene311NotesSection.sync();
     if (mene311HumaniseSection) mene311HumaniseSection.sync();

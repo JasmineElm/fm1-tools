@@ -640,6 +640,8 @@ export function startFhn() {
 export function stopFhn() {
   isFhnPlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("FitzHugh-Nagumo: Stopped", "warn");
 }
@@ -673,6 +675,7 @@ export function activateFitzhughNagumoModel() {
     isRunning: isFhnRunning
   });
 
+  stopFhn();
   lastFrameTime = performance.now();
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
@@ -695,7 +698,9 @@ function animationTick(now) {
     const dt = Math.min(50, now - lastFrameTime);
     lastFrameTime = now;
 
-    stepSimulation(dt);
+    if (isFhnPlaying) {
+      stepSimulation(dt);
+    }
     renderCanvas();
 
     animFrameId = requestAnimationFrame(animationTick);

@@ -1048,13 +1048,6 @@ export function initBrownianRatchet() {
     }
   });
 
-  setModelTransportHandler("brownian_ratchet", {
-    start: startBrownianRatchet,
-    stop: stopBrownianRatchet,
-    toggle: toggleBrownianRatchetRunning,
-    isRunning: isBrownianRatchetRunning
-  });
-
   // Start rendering loop
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animLoop);
@@ -1078,15 +1071,23 @@ function syncControls() {
 
 export function activateBrownianRatchetModel() {
   if (container) container.style.display = "block";
+  stopBrownianRatchet();
+  setModelTransportHandler({
+    start: startBrownianRatchet,
+    stop: stopBrownianRatchet,
+    toggle: toggleBrownianRatchetRunning,
+    isRunning: isBrownianRatchetRunning
+  });
+  renderCanvas();
   if (!animFrameId) {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(animLoop);
   }
-  startBrownianRatchet();
 }
 
 export function deactivateBrownianRatchetModel() {
   stopBrownianRatchet();
+  setModelTransportHandler(null);
   if (container) container.style.display = "none";
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);

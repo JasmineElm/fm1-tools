@@ -676,6 +676,8 @@ export function startConvection() {
 export function stopConvection() {
   isConvectionPlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("Thermal Convection: Stopped", "warn");
 }
@@ -709,6 +711,7 @@ export function activateConvectionModel() {
     isRunning: isConvectionRunning
   });
 
+  stopConvection();
   lastFrameTime = performance.now();
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animationTick);
@@ -731,7 +734,9 @@ function animationTick(now) {
     const dt = Math.min(50, now - lastFrameTime);
     lastFrameTime = now;
 
-    stepSimulation(dt);
+    if (isConvectionPlaying) {
+      stepSimulation(dt);
+    }
     renderCanvas();
 
     animFrameId = requestAnimationFrame(animationTick);

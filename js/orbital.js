@@ -97,6 +97,8 @@ export function startOrbital() {
 export function stopOrbital() {
   isOrbitalPlaying = false;
   releasePolyVoices();
+  panicPreview();
+  try { audio.allOff(); } catch (_) {}
   voiceSlots.fill(null);
   updatePlayBtnUI();
   status("stopped");
@@ -391,9 +393,6 @@ function freeLoop(time) {
   if (isOrbitalPlaying) {
     stepVerlet(dt);
     checkOrbitalTriggers(dt);
-  } else {
-    // Subtle idle drift when stopped so the system is visibly alive
-    stepVerlet(dt * 0.25);
   }
 
   // Decay visual trigger flashes and expand shockwave ripples

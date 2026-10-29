@@ -876,13 +876,6 @@ export function initSelfAvoidingWalk() {
     }
   });
 
-  setModelTransportHandler("self_avoiding_walk", {
-    start: startSelfAvoidingWalk,
-    stop: stopSelfAvoidingWalk,
-    toggle: toggleSelfAvoidingWalkRunning,
-    isRunning: isSelfAvoidingWalkRunning
-  });
-
   // Start rendering loop
   if (!animFrameId) {
     animFrameId = requestAnimationFrame(animLoop);
@@ -904,15 +897,23 @@ function syncControls() {
 
 export function activateSelfAvoidingWalkModel() {
   if (container) container.style.display = "block";
+  stopSelfAvoidingWalk();
+  setModelTransportHandler({
+    start: startSelfAvoidingWalk,
+    stop: stopSelfAvoidingWalk,
+    toggle: toggleSelfAvoidingWalkRunning,
+    isRunning: isSelfAvoidingWalkRunning
+  });
+  renderCanvas();
   if (!animFrameId) {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(animLoop);
   }
-  startSelfAvoidingWalk();
 }
 
 export function deactivateSelfAvoidingWalkModel() {
   stopSelfAvoidingWalk();
+  setModelTransportHandler(null);
   if (container) container.style.display = "none";
   if (animFrameId) {
     cancelAnimationFrame(animFrameId);
