@@ -50,7 +50,7 @@ const TRAIL_PTS = 6;
 const pTrailX = new Float32Array(MAX_PLANKTON * TRAIL_PTS);
 const pTrailY = new Float32Array(MAX_PLANKTON * TRAIL_PTS);
 
-// Leaf Stem & Surface Buffers
+// Leaf Surface & Physics Buffers
 const leafX = new Float32Array(MAX_LEAVES);
 const leafY = new Float32Array(MAX_LEAVES);
 const leafLength = new Float32Array(MAX_LEAVES);
@@ -621,21 +621,13 @@ function renderPondCanvas() {
   ctx.lineTo(w, waterY);
   ctx.stroke();
 
-  // 2. Draw leaves, stems, and rotation handles
+  // 2. Draw leaves and rotation handles
   for (let i = 0; i < num; i++) {
     const lx = leafX[i] * scaleX;
     const ly = leafY[i] * scaleY;
     const len = leafLength[i] * scaleX;
     const ang = leafAngle[i] + leafBend[i];
     const halfL = len * 0.5;
-
-    // Stem: organic line anchored at the pond bottom
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = colLine;
-    ctx.beginPath();
-    ctx.moveTo(lx, waterY);
-    ctx.quadraticCurveTo(lx + (i % 2 === 0 ? 20 : -20) * scaleX, (ly + waterY) * 0.5, lx, ly);
-    ctx.stroke();
 
     const cosA = Math.cos(ang);
     const sinA = Math.sin(ang);
