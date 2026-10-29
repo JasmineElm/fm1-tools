@@ -373,14 +373,76 @@ export function toggleFlockRunning() {
   }
 }
 
+/**
+ * Randomize chord node (attractor) positions across the canvas space.
+ * Generates non-overlapping positions bounded within canvas margins and assigns varied scale degrees.
+ */
+export function randomizeAttractorPositions(count = 4) {
+  killActiveNotes();
+  attractors = [];
+
+  const w = width || 600;
+  const h = height || 420;
+  const minPad = 60;
+  const minSep = Math.max(65, (state.flockTriggerRadius || 48) * 1.3);
+
+  const numNodes = Math.max(3, Math.min(6, Math.round(count)));
+  const scaleDegrees = [0, 1, 2, 3, 4, 5, 6];
+  for (let i = scaleDegrees.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = scaleDegrees[i];
+    scaleDegrees[i] = scaleDegrees[j];
+    scaleDegrees[j] = tmp;
+  }
+
+  for (let i = 0; i < numNodes; i++) {
+    let placed = false;
+    let x = 0, y = 0;
+
+    for (let attempt = 0; attempt < 50; attempt++) {
+      x = minPad + Math.random() * (w - minPad * 2);
+      y = minPad + Math.random() * (h - minPad * 2);
+
+      let tooClose = false;
+      for (const a of attractors) {
+        if (Math.hypot(a.x - x, a.y - y) < minSep) {
+          tooClose = true;
+          break;
+        }
+      }
+
+      if (!tooClose) {
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      const angle = (i * 2 * Math.PI) / numNodes;
+      const r = Math.min(w, h) * 0.32;
+      x = w * 0.5 + r * Math.cos(angle);
+      y = h * 0.5 + r * Math.sin(angle);
+    }
+
+    const deg = scaleDegrees[i % scaleDegrees.length];
+    attractors.push(new Attractor(x, y, deg));
+  }
+}
+
+export function getAttractors() {
+  return attractors;
+}
+
 export function randomizeFlock() {
   const p = FLOCK_PRESETS[(Math.random() * FLOCK_PRESETS.length) | 0];
   if (p) {
     p.setup();
-    setupFlock();
-    syncAllControls();
-    status(`Randomized Swarm: ${p.name}`, "ok");
   }
+  const nodeCount = 3 + Math.floor(Math.random() * 3);
+  randomizeAttractorPositions(nodeCount);
+  setupFlock();
+  syncAllControls();
+  status(`Randomized Swarm: ${nodeCount} chord node positions & ${p ? p.name : "dynamics"}`, "ok");
 }
 
 function buildChord(rootBase, scaleIntervals, degreeOffset, dispersion) {
@@ -812,7 +874,7 @@ export function activateFlockModel() {
     setupFlock();
   }, 20);
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(stepSwarm);
   }
   status("Flocking Swarm Engine: Ready (Press Play to start swarm)", "ok");
@@ -824,7 +886,7 @@ export function deactivateFlockModel() {
   setModelStepHandler(null);
   setModelTransportHandler(null);
   setModelRandomizer(null);
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -1047,6 +1109,7 @@ export function initFlock() {
     makeTargetBtn("Cardinal 4", () => spawnPresetAttractors("cardinal"), "Place 4 cardinal attractor targets"),
     makeTargetBtn("Triangle 3", () => spawnPresetAttractors("triangle"), "Place 3 harmonic attractor nodes"),
     makeTargetBtn("Pentagram 5", () => spawnPresetAttractors("pentagram"), "Place 5 modal attractor nodes"),
+    makeTargetBtn("Random Nodes", () => { randomizeAttractorPositions(4); status("Randomized chord node positions", "ok"); }, "Randomize chord node positions across the canvas"),
     makeTargetBtn("Clear Targets", () => { killActiveNotes(); attractors = []; status("Cleared all attractor targets"); }, "Clear all attractors"),
     makeTargetBtn("PANIC (Mute)", () => { killActiveNotes(); status("Panic: Sent All Notes Off", "err"); }, "Send All Notes Off immediately")
   );
