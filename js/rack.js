@@ -41,6 +41,7 @@ import { initKuramoto, activateKuramotoModel, deactivateKuramotoModel } from "./
 import { initFitzhughNagumo, activateFitzhughNagumoModel, deactivateFitzhughNagumoModel } from "./fitzhugh_nagumo.js";
 import { initRippleTank, activateRippleTankModel, deactivateRippleTankModel } from "./ripple_tank.js";
 import { initConvection, activateConvectionModel, deactivateConvectionModel } from "./convection.js";
+import { initMarkovMatrix, activateMarkovMatrixModel, deactivateMarkovMatrixModel } from "./markov_matrix.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -594,6 +595,7 @@ initKuramoto();
 initFitzhughNagumo();
 initRippleTank();
 initConvection();
+initMarkovMatrix();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -1052,9 +1054,39 @@ initModes({
       deactivateKuramotoModel();
       deactivateFitzhughNagumoModel();
       deactivateRippleTankModel();
+      deactivateMarkovMatrixModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateConvectionModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "markov_matrix") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateRippleTankModel();
+      deactivateConvectionModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateMarkovMatrixModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -1090,6 +1122,7 @@ initModes({
     try { deactivateFitzhughNagumoModel(); } catch (e) { console.warn("Error deactivating fitzhugh_nagumo model:", e); }
     try { deactivateRippleTankModel(); } catch (e) { console.warn("Error deactivating ripple_tank model:", e); }
     try { deactivateConvectionModel(); } catch (e) { console.warn("Error deactivating convection model:", e); }
+    try { deactivateMarkovMatrixModel(); } catch (e) { console.warn("Error deactivating markov_matrix model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

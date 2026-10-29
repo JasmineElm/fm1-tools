@@ -69,6 +69,7 @@ const PREFIX = {
   fitzhugh_nagumo: /^fhn[A-Z]/,
   ripple_tank: /^ripple[A-Z]/,
   convection: /^convect[A-Z]/,
+  markov_matrix: /^markov[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

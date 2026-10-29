@@ -8,8 +8,7 @@ This master plan tracks the implementation of remaining, unimplemented non-step,
 
 | Model ID | Model Name | Primary Domain | Core Mathematical / Physical Primitives | Complexity | Status |
 |---|---|---|---|---|---|
-| `markov_matrix` | **High-Order Markov Transition Matrix** | Stochastic Melodic Memory | Conditional $N$-gram transition probability tables, mutation temperature | Moderate (2.5/5) | **Next / Pending** |
-| `genetic_breeder` | **Interactive Genetic Algorithm** | Evolutionary Melodic Breeding | Musical chromosome crossover/mutation, interactive fitness scoring | Moderate (3/5) | Backlog |
+| `genetic_breeder` | **Interactive Genetic Algorithm** | Evolutionary Melodic Breeding | Musical chromosome crossover/mutation, interactive fitness scoring | Moderate (3/5) | **Next / Pending** |
 | `chladni` | **Chladni Resonant Cymatics Plate** | Standing Wave Acoustics | 2D eigenfunction nodal lines, sand particle propulsion, chime harmonics | Moderate (3/5) | Backlog |
 | `brownian_ratchet` | **Brownian Thermal Ratchet** | Statistical Thermodynamics | Stochastic thermal Langevin fluctuations, asymmetric potential barrier | Low-Mod (2.5/5) | Backlog |
 | `tracy_ribbon` | **Electroplankton Tracy Ribbon** | Continuous Vector Trajectory | Organic spline path curvature, tangent velocity mapping, expressive FM envelopes | Moderate (2.5/5) | Backlog |
@@ -43,25 +42,20 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ---
 
-## 3. Active Specification: High-Order Markov Transition Matrix Melodic Memory
+## 3. Active Specification: Interactive Genetic Algorithm Melodic Genome Breeder
 
-- **Model ID**: `markov_matrix`
-- **Category**: Stochastic Melodic Memory / Discrete State Probability / Aleatoric Transitions.
-- **Architectural Scope**: A dynamic Markov transition network modeling musical memory. Given the previous $k$ notes/intervals ($k \in \{1, 2, 3\}$), the next pitch and rhythmic duration are selected via conditional transition probability vectors $P(S_{t} \mid S_{t-1}, \dots, S_{t-k})$ shaped by a temperature/entropy parameter.
-
-### Mathematical Formulation
-Conditional transition distribution with Boltzmann temperature scaling:
-$$P(s_j \mid \text{history}) = \frac{\exp(M(\text{history}, s_j) / \tau)}{\sum_k \exp(M(\text{history}, s_k) / \tau)}$$
-
-Where:
-- $M(\text{history}, s_j)$ is the log-frequency / transition weight matrix between scale degrees or interval classes.
-- $\tau$ is the stochastic temperature parameter ($\tau \to 0$ locks rigidly into deterministic cyclic motifs; $\tau \to \infty$ produces uniform aleatoric exploration).
-- Multiple voice channels (up to 8 voices) operate in parallel Markov walkers or voice-leading strands respecting the FM-1 hardware voice limit.
-
-### Musical Mapping
-- **Scale Degrees & Voice Strands**: Polyphonic Markov walkers (up to 8 voices) generate polyphonic counterpoint.
-- **Direct Manipulation**: Interactive transition probability heatmap / network transition graph where clicking nodes or cells alters transition probabilities in real time.
-- **Continuous CC #74 Modulation**: Information entropy $H = -\sum P \log P$ of the instantaneous transition matrix modulates CC #74 Brightness.
+- **Model ID**: `genetic_breeder`
+- **Category**: Evolutionary Biology / Genetic Algorithms / Interactive Fitness Breeding.
+- **Architectural Scope**: Maintains a population of musical genome chromosomes (encoding 16-step pitch intervals, gate triggers, velocities, and rhythm accents). Features one-point or uniform genetic crossover, mutation perturbations, and direct interactive user fitness evaluation (upvote/downvote buttons or dragging genomes in a 2D fitness arena).
+- **Mathematical Formulation**:
+  - Chromosome representation: Array of genes $g_i = (\Delta\text{pitch}, \text{gate}, \text{velocity}, \text{accent})$.
+  - Crossover: $C_1, C_2 = \text{Crossover}(P_1, P_2)$ with user-defined crossover probability $p_c \in [0.5, 0.95]$.
+  - Mutation: Random allele perturbation with probability $p_m \in [0.01, 0.25]$.
+  - Fitness proportional selection / tournament selection to produce the next generation.
+- **Musical Mapping**:
+  - Up to 8 concurrent active genomes auditioning in polyphonic counterpoint.
+  - Interactive workbench UI showing generational lineage, fitness landscape, and chromosome mutation controls.
+  - Mean genetic variance across the population modulates continuous CC #74 Brightness.
 
 ---
 
@@ -69,8 +63,7 @@ Where:
 
 For future reference and extension, these additional models are documented with concise descriptions:
 
-1. **Interactive Genetic Algorithm Melodic Genome Breeder**: Maintains a breeding population of musical chromosome vectors encoding rhythm, scale degree intervals, and gate envelopes, subjected to mutation and crossover operations. The user tags sounding motifs with positive or negative interactive fitness scores, steering the evolutionary survival and emergence of complex, personalized musical themes over successive generations.
-2. **Chladni Acoustic Resonant Plate & Nodal Sand Patterns**: Simulates Ernst Chladni’s vibrating square acoustic plates where virtual sand grains are propelled off anti-nodal zones and settle onto geometric nodal lines defined by 2D standing wave eigenfunctions $\cos(n \pi x / L)\cos(m \pi y / L) - \cos(m \pi x / L)\cos(n \pi y / L) = 0$. Grains settling into equilibrium nodal pockets trigger micro-tonal chime harmonics that shift dramatically as modal vibrational frequencies $m$ and $n$ are swept.
-3. **Brownian Ratchet / Feynman Thermal Diode**: A microscopic mechanical paddle immersed in a fluctuating thermal bath attempts to drive a cogwheel restricted to unidirectional rotation by an asymmetric spring-loaded pawl. Stochastic thermal collisions occasionally overcome the pawl barrier, generating aperiodic rhythmic step advances whose statistical burst frequencies are governed by temperature and mechanical load.
-4. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
-5. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.
+1. **Chladni Acoustic Resonant Plate & Nodal Sand Patterns**: Simulates Ernst Chladni’s vibrating square acoustic plates where virtual sand grains are propelled off anti-nodal zones and settle onto geometric nodal lines defined by 2D standing wave eigenfunctions $\cos(n \pi x / L)\cos(m \pi y / L) - \cos(m \pi x / L)\cos(n \pi y / L) = 0$. Grains settling into equilibrium nodal pockets trigger micro-tonal chime harmonics that shift dramatically as modal vibrational frequencies $m$ and $n$ are swept.
+2. **Brownian Ratchet / Feynman Thermal Diode**: A microscopic mechanical paddle immersed in a fluctuating thermal bath attempts to drive a cogwheel restricted to unidirectional rotation by an asymmetric spring-loaded pawl. Stochastic thermal collisions occasionally overcome the pawl barrier, generating aperiodic rhythmic step advances whose statistical burst frequencies are governed by temperature and mechanical load.
+3. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
+4. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.

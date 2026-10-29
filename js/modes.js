@@ -21,7 +21,8 @@ export const POLYPHONIC_MODELS = new Set([
   "kuramoto",
   "fitzhugh_nagumo",
   "ripple_tank",
-  "convection"
+  "convection",
+  "markov_matrix"
 ]);
 
 export const MODELS = [
@@ -371,6 +372,21 @@ export const MODELS = [
       <path d="M12 11V4M9 7l3-3 3 3" />
       <path d="M16 8a3 3 0 0 1 5 2c0 2-2 3-5 3" stroke-dasharray="1 1" />
     </svg>`
+  },
+  {
+    id: "markov_matrix",
+    name: "Markov Melodic Memory",
+    kicker: "Transition Matrix · Boltzmann Entropy · High-Order N-Grams",
+    available: true,
+    desc: "Conditional state transition probability matrix between scale degrees with Boltzmann temperature scaling and high-order N-gram memory history. Multiple concurrent polyphonic walkers explore melodic cadences, cyclic ostinatos, and aleatoric clouds while Shannon entropy dynamically modulates FM-1 CC #74 Brightness.",
+    tags: ["Markov Matrix", "Boltzmann Temp", "Shannon Entropy", "N-Gram Memory", "8-Voice Polyphony", "Direct Heatmap"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="6" r="2.5" />
+      <circle cx="18" cy="18" r="2.5" />
+      <circle cx="6" cy="18" r="2.5" />
+      <path d="M8.5 6h7M18 8.5v7M15.5 18h-7M6 15.5v-7M8 8l8 8" />
+    </svg>`
   }
 ];
 
@@ -579,6 +595,8 @@ export function showLanding(updateHash = true) {
   if (modelRippleTank) modelRippleTank.style.display = "none";
   const modelConvection = document.getElementById("model-convection");
   if (modelConvection) modelConvection.style.display = "none";
+  const modelMarkovMatrix = document.getElementById("model-markov_matrix");
+  if (modelMarkovMatrix) modelMarkovMatrix.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -619,6 +637,7 @@ export function showModel(id, updateHash = true) {
   const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
   const modelRippleTank = document.getElementById("model-ripple_tank");
   const modelConvection = document.getElementById("model-convection");
+  const modelMarkovMatrix = document.getElementById("model-markov_matrix");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -632,8 +651,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, and Convection are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, and Markov Matrix are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -698,6 +717,7 @@ export function showModel(id, updateHash = true) {
     if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = id === "fitzhugh_nagumo" ? "block" : "none";
     if (modelRippleTank) modelRippleTank.style.display = id === "ripple_tank" ? "block" : "none";
     if (modelConvection) modelConvection.style.display = id === "convection" ? "block" : "none";
+    if (modelMarkovMatrix) modelMarkovMatrix.style.display = id === "markov_matrix" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -727,6 +747,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "fitzhugh_nagumo") modeTag.textContent = "FitzHugh-Nagumo";
       else if (id === "ripple_tank") modeTag.textContent = "Acoustic Ripple Tank";
       else if (id === "convection") modeTag.textContent = "Atmospheric Convection";
+      else if (id === "markov_matrix") modeTag.textContent = "Markov Melodic Memory";
       modeTag.style.display = "inline-block";
     }
   }
@@ -825,6 +846,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "ripple_tank") showModel("ripple_tank", false);
     } else if (h === "#convection" || h === "#thermal-convection" || h === "#clouds" || h === "#rayleigh-benard") {
       if (activeModelId !== "convection") showModel("convection", false);
+    } else if (h === "#markov_matrix" || h === "#markov" || h === "#markov-matrix" || h === "#melodic-memory" || h === "#stochastic-melody") {
+      if (activeModelId !== "markov_matrix") showModel("markov_matrix", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -883,6 +906,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("ripple_tank", false);
   } else if (initialHash === "#convection" || initialHash === "#thermal-convection" || initialHash === "#clouds" || initialHash === "#rayleigh-benard") {
     showModel("convection", false);
+  } else if (initialHash === "#markov_matrix" || initialHash === "#markov" || initialHash === "#markov-matrix" || initialHash === "#melodic-memory" || initialHash === "#stochastic-melody") {
+    showModel("markov_matrix", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {
