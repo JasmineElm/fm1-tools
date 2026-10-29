@@ -128,35 +128,53 @@ let autoVoiceCounter = 0;
 
 /**
  * Play a voice with strict <= 8 voice FIFO stealing, dispatching to both MIDI and Web Audio.
- * Supports both playVoice(slot, note, vel, durMs) and playVoice(note, vel, durMs).
+ * Supports timestamp lookahead scheduling into hardware Web MIDI queues and AudioContext.
+ * Supports playVoice(slot, note, vel, durMs, [timestamp]) and playVoice(note, vel, durMs, [timestamp]).
  */
-export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeDur) {
-  let slot, note, vel, durMs;
+export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeDur, maybeTimestamp = 0) {
+  let slot, note, vel, durMs, timestamp = 0;
 
-  if (maybeDur !== undefined) {
-    // 4 arguments: (slot, note, vel, durMs)
+  if (typeof maybeDur === "number" && (typeof maybeTimestamp === "number" && maybeTimestamp > 0)) {
+    // 5 arguments: (slot, note, vel, durMs, timestamp)
     slot = voiceSlotOrNote;
     note = noteOrVel;
     vel = velOrDur;
     durMs = maybeDur;
+    timestamp = maybeTimestamp;
+  } else if (maybeDur !== undefined) {
+    if (typeof voiceSlotOrNote === "string") {
+      slot = voiceSlotOrNote;
+      note = noteOrVel;
+      vel = velOrDur;
+      durMs = maybeDur;
+      timestamp = typeof maybeTimestamp === "number" ? maybeTimestamp : 0;
+    } else {
+      slot = `auto_${(autoVoiceCounter++) % MAX_HARDWARE_VOICES}`;
+      note = voiceSlotOrNote;
+      vel = noteOrVel;
+      durMs = velOrDur;
+      timestamp = typeof maybeDur === "number" ? maybeDur : 0;
+    }
   } else if (typeof voiceSlotOrNote === "string") {
     // Named voice slot: ("lead", note, vel)
     slot = voiceSlotOrNote;
     note = noteOrVel;
     vel = velOrDur;
     durMs = 180;
+    timestamp = 0;
   } else {
     // 1 to 3 arguments: (note, [vel], [durMs])
     slot = `auto_${(autoVoiceCounter++) % MAX_HARDWARE_VOICES}`;
     note = voiceSlotOrNote;
     vel = noteOrVel;
     durMs = velOrDur;
+    timestamp = 0;
   }
 
   if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
 
   // Safe mode rate limiter: drop any note after 8th within 500ms to protect FM-1 sound engine
-  if (!recordAndCheckSafeNote()) {
+  if (!recordAndCheckSafeNote(timestamp > 0 ? timestamp : undefined)) {
     return;
   }
 
@@ -166,12 +184,23 @@ export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeD
 
   audio.unlock();
 
-  // If this voice slot is already playing a note, terminate it first
+  const now = performance.now();
+  const startPerfNow = timestamp > 0 ? timestamp : now;
+  const offPerfNow = startPerfNow + safeDur;
+  const deltaStartMs = Math.max(0, startPerfNow - now);
+  const deltaOffMs = Math.max(0, offPerfNow - now);
+
+  const audioCtx = audio.getAudioContext();
+  const baseAudioTime = audioCtx ? audioCtx.currentTime : 0;
+  const audioStartTime = audioCtx ? baseAudioTime + (deltaStartMs / 1000) : 0;
+  const audioOffTime = audioCtx ? baseAudioTime + (deltaOffMs / 1000) : 0;
+
+  // If this voice slot is already playing a note, terminate it first at scheduled timestamp
   if (activePolyVoices.has(slot)) {
     const prev = activePolyVoices.get(slot);
     clearTimeout(prev.timeoutId);
-    try { liveNoteOff(prev.note); } catch (_) {}
-    try { audio.noteOff(prev.note); } catch (_) {}
+    try { liveNoteOff(prev.note, startPerfNow); } catch (_) {}
+    try { audio.noteOff(prev.note, audioStartTime); } catch (_) {}
     activePolyVoices.delete(slot);
   }
 
@@ -180,21 +209,22 @@ export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeD
     const oldestSlot = activePolyVoices.keys().next().value;
     const oldest = activePolyVoices.get(oldestSlot);
     clearTimeout(oldest.timeoutId);
-    try { liveNoteOff(oldest.note); } catch (_) {}
-    try { audio.noteOff(oldest.note); } catch (_) {}
+    try { liveNoteOff(oldest.note, startPerfNow); } catch (_) {}
+    try { audio.noteOff(oldest.note, audioStartTime); } catch (_) {}
     activePolyVoices.delete(oldestSlot);
   }
 
   // Dispatch Note On (fromPoly = true prevents double counting)
-  try { liveNoteOn(safeNote, safeVel, true); } catch (_) {}
-  try { audio.noteOn(safeNote, safeVel); } catch (_) {}
+  try { liveNoteOn(safeNote, safeVel, true, startPerfNow); } catch (_) {}
+  try { audio.noteOn(safeNote, safeVel, audioStartTime); } catch (_) {}
 
   // Schedule Note Off
+  const timeoutDelay = deltaStartMs + safeDur;
   const timeoutId = setTimeout(() => {
-    try { liveNoteOff(safeNote); } catch (_) {}
-    try { audio.noteOff(safeNote); } catch (_) {}
+    try { liveNoteOff(safeNote, offPerfNow); } catch (_) {}
+    try { audio.noteOff(safeNote, audioOffTime); } catch (_) {}
     activePolyVoices.delete(slot);
-  }, safeDur);
+  }, timeoutDelay);
 
   activePolyVoices.set(slot, { note: safeNote, timeoutId });
 }

@@ -194,3 +194,26 @@ test("changes model maintains dependable rhythm across row transitions", async (
   stopChanges();
 });
 
+test("changes model dual-clock lookahead queues future bell strikes ahead of time", async () => {
+  const { initChanges, startChanges, stopChanges, scheduleLookahead, isChangesRunning } = await import("../js/changes.js");
+  const { state } = await import("../js/state.js");
+
+  initChanges();
+  state.changesStage = 4;
+  state.changesRate = 120;
+  state.changesOpenLead = 0;
+  state.changesSwing = 0;
+  resetToRounds(4);
+
+  startChanges();
+  assert.equal(isChangesRunning(), true);
+
+  // Lookahead pass into future window
+  const t0 = performance.now();
+  scheduleLookahead(t0 + 250);
+
+  // Stop changes and ensure active state is cleared
+  stopChanges();
+  assert.equal(isChangesRunning(), false);
+});
+

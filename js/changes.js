@@ -40,6 +40,7 @@ import { midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
 import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as audio from "./audio.js";
+import * as midi from "./midi.js";
 
 // ---- Constants & Pre-allocated TypedArrays (Zero GC Churn) ----
 export const MAX_BELLS = 8;
@@ -89,12 +90,14 @@ let isChangesPlaying = false;
 let animFrameId = null;
 let lastFrameTime = 0;
 
-// Strike timer within current row
+// Strike timer and dual-clock lookahead scheduler state
 let currentStrikePos = 0; // 0 to stage - 1
 let activeStrikePos = -1;
-let strikeTimer = 0;
-let isRowPause = false;
-let rowPauseTimer = 0;
+const LOOKAHEAD_MS = 100;
+let nextStrikeTime = 0;
+let simulatedClock = 0;
+let lookaheadTimerId = null;
+const visualEvents = [];
 
 // Canvas & UI references
 let canvas = null;
@@ -116,9 +119,7 @@ export function resetToRounds(stage = currentStage) {
   stroke = 0;
   currentStrikePos = 0;
   activeStrikePos = -1;
-  strikeTimer = 0;
-  isRowPause = false;
-  rowPauseTimer = 0;
+  visualEvents.length = 0;
   pendingCall = "none";
   currentCall = "none";
 
@@ -393,13 +394,13 @@ function calculateRowEntropy() {
 
 /**
  * Execute a single bell strike at current position in current row.
+ * Supports lookahead timestamp scheduling into MIDI and Web Audio hardware queues.
  */
-function strikeBell(bellNumber) {
+function strikeBell(bellNumber, timestamp = 0) {
   if (bellNumber < 1 || bellNumber > currentStage) return;
 
   const note = getBellNote(bellNumber, currentStage);
   const baseVel = Number(state.changesVelocity) || 96;
-  const swing = (Number(state.changesSwing) || 5) / 100;
 
   // Bells have weight: Tenor is heavier (longer duration & deeper velocity)
   const weightRatio = bellNumber / currentStage;
@@ -408,21 +409,15 @@ function strikeBell(bellNumber) {
 
   // Polyphonic voice slot: 0 to 7 mapped 1-to-1 to bell 1 to 8
   const voiceSlot = `bell_${bellNumber - 1}`;
-  playVoice(voiceSlot, note, vel, durMs);
+  playVoice(voiceSlot, note, vel, durMs, timestamp);
 
-  // Visual excitation
-  const bellIdx = bellNumber - 1;
-  bellFlash[bellIdx] = 1.0;
-  bellLastStrike[bellIdx] = performance.now();
-  // Bell wheel swing impulse: alternating direction depending on stroke
-  const impulse = stroke === 0 ? 0.35 : -0.35;
-  bellAngles[bellIdx] += impulse;
-
-  // Dynamic Timbre CC dispatch on Tenor strike or significant changes
-  if (bellNumber === currentStage || bellNumber === 1) {
-    const entropy = calculateRowEntropy();
-    const leadProgress = (leadIndex % (currentStage * 2)) / (currentStage * 2);
-    dispatchTimbreCc(entropy, leadProgress, Number(state.changesRate) || 160);
+  // If immediate playback (no lookahead timestamp or immediate), trigger visual excitation directly
+  if (!timestamp || timestamp <= performance.now() + 2) {
+    const bellIdx = bellNumber - 1;
+    bellFlash[bellIdx] = 1.0;
+    bellLastStrike[bellIdx] = performance.now();
+    const impulse = stroke === 0 ? 0.35 : -0.35;
+    bellAngles[bellIdx] += impulse;
   }
 }
 
@@ -441,6 +436,55 @@ function decayVisuals() {
 }
 
 /**
+ * Dual-Clock Lookahead Scheduler for English Change Ringing.
+ * Looks ahead into an 80-100ms window, computing bell permutations and scheduling
+ * Note On and Note Off events ahead of time into Web Audio and Web MIDI hardware buffers.
+ */
+export function scheduleLookahead(targetNow) {
+  if (!isChangesPlaying) return;
+
+  const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
+  const rateMs = Math.max(60, Math.min(500, Number(state.changesRate) || 160));
+  const stepMs = rateMs / speedMult;
+  const openLeadPercent = Math.max(0, Math.min(200, Number(state.changesOpenLead ?? 0)));
+  const openLeadMs = (rateMs * (openLeadPercent / 100)) / speedMult;
+  const swing = (Number(state.changesSwing) || 5) / 100;
+
+  // Resync nextStrikeTime if it fell behind (e.g. system sleep or long gap)
+  if (targetNow - nextStrikeTime > 300) {
+    nextStrikeTime = targetNow;
+  }
+
+  while (nextStrikeTime < targetNow + LOOKAHEAD_MS && isChangesPlaying) {
+    if (currentStrikePos >= currentStage) {
+      // Completed row: authentic backstroke open lead pause if configured
+      if (stroke === 1 && openLeadMs > 5) {
+        nextStrikeTime += openLeadMs;
+      }
+      advanceMethodRow();
+      currentStrikePos = 0;
+    }
+
+    const bellToStrike = currentRow[currentStrikePos];
+    const swingJitter = swing > 0 ? (Math.random() * 2 - 1) * swing * 0.1 * stepMs : 0;
+    const strikeTime = nextStrikeTime + swingJitter;
+
+    strikeBell(bellToStrike, strikeTime);
+
+    visualEvents.push({
+      time: strikeTime,
+      bell: bellToStrike,
+      pos: currentStrikePos,
+      stroke,
+      leadIndex
+    });
+
+    currentStrikePos++;
+    nextStrikeTime += stepMs;
+  }
+}
+
+/**
  * Main simulation step loop for autonomous / Free mode ringing.
  * Obeys both changesRate and the global SPEED knob multiplier (state.modelSpeed).
  */
@@ -448,49 +492,31 @@ export function stepSimulation(deltaTime) {
   const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
   const effectiveDt = deltaTime * speedMult;
 
-  const rateMs = Math.max(60, Math.min(500, Number(state.changesRate) || 160));
-  const openLeadPercent = Math.max(0, Math.min(200, Number(state.changesOpenLead ?? 0)));
-  const openLeadMs = rateMs * (openLeadPercent / 100);
-
   decayVisuals();
 
-  if (isRowPause) {
-    rowPauseTimer += effectiveDt;
-    if (rowPauseTimer >= openLeadMs) {
-      isRowPause = false;
-      rowPauseTimer = 0;
-      strikeTimer = 0;
-      advanceMethodRow();
-      currentStrikePos = 0;
-      activeStrikePos = 0;
-      const bellToStrike = currentRow[0];
-      strikeBell(bellToStrike);
-      currentStrikePos = 1;
+  if (!isChangesPlaying) return;
+
+  simulatedClock += effectiveDt;
+  const effectiveNow = Math.max(performance.now(), simulatedClock);
+
+  // Lookahead pass to queue future notes ahead of time
+  scheduleLookahead(effectiveNow);
+
+  // Drain visual events that have become audible
+  while (visualEvents.length > 0 && visualEvents[0].time <= effectiveNow) {
+    const evt = visualEvents.shift();
+    activeStrikePos = evt.pos;
+    const bellIdx = evt.bell - 1;
+    bellFlash[bellIdx] = 1.0;
+    bellLastStrike[bellIdx] = evt.time;
+    const impulse = evt.stroke === 0 ? 0.35 : -0.35;
+    bellAngles[bellIdx] += impulse;
+
+    if (evt.bell === currentStage || evt.bell === 1) {
+      const entropy = calculateRowEntropy();
+      const leadProgress = (evt.leadIndex % (currentStage * 2)) / (currentStage * 2);
+      dispatchTimbreCc(entropy, leadProgress, Number(state.changesRate) || 160);
     }
-    return;
-  }
-
-  strikeTimer += effectiveDt;
-  if (strikeTimer >= rateMs) {
-    strikeTimer -= rateMs;
-    if (strikeTimer > rateMs * 2) strikeTimer = 0; // Prevent runaway drift after backgrounding
-
-    if (currentStrikePos >= currentStage) {
-      // Completed row: check if authentic backstroke open lead pause is requested
-      if (stroke === 1 && openLeadMs > 5) {
-        isRowPause = true;
-        rowPauseTimer = 0;
-        activeStrikePos = -1;
-        return;
-      }
-      advanceMethodRow();
-      currentStrikePos = 0;
-    }
-
-    activeStrikePos = currentStrikePos;
-    const bellToStrike = currentRow[currentStrikePos];
-    strikeBell(bellToStrike);
-    currentStrikePos++;
   }
 }
 
@@ -689,7 +715,7 @@ export function renderCanvas() {
       const bellNum = currentRow[p];
       const bellIdx = bellNum - 1;
       const bx = sheetX + (p + 1) * colStep;
-      const isCurrentStriking = (isChangesPlaying && !isRowPause && p === activeStrikePos);
+      const isCurrentStriking = (isChangesPlaying && p === activeStrikePos);
       const isWorking = (bellNum === workingBell);
       const isTreble = (bellNum === 1);
       const flash = bellFlash[bellIdx] || 0;
@@ -900,22 +926,35 @@ export function startChanges() {
   audio.unlock();
   currentStrikePos = 0;
   activeStrikePos = -1;
-  isRowPause = false;
-  rowPauseTimer = 0;
-  const rateMs = Math.max(60, Math.min(500, Number(state.changesRate) || 160));
-  strikeTimer = rateMs; // Strike first bell immediately on Play
+  visualEvents.length = 0;
+  simulatedClock = performance.now();
+  nextStrikeTime = simulatedClock;
+
+  // Background lookahead interval: continues scheduling even if rAF throttles on background tabs
+  if (lookaheadTimerId) clearInterval(lookaheadTimerId);
+  lookaheadTimerId = setInterval(() => {
+    if (isChangesPlaying) {
+      scheduleLookahead(performance.now());
+    }
+  }, 25);
+
+  scheduleLookahead(simulatedClock);
   updatePlayBtnUI();
   status("Changes campanology: Ringing bells · Method changes active", "ok");
 }
 
 export function stopChanges() {
   isChangesPlaying = false;
-  isRowPause = false;
-  rowPauseTimer = 0;
+  if (lookaheadTimerId) {
+    clearInterval(lookaheadTimerId);
+    lookaheadTimerId = null;
+  }
+  visualEvents.length = 0;
   activeStrikePos = -1;
   currentStrikePos = 0;
-  strikeTimer = 0;
   releasePolyVoices();
+  try { midi.sendAllNotesOff(); } catch (_) {}
+  try { audio.allOff(); } catch (_) {}
   updatePlayBtnUI();
   status("stopped");
 }
