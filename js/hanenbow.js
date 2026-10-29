@@ -64,6 +64,20 @@ const leafPitchIdx = new Int32Array(MAX_LEAVES);
 const leafLastHitTime = new Float64Array(MAX_LEAVES).fill(-999);
 const leafCycleCount = new Int32Array(MAX_LEAVES);
 
+// Leaf Dimensions & Uniform Line Width (Usable across screen sizes)
+export const MIN_LEAF_LEN = 48; // minimum leaf length in reference units
+export const MAX_LEAF_LEN = 240;
+export const LEAF_LEN_DIVISOR = 6; // divisor on minimum length establishing common uniform width
+export const LEAF_LINE_WIDTH = MIN_LEAF_LEN / LEAF_LEN_DIVISOR; // 8px uniform line width
+
+export function getLeafLength(i) {
+  return leafLength[i];
+}
+
+export function setLeafLength(i, len) {
+  leafLength[i] = Math.max(MIN_LEAF_LEN, Math.min(MAX_LEAF_LEN, len));
+}
+
 // Cannon Launcher State & Bounds (Node is fully visible within canvas at all times)
 export const CAN_PAD = 36;
 export const CAN_MIN_X = CAN_PAD;
@@ -337,11 +351,9 @@ export function getLeafNote(i, advance = false, nowSec = performance.now() * 0.0
   }
 
   // Base pitch mapping: larger leaves are pitched lower!
-  // Length ranges from 45 (smallest/highest) to 225 (largest/lowest)
-  const MIN_LEN = 45;
-  const MAX_LEN = 225;
-  const len = Math.max(MIN_LEN, Math.min(MAX_LEN, leafLength[i]));
-  const normSize = (len - MIN_LEN) / (MAX_LEN - MIN_LEN); // 0.0 (smallest) to 1.0 (largest)
+  // Length ranges from MIN_LEAF_LEN (smallest/highest) to MAX_LEAF_LEN (largest/lowest)
+  const len = Math.max(MIN_LEAF_LEN, Math.min(MAX_LEAF_LEN, leafLength[i]));
+  const normSize = (len - MIN_LEAF_LEN) / (MAX_LEAF_LEN - MIN_LEAF_LEN); // 0.0 (smallest) to 1.0 (largest)
 
   // Total in-scale notes strictly spanning the Octave Spread (including top octave root)
   const numIntervals = Math.max(1, intervals.length);
@@ -449,7 +461,7 @@ function stepBallistics(dt) {
         const closeX = segP1x + u * segDx;
         const closeY = segP1y + u * segDy;
         const dist = Math.hypot(pX[p] - closeX, pY[p] - closeY);
-        const hitDist = pRadius + Math.max(3.0, Math.min(8.0, len * 0.045));
+        const hitDist = pRadius + LEAF_LINE_WIDTH * 0.5;
 
         if (dist < hitDist) {
           const { nx, ny } = getLeafNormal(pX[p], pY[p], closeX, closeY, ang, u, dist);
@@ -644,8 +656,8 @@ function renderPondCanvas() {
     const bCol = Math.round(94 + bloom * (94 - 94));
     const leafFillColor = `rgb(${rCol}, ${gCol}, ${bCol})`;
 
-    // Draw leaf body (flat rounded leaf segment with thickness proportional to length)
-    const leafThick = Math.max(5, Math.min(13, (len / 100.0) * 8)) * scaleY;
+    // Draw leaf body (common uniform line width irrespective of length, usable on small screens)
+    const leafThick = Math.max(3.5, LEAF_LINE_WIDTH * scaleY);
     ctx.lineWidth = leafThick;
     ctx.lineCap = "round";
     ctx.strokeStyle = leafFillColor;
@@ -766,7 +778,7 @@ function renderPondCanvas() {
   const grav = state.hanenbowGravity ?? 880;
   const rest = Math.min(1.0, state.hanenbowElasticity ?? 0.96);
   const stepT = 0.016;
-  const guideHitDist = pRadius + 5.0;
+  const guideHitDist = pRadius + LEAF_LINE_WIDTH * 0.5;
   ctx.moveTo(arcX * scaleX, arcY * scaleY);
   for (let s = 0; s < 70; s++) {
     arcVy += grav * stepT;
@@ -1195,14 +1207,14 @@ export function initHanenbow() {
         const dx = mx - leafX[i];
         const dy = my - leafY[i];
         const dist = Math.hypot(dx, dy);
-        leafLength[i] = Math.max(45, Math.min(240, dist * 2));
+        leafLength[i] = Math.max(MIN_LEAF_LEN, Math.min(MAX_LEAF_LEN, dist * 2));
         leafAngle[i] = Math.atan2(dy, dx);
       } else if (isDragging.type === "leaf-tip1") {
         const i = isDragging.idx;
         const dx = mx - leafX[i];
         const dy = my - leafY[i];
         const dist = Math.hypot(dx, dy);
-        leafLength[i] = Math.max(45, Math.min(240, dist * 2));
+        leafLength[i] = Math.max(MIN_LEAF_LEN, Math.min(MAX_LEAF_LEN, dist * 2));
         leafAngle[i] = Math.atan2(dy, dx) + Math.PI;
       } else if (isDragging.type === "leaf-pos") {
         const i = isDragging.idx;
@@ -1383,7 +1395,7 @@ registerModel({
         const ld = h.leafData[i];
         if (ld.x !== undefined) leafX[i] = ld.x;
         if (ld.y !== undefined) leafY[i] = ld.y;
-        if (ld.len !== undefined) leafLength[i] = ld.len;
+        if (ld.len !== undefined) leafLength[i] = Math.max(MIN_LEAF_LEN, Math.min(MAX_LEAF_LEN, ld.len));
         if (ld.angle !== undefined) leafAngle[i] = ld.angle;
         if (ld.pitch !== undefined) leafPitchIdx[i] = ld.pitch;
       }

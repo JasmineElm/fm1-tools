@@ -84,6 +84,12 @@ import {
   CAN_MAX_X,
   CAN_MIN_Y,
   CAN_MAX_Y,
+  MIN_LEAF_LEN,
+  MAX_LEAF_LEN,
+  LEAF_LEN_DIVISOR,
+  LEAF_LINE_WIDTH,
+  getLeafLength,
+  setLeafLength,
   getCannon,
   setCannonPosition,
   generateHanenbowBank
@@ -155,3 +161,33 @@ test("generateHanenbowBank returns valid bank with custom cannon position", () =
   assert.ok(bank[0].steps.length > 0, "bank must contain steps");
   assert.equal(typeof bank[0].rate, "number");
 });
+
+test("common leaf line width uses divisor on minimum leaf length", () => {
+  assert.ok(MIN_LEAF_LEN > 0, "minimum leaf length is defined");
+  assert.ok(LEAF_LEN_DIVISOR > 0, "leaf length divisor is defined");
+  assert.equal(LEAF_LINE_WIDTH, MIN_LEAF_LEN / LEAF_LEN_DIVISOR);
+  // With MIN_LEAF_LEN = 48 and divisor = 6, uniform line width is 8px
+  assert.equal(MIN_LEAF_LEN, 48);
+  assert.equal(LEAF_LEN_DIVISOR, 6);
+  assert.equal(LEAF_LINE_WIDTH, 8);
+});
+
+test("resizing leaf changes length of leaf only and clamps within bounds", () => {
+  // Set leaf 0 to mid length
+  setLeafLength(0, 120);
+  assert.equal(getLeafLength(0), 120);
+
+  // Common line width remains strictly constant regardless of length
+  assert.equal(LEAF_LINE_WIDTH, 8);
+
+  // Clamping below MIN_LEAF_LEN
+  setLeafLength(0, 10);
+  assert.equal(getLeafLength(0), MIN_LEAF_LEN);
+  assert.equal(LEAF_LINE_WIDTH, 8);
+
+  // Clamping above MAX_LEAF_LEN
+  setLeafLength(0, 500);
+  assert.equal(getLeafLength(0), MAX_LEAF_LEN);
+  assert.equal(LEAF_LINE_WIDTH, 8);
+});
+
