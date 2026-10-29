@@ -49,9 +49,13 @@ import {
   startConvection,
   stopConvection,
   toggleConvectionRunning,
-  isConvectionRunning
+  isConvectionRunning,
+  randomizeConvection,
+  activateConvectionModel,
+  deactivateConvectionModel
 } from "../js/convection.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 
 test("CONVECTION_PRESETS contains required atmospheric thermodynamic regimes", () => {
   assert.equal(CONVECTION_PRESETS.length, 5);
@@ -188,4 +192,48 @@ test("convection transport handlers toggle running state", () => {
   assert.equal(isConvectionRunning(), true);
   toggleConvectionRunning();
   assert.equal(isConvectionRunning(), false);
+});
+
+test("randomizeConvection fills temperature and vapor fields with Perlin noise", () => {
+  randomizeConvection();
+
+  for (let i = 0; i < temp.length; i++) {
+    const t = temp[i];
+    const q = vapor[i];
+    assert.ok(!Number.isNaN(t), `NaN in temp at ${i}`);
+    assert.ok(!Number.isNaN(q), `NaN in vapor at ${i}`);
+    assert.ok(t >= 0.05 && t <= 2.05, `Temp out of bounds: ${t}`);
+    assert.ok(q >= 0.0 && q <= 1.55, `Vapor out of bounds: ${q}`);
+  }
+
+  // Check that horizontal variation exists (Perlin plumes perturbing 1D base profile)
+  let diffCount = 0;
+  for (let y = 1; y < GRID_H - 1; y++) {
+    const t0 = temp[y * GRID_W + 5];
+    const t1 = temp[y * GRID_W + 25];
+    if (Math.abs(t0 - t1) > 0.02) diffCount++;
+  }
+  assert.ok(diffCount > 5, "Horizontal Perlin variation should be present in temp field");
+});
+
+test("global randomizer dispatch invokes randomizeConvection when convection is active", () => {
+  activateConvectionModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  // Zero out temp and invoke rnd
+  temp.fill(0);
+  rnd();
+
+  let hasHeat = false;
+  for (let i = 0; i < temp.length; i++) {
+    if (temp[i] > 0.1) {
+      hasHeat = true;
+      break;
+    }
+  }
+  assert.ok(hasHeat, "Randomizer must populate thermal fields");
+
+  deactivateConvectionModel();
+  assert.equal(getCurrentModelRandomizer(), null);
 });

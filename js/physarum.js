@@ -39,6 +39,7 @@ import { midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
 import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as audio from "./audio.js";
+import { fillPerlin2D } from "./perlin.js";
 
 // ---- Simulation & Grid Constants ----
 export const GRID_W = 100;
@@ -47,7 +48,7 @@ export const MAX_AGENTS = 768;
 export const MAX_FOOD = 8; // Strictly hardware 8 voices
 
 // Pre-allocated TypedArrays for Pheromone Field (Zero GC Churn)
-const trailField = new Float32Array(GRID_W * GRID_H);
+export const trailField = new Float32Array(GRID_W * GRID_H);
 const diffusedField = new Float32Array(GRID_W * GRID_H);
 
 // Pre-allocated Agent State
@@ -177,6 +178,26 @@ export function initFoodPreset(presetId = state.physarumPreset || "tokyo") {
       foodNodes[i].octave = Math.floor(i / 4);
     }
   }
+}
+
+/**
+ * Randomize chemoattractant trail field using 2D Perlin noise.
+ */
+export function randomizePhysarum() {
+  fillPerlin2D(trailField, GRID_W, GRID_H, {
+    scale: 0.08,
+    octaves: 3,
+    persistence: 0.5,
+    lacunarity: 2.0,
+    min: 0.0,
+    max: 1.0,
+    threshold: 0.42,
+    thresholdMin: 0.0,
+    power: 1.4
+  });
+  diffusedField.set(trailField);
+  status("Randomised chemoattractant trail field with Perlin noise", "ok");
+  if (canvas) renderCanvas();
 }
 
 /**
@@ -514,7 +535,9 @@ function animationTick(now) {
   }
 
   renderCanvas();
-  animFrameId = requestAnimationFrame(animationTick);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(animationTick);
+  }
 }
 
 /**
@@ -683,6 +706,7 @@ function updatePlayBtnUI() {
  */
 export function activatePhysarumModel() {
   setModelGenerator(generatePhysarumBank);
+  setModelRandomizer(randomizePhysarum);
   setModelStepHandler((stepIdx) => {
     // SYNC mode transport step: execute one simulation pulse
     stepSimulation(32);
@@ -696,19 +720,20 @@ export function activatePhysarumModel() {
   });
 
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivatePhysarumModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   isPhysarumPlaying = false;
   releasePolyVoices();
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -726,6 +751,7 @@ export function initPhysarum() {
       <!-- Top Control Bar -->
       <div class="physarum-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
         <button id="physarum-play-btn" class="btn btn-ok" style="min-width: 60px;">Play</button>
+        <button id="physarum-rnd-btn" class="btn" title="Randomise trail field with Perlin noise">RND</button>
         <button id="physarum-reseed-btn" class="btn" title="Re-seed swarm around active food hubs">Re-Seed</button>
         <button id="physarum-clear-btn" class="btn" title="Clear all trails">Clear</button>
 
@@ -788,6 +814,11 @@ export function initPhysarum() {
   const playBtn = document.getElementById("physarum-play-btn");
   if (playBtn) playBtn.addEventListener("click", togglePhysarumRunning);
 
+  const rndBtn = document.getElementById("physarum-rnd-btn");
+  if (rndBtn) rndBtn.addEventListener("click", () => {
+    randomizePhysarum();
+  });
+
   const reseedBtn = document.getElementById("physarum-reseed-btn");
   if (reseedBtn) reseedBtn.addEventListener("click", () => {
     reseedAgents();
@@ -802,6 +833,8 @@ export function initPhysarum() {
     renderCanvas();
     status("Cleared pheromone trail field");
   });
+
+  setModelRandomizer(randomizePhysarum);
 
   const presetSelect = document.getElementById("physarum-preset-select");
   if (presetSelect) {

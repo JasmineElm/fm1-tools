@@ -46,9 +46,14 @@ import {
   startPhysarum,
   stopPhysarum,
   togglePhysarumRunning,
-  isPhysarumRunning
+  isPhysarumRunning,
+  randomizePhysarum,
+  trailField,
+  activatePhysarumModel,
+  deactivatePhysarumModel
 } from "../js/physarum.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 
 test("PHYSARUM_PRESETS contains required network topologies", () => {
   assert.equal(PHYSARUM_PRESETS.length, 5);
@@ -158,4 +163,40 @@ test("physarum transport controls toggle running state", () => {
 
   togglePhysarumRunning();
   assert.equal(isPhysarumRunning(), false);
+});
+
+test("randomizePhysarum fills trail field with Perlin noise", () => {
+  randomizePhysarum();
+
+  let nonZeroCount = 0;
+  for (let i = 0; i < trailField.length; i++) {
+    const v = trailField[i];
+    assert.ok(!Number.isNaN(v), `NaN in trailField at ${i}`);
+    assert.ok(v >= 0.0 && v <= 1.05, `trailField value out of bounds: ${v}`);
+    if (v > 0.01) nonZeroCount++;
+  }
+
+  assert.ok(nonZeroCount > 50, "Should generate organic attractant trails");
+});
+
+test("global randomizer dispatch invokes randomizePhysarum when physarum is active", () => {
+  activatePhysarumModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  // Zero out trailField and invoke rnd
+  trailField.fill(0);
+  rnd();
+
+  let hasTrail = false;
+  for (let i = 0; i < trailField.length; i++) {
+    if (trailField[i] > 0.01) {
+      hasTrail = true;
+      break;
+    }
+  }
+  assert.ok(hasTrail, "Randomizer must populate trail field");
+
+  deactivatePhysarumModel();
+  assert.equal(getCurrentModelRandomizer(), null);
 });

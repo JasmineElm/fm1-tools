@@ -38,6 +38,7 @@ import { midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
 import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as audio from "./audio.js";
+import { fillPerlin2D } from "./perlin.js";
 
 // ---- Grid Dimensions & Pre-allocated Buffers (Zero GC Churn) ----
 export const GRID_W = 64;
@@ -265,6 +266,69 @@ export function injectThermalPlume(gx, gy, tempDelta = 0.6, radius = 4) {
       }
     }
   }
+}
+
+/**
+ * Randomize atmospheric thermodynamic and vapor fields with 2D Perlin noise.
+ * Generates organic thermal plumes, moisture clouds, and gentle circulation seeds.
+ */
+export function randomizeConvection() {
+  const currentPreset = CONVECTION_PRESETS.find(p => p.id === (state.convectPreset || "cumulus_rolls")) || CONVECTION_PRESETS[0];
+  const tGround = Number(state.convectGroundTemp ?? currentPreset.groundTemp);
+  const tTop = 0.15;
+  const humidity = Number(state.convectHumidity ?? currentPreset.humidity);
+
+  // Generate 2D Perlin perturbation into temp buffer
+  fillPerlin2D(temp, GRID_W, GRID_H, {
+    scale: 0.1,
+    octaves: 3,
+    persistence: 0.5,
+    lacunarity: 2.0,
+    min: -0.35,
+    max: 0.55
+  });
+
+  // Generate 2D Perlin vapor pockets
+  fillPerlin2D(vapor, GRID_W, GRID_H, {
+    scale: 0.12,
+    octaves: 2,
+    persistence: 0.5,
+    lacunarity: 2.0,
+    min: -0.25,
+    max: 0.45
+  });
+
+  for (let y = 0; y < GRID_H; y++) {
+    const normY = y / (GRID_H - 1);
+    const baseT = tGround * (1.0 - normY) + tTop * normY;
+    const baseQ = humidity * (1.0 - normY * 0.7);
+
+    for (let x = 0; x < GRID_W; x++) {
+      const idx = y * GRID_W + x;
+
+      // Add base temperature lapse profile to Perlin perturbation
+      const t = baseT + temp[idx];
+      temp[idx] = Math.max(0.05, Math.min(2.0, t));
+      tempPrev[idx] = temp[idx];
+
+      // Add base humidity to Perlin moisture pockets
+      const q = baseQ + vapor[idx];
+      vapor[idx] = Math.max(0.0, Math.min(1.5, q));
+      vaporPrev[idx] = vapor[idx];
+    }
+  }
+
+  // Clear existing condensates and fluid velocities
+  cloud.fill(0);
+  velU.fill(0);
+  velV.fill(0);
+  velUPrev.fill(0);
+  velVPrev.fill(0);
+  pressure.fill(0);
+  divergence.fill(0);
+
+  status("Randomised atmospheric thermodynamic fields with Perlin noise", "ok");
+  if (canvas) renderCanvas();
 }
 
 /**
@@ -699,6 +763,7 @@ function updatePlayBtnUI() {
  */
 export function activateConvectionModel() {
   setModelGenerator(generateConvectionBank);
+  setModelRandomizer(randomizeConvection);
   setModelStepHandler((stepIdx) => {
     // In SYNC mode: advance simulation step
     stepSimulation(32);
@@ -713,17 +778,18 @@ export function activateConvectionModel() {
 
   stopConvection();
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateConvectionModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   stopConvection();
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -739,7 +805,9 @@ function animationTick(now) {
     }
     renderCanvas();
 
-    animFrameId = requestAnimationFrame(animationTick);
+    if (typeof requestAnimationFrame === "function") {
+      animFrameId = requestAnimationFrame(animationTick);
+    }
   } else {
     animFrameId = null;
   }
@@ -801,6 +869,7 @@ export function initConvection() {
         <div id="convect-span-ctrl"></div>
         <div style="display: flex; gap: 6px; margin-left: auto;">
           <button id="convect-plume-btn" class="btn" title="Inject buoyant thermal plume from ground">Inject Plume</button>
+          <button id="convect-rnd-btn" class="btn" title="Randomise atmospheric fields with Perlin noise">RND</button>
           <button id="convect-clear-btn" class="btn" title="Clear clouds and calm fluid">Clear Clouds</button>
           <button id="convect-play-btn" class="btn btn-ok" title="Start/Stop Convection Simulation">Play</button>
         </div>
@@ -944,6 +1013,13 @@ export function initConvection() {
     });
   }
 
+  const rndBtn = document.getElementById("convect-rnd-btn");
+  if (rndBtn) {
+    rndBtn.addEventListener("click", () => {
+      randomizeConvection();
+    });
+  }
+
   const clearBtn = document.getElementById("convect-clear-btn");
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
@@ -961,6 +1037,8 @@ export function initConvection() {
       toggleConvectionRunning();
     });
   }
+
+  setModelRandomizer(randomizeConvection);
 
   setupCanvasInteraction();
   initConvectionPreset(state.convectPreset || "cumulus_rolls");

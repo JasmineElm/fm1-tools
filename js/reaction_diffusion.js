@@ -41,14 +41,15 @@ import { midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
 import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as audio from "./audio.js";
+import { fillPerlin2D } from "./perlin.js";
 
 // ---- Grid Dimensions & Pre-allocated TypedArrays (Zero GC Churn) ----
 export const GRID_W = 96;
 export const GRID_H = 64;
 export const MAX_PROBES = 8; // Strictly 8 voices for M-VAVE FM-1 hardware
 
-const gridU = new Float32Array(GRID_W * GRID_H);
-const gridV = new Float32Array(GRID_W * GRID_H);
+export const gridU = new Float32Array(GRID_W * GRID_H);
+export const gridV = new Float32Array(GRID_W * GRID_H);
 const nextU = new Float32Array(GRID_W * GRID_H);
 const nextV = new Float32Array(GRID_W * GRID_H);
 
@@ -162,6 +163,38 @@ export function inoculateDroplet(cx, cy, radius = 4) {
       }
     }
   }
+}
+
+/**
+ * Randomize Gray-Scott chemical substrate using 2D Perlin noise.
+ * Generates organic morphogen clusters and sets complementary inhibitor field.
+ */
+export function randomizeReactionDiffusion() {
+  fillPerlin2D(gridV, GRID_W, GRID_H, {
+    scale: 0.08,
+    octaves: 3,
+    persistence: 0.5,
+    lacunarity: 2.0,
+    min: 0.0,
+    max: 0.48,
+    threshold: 0.45,
+    thresholdMin: 0.0,
+    power: 1.2
+  });
+
+  for (let i = 0; i < GRID_W * GRID_H; i++) {
+    const v = gridV[i];
+    if (v > 0) {
+      gridU[i] = Math.max(0.15, 1.0 - v * 1.3);
+    } else {
+      gridU[i] = 1.0;
+    }
+  }
+
+  nextU.set(gridU);
+  nextV.set(gridV);
+  status("Randomised Gray-Scott chemical substrate with Perlin noise", "ok");
+  if (canvas) renderCanvas();
 }
 
 /**
@@ -405,7 +438,9 @@ function animationTick(now) {
   }
 
   renderCanvas();
-  animFrameId = requestAnimationFrame(animationTick);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(animationTick);
+  }
 }
 
 /**
@@ -561,6 +596,7 @@ function updatePlayBtnUI() {
  */
 export function activateReactionDiffusionModel() {
   setModelGenerator(generateReactionDiffusionBank);
+  setModelRandomizer(randomizeReactionDiffusion);
   setModelStepHandler((stepIdx) => {
     // SYNC mode step: execute simulation pulses
     stepSimulation(32);
@@ -574,19 +610,20 @@ export function activateReactionDiffusionModel() {
   });
 
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateReactionDiffusionModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   isRdPlaying = false;
   releasePolyVoices();
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -604,6 +641,7 @@ export function initReactionDiffusion() {
       <!-- Top Control Bar -->
       <div class="rd-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
         <button id="rd-play-btn" class="btn btn-ok" style="min-width: 60px;">Play</button>
+        <button id="rd-rnd-btn" class="btn" title="Randomise chemical substrate with Perlin noise">RND</button>
         <button id="rd-seed-btn" class="btn" title="Re-inoculate chemical seeds">Re-Seed</button>
         <button id="rd-clear-btn" class="btn" title="Clear substrate to pure U">Clear</button>
 
@@ -656,6 +694,11 @@ export function initReactionDiffusion() {
   const playBtn = document.getElementById("rd-play-btn");
   if (playBtn) playBtn.addEventListener("click", toggleReactionDiffusionRunning);
 
+  const rndBtn = document.getElementById("rd-rnd-btn");
+  if (rndBtn) rndBtn.addEventListener("click", () => {
+    randomizeReactionDiffusion();
+  });
+
   const seedBtn = document.getElementById("rd-seed-btn");
   if (seedBtn) seedBtn.addEventListener("click", () => {
     seedChemicalField("multi_seed");
@@ -670,6 +713,8 @@ export function initReactionDiffusion() {
     renderCanvas();
     status("Cleared chemical substrate to pure U");
   });
+
+  setModelRandomizer(randomizeReactionDiffusion);
 
   const presetSelect = document.getElementById("rd-preset-select");
   if (presetSelect) {

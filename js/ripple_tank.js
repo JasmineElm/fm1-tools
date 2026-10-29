@@ -37,15 +37,16 @@ import { midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
 import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as audio from "./audio.js";
+import { fillPerlin2D } from "./perlin.js";
 
 // ---- Grid Dimensions & Pre-allocated TypedArrays (Zero GC Churn) ----
 export const GRID_W = 80;
 export const GRID_H = 48;
 export const MAX_PICKUPS = 8; // FM-1 8 hardware voices
 
-let uPrev = new Float32Array(GRID_W * GRID_H);
-let uCurr = new Float32Array(GRID_W * GRID_H);
-let uNext = new Float32Array(GRID_W * GRID_H);
+export let uPrev = new Float32Array(GRID_W * GRID_H);
+export let uCurr = new Float32Array(GRID_W * GRID_H);
+export let uNext = new Float32Array(GRID_W * GRID_H);
 export const barriers = new Uint8Array(GRID_W * GRID_H);
 
 // Pre-allocated Hydrophone Pickup Sensors
@@ -334,6 +335,39 @@ export function dropWater(gx, gy, amplitude = 1.6, radius = 2.5) {
       }
     }
   }
+}
+
+/**
+ * Randomize wave field space with 2D Perlin noise.
+ */
+export function randomizeRippleTank() {
+  fillPerlin2D(uCurr, GRID_W, GRID_H, {
+    scale: 0.08,
+    octaves: 3,
+    persistence: 0.5,
+    lacunarity: 2.0,
+    min: -1.2,
+    max: 1.2
+  });
+
+  // Zero boundaries and rigid barriers
+  for (let y = 0; y < GRID_H; y++) {
+    const row = y * GRID_W;
+    for (let x = 0; x < GRID_W; x++) {
+      const idx = row + x;
+      if (x === 0 || x === GRID_W - 1 || y === 0 || y === GRID_H - 1 || barriers[idx]) {
+        uCurr[idx] = 0.0;
+        uPrev[idx] = 0.0;
+      } else {
+        // Slight phase correlation in uPrev creates immediate dynamic wave propagation
+        uPrev[idx] = uCurr[idx] * 0.75;
+      }
+    }
+  }
+
+  uNext.fill(0);
+  status("Randomised wave field with Perlin noise", "ok");
+  if (canvas) renderCanvas();
 }
 
 /**
@@ -656,6 +690,7 @@ function updatePlayBtnUI() {
  */
 export function activateRippleTankModel() {
   setModelGenerator(generateRippleTankBank);
+  setModelRandomizer(randomizeRippleTank);
   setModelStepHandler((stepIdx) => {
     // In SYNC mode: step simulation advance
     stepSimulation(32);
@@ -670,17 +705,18 @@ export function activateRippleTankModel() {
 
   stopRipple();
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateRippleTankModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   stopRipple();
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -696,7 +732,9 @@ function animationTick(now) {
     }
     renderCanvas();
 
-    animFrameId = requestAnimationFrame(animationTick);
+    if (typeof requestAnimationFrame === "function") {
+      animFrameId = requestAnimationFrame(animationTick);
+    }
   } else {
     animFrameId = null;
   }
@@ -760,6 +798,7 @@ export function initRippleTank() {
         <div id="ripple-span-ctrl"></div>
         <div style="display: flex; gap: 6px; margin-left: auto;">
           <button id="ripple-tool-btn" class="btn" title="Toggle between Splash and Barrier drawing">Tool: Splash</button>
+          <button id="ripple-rnd-btn" class="btn" title="Randomise wave field with Perlin noise">RND</button>
           <button id="ripple-splash-btn" class="btn" title="Drop large central splash">Drop Ripple</button>
           <button id="ripple-clear-btn" class="btn" title="Clear wave height field">Clear</button>
           <button id="ripple-play-btn" class="btn btn-ok" title="Start/Stop Ripple Tank">Play</button>
@@ -887,6 +926,13 @@ export function initRippleTank() {
     });
   }
 
+  const rndBtn = document.getElementById("ripple-rnd-btn");
+  if (rndBtn) {
+    rndBtn.addEventListener("click", () => {
+      randomizeRippleTank();
+    });
+  }
+
   const splashBtn = document.getElementById("ripple-splash-btn");
   if (splashBtn) {
     splashBtn.addEventListener("click", () => {
@@ -914,6 +960,7 @@ export function initRippleTank() {
     });
   }
 
+  setModelRandomizer(randomizeRippleTank);
   setupCanvasInteraction();
   initTankPreset(state.ripplePreset || "double_slit");
   renderCanvas();

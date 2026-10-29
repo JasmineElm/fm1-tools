@@ -75,3 +75,23 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ### 4.2 Polymer Self-Avoiding Walk & Steric Jamming Folding
 
+- **Model ID**: `self_avoiding_walk`
+- **Category**: Statistical Polymer Physics / Molecular Conformation / Kinetic Jamming.
+- **Architectural Scope**: Simulates a growing self-avoiding random walk (SAW) on a 2D discrete lattice representing synthetic polymer chain growth and molecular protein folding. Monomer additions trigger scale-quantized notes; steric jamming triggers polyphonic collapse cascades.
+
+### 4.3 Global 2D Perlin Noise Generator & Drawn Grid Randomizers
+
+- **Module**: `js/perlin.js`
+- **Architectural Scope**: Standalone, zero-dependency, zero-GC 2D Improved Perlin noise and Fractal Brownian Motion (fBm) engine available globally to all sequencer models and client scripts (via ES module export and `window.perlinNoise`).
+- **Core Primitives**:
+  - `setPerlinSeed(seed)` / `getPerlinSeed()`: Deterministic permutation table generation using Mulberry32 PRNG and Fisher-Yates shuffle.
+  - `perlin2D(x, y)`: Ken Perlin's quintic fade curve ($6t^5 - 15t^4 + 10t^3$), 8-direction gradient hash, normalized to $[-1.0, 1.0]$.
+  - `fbm2D(x, y, options)`: Multi-octave Fractal Brownian Motion octave summation normalized to $[-1.0, 1.0]$.
+  - `fillPerlin2D(buffer, width, height, options)`: In-place TypedArray filler (`Float32Array`, `Uint8Array`) with frequency scale, octaves, persistence, lacunarity, min/max mapping, threshold gating, power contrast shaping, and additive modes.
+  - `generatePerlinGrid(width, height, options)`: Convenient allocator returning a filled `Float32Array`.
+- **Integrated Drawn Grid Models**:
+  - `ripple_tank` ([js/ripple_tank.js](file:///c:/Users/kj6fi/Dropbox/git/fm1-pulses/js/ripple_tank.js)): `randomizeRippleTank()` fills acoustic wave displacement fields (`uCurr`, `uPrev`) with boundary-clamped Perlin waves; registers with `setModelRandomizer()` and provides toolbar `RND` button.
+  - `reaction_diffusion` ([js/reaction_diffusion.js](file:///c:/Users/kj6fi/Dropbox/git/fm1-pulses/js/reaction_diffusion.js)): `randomizeReactionDiffusion()` seeds organic morphogen $V$ clusters and complementary $U$ inhibitor fields; registers with `setModelRandomizer()` and provides toolbar `RND` button.
+  - `convection` ([js/convection.js](file:///c:/Users/kj6fi/Dropbox/git/fm1-pulses/js/convection.js)): `randomizeConvection()` perturbs base temperature lapse rates and moisture distributions with Perlin thermal plumes and vapor clouds; registers with `setModelRandomizer()` and provides toolbar `RND` button.
+  - `physarum` ([js/physarum.js](file:///c:/Users/kj6fi/Dropbox/git/fm1-pulses/js/physarum.js)): `randomizePhysarum()` generates organic chemoattractant trail highways (`trailField`); registers with `setModelRandomizer()` and provides toolbar `RND` button.
+

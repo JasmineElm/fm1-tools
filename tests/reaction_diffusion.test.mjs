@@ -40,14 +40,20 @@ import {
   seedChemicalField,
   inoculateDroplet,
   stepSimulation,
+  randomizeReactionDiffusion,
+  gridU,
+  gridV,
   getProbeNote,
   generateReactionDiffusionBank,
   startReactionDiffusion,
   stopReactionDiffusion,
   toggleReactionDiffusionRunning,
-  isReactionDiffusionRunning
+  isReactionDiffusionRunning,
+  activateReactionDiffusionModel,
+  deactivateReactionDiffusionModel
 } from "../js/reaction_diffusion.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 
 test("RD_PRESETS contains required Turing morphogenesis parameter regimes", () => {
   assert.equal(RD_PRESETS.length, 5);
@@ -146,4 +152,43 @@ test("reaction_diffusion transport handlers toggle state", () => {
 
   toggleReactionDiffusionRunning();
   assert.equal(isReactionDiffusionRunning(), false);
+});
+
+test("randomizeReactionDiffusion fills chemical substrate with Perlin noise", () => {
+  randomizeReactionDiffusion();
+
+  let vClusterCount = 0;
+  for (let i = 0; i < gridV.length; i++) {
+    const v = gridV[i];
+    const u = gridU[i];
+    assert.ok(!Number.isNaN(v), `NaN in gridV at ${i}`);
+    assert.ok(!Number.isNaN(u), `NaN in gridU at ${i}`);
+    assert.ok(v >= 0.0 && v <= 0.55, `Morphogen V out of bounds: ${v}`);
+    assert.ok(u >= 0.1 && u <= 1.0, `Inhibitor U out of bounds: ${u}`);
+    if (v > 0.05) vClusterCount++;
+  }
+
+  assert.ok(vClusterCount > 50, "Should generate organic morphogen V clusters");
+});
+
+test("global randomizer dispatch invokes randomizeReactionDiffusion when reaction_diffusion is active", () => {
+  activateReactionDiffusionModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  // Zero out morphogen and test randomizer
+  gridV.fill(0);
+  rnd();
+
+  let hasMorphogen = false;
+  for (let i = 0; i < gridV.length; i++) {
+    if (gridV[i] > 0.05) {
+      hasMorphogen = true;
+      break;
+    }
+  }
+  assert.ok(hasMorphogen, "Randomizer must seed morphogen clusters");
+
+  deactivateReactionDiffusionModel();
+  assert.equal(getCurrentModelRandomizer(), null);
 });

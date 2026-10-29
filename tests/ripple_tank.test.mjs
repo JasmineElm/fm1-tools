@@ -41,14 +41,20 @@ import {
   initTankPreset,
   stepSimulation,
   dropWater,
+  randomizeRippleTank,
+  uCurr,
+  uPrev,
   getPickupNote,
   generateRippleTankBank,
   startRipple,
   stopRipple,
   toggleRippleRunning,
-  isRippleRunning
+  isRippleRunning,
+  activateRippleTankModel,
+  deactivateRippleTankModel
 } from "../js/ripple_tank.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 
 test("RIPPLE_PRESETS contains required wave mechanics geometries", () => {
   assert.equal(RIPPLE_PRESETS.length, 5);
@@ -182,4 +188,49 @@ test("ripple_tank transport handlers toggle running state", () => {
   assert.equal(isRippleRunning(), true);
   toggleRippleRunning();
   assert.equal(isRippleRunning(), false);
+});
+
+test("randomizeRippleTank fills space with 2D Perlin noise and respects boundaries", () => {
+  randomizeRippleTank();
+
+  let nonZeroCount = 0;
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      const idx = y * GRID_W + x;
+      const val = uCurr[idx];
+      assert.ok(!Number.isNaN(val), `NaN at (${x}, ${y})`);
+      assert.ok(val >= -1.25 && val <= 1.25, `Value ${val} out of bounds`);
+
+      // Boundaries must be 0
+      if (x === 0 || x === GRID_W - 1 || y === 0 || y === GRID_H - 1 || barriers[idx]) {
+        assert.equal(val, 0.0, `Boundary/barrier at (${x}, ${y}) must be zero`);
+      } else if (Math.abs(val) > 0.01) {
+        nonZeroCount++;
+      }
+    }
+  }
+
+  assert.ok(nonZeroCount > 100, "Perlin noise should fill internal fluid domain");
+});
+
+test("global randomizer dispatch invokes randomizeRippleTank when ripple_tank is active", () => {
+  activateRippleTankModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  // Zero out uCurr and invoke rnd()
+  uCurr.fill(0);
+  rnd();
+
+  let hasDisplacement = false;
+  for (let i = 0; i < uCurr.length; i++) {
+    if (Math.abs(uCurr[i]) > 0.01) {
+      hasDisplacement = true;
+      break;
+    }
+  }
+  assert.ok(hasDisplacement, "Randomizer must populate wave field displacement");
+
+  deactivateRippleTankModel();
+  assert.equal(getCurrentModelRandomizer(), null);
 });
