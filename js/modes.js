@@ -15,7 +15,8 @@ export const POLYPHONIC_MODELS = new Set([
   "percolation",
   "dla",
   "epidemic",
-  "changes"
+  "changes",
+  "physarum"
 ]);
 
 export const MODELS = [
@@ -276,6 +277,23 @@ export const MODELS = [
       <path d="M10 20a2 2 0 0 0 4 0" />
       <circle cx="12" cy="12" r="1.5" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "physarum",
+    name: "Physarum Slime Mould",
+    kicker: "Bio-Computing Transport Networks · Chemotaxis Swarm · Steiner Optimization",
+    available: true,
+    desc: "Autonomous multi-agent chemotaxis simulation based on Jeff Jones' formulation of Physarum polycephalum. Hundreds of mobile sensory agents forage across a 2D diffused pheromone field, self-organizing into biological transport highways connecting up to 8 food oat nodes. Peristaltic nutrient flux pulses trigger scale-quantized notes respecting the FM-1's 8 hardware voices.",
+    tags: ["Physarum", "Slime Mould", "Chemotaxis", "Steiner Networks", "Multi-Agent", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 9V3M12 15v6M9 12H3M15 12h6" />
+      <circle cx="12" cy="3" r="1.5" />
+      <circle cx="12" cy="21" r="1.5" />
+      <circle cx="3" cy="12" r="1.5" />
+      <circle cx="21" cy="12" r="1.5" />
+      <path d="M5.5 5.5l3 3m7 7l3 3m-13 0l3-3m7-7l3-3" stroke-dasharray="1 1" />
+    </svg>`
   }
 ];
 
@@ -472,6 +490,8 @@ export function showLanding(updateHash = true) {
   if (modelEpidemic) modelEpidemic.style.display = "none";
   const modelChanges = document.getElementById("model-changes");
   if (modelChanges) modelChanges.style.display = "none";
+  const modelPhysarum = document.getElementById("model-physarum");
+  if (modelPhysarum) modelPhysarum.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -506,6 +526,7 @@ export function showModel(id, updateHash = true) {
   const modelDla = document.getElementById("model-dla");
   const modelEpidemic = document.getElementById("model-epidemic");
   const modelChanges = document.getElementById("model-changes");
+  const modelPhysarum = document.getElementById("model-physarum");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -519,8 +540,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, and Changes are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, and Physarum are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -579,6 +600,7 @@ export function showModel(id, updateHash = true) {
     if (modelDla) modelDla.style.display = id === "dla" ? "block" : "none";
     if (modelEpidemic) modelEpidemic.style.display = id === "epidemic" ? "block" : "none";
     if (modelChanges) modelChanges.style.display = id === "changes" ? "block" : "none";
+    if (modelPhysarum) modelPhysarum.style.display = id === "physarum" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -602,6 +624,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "dla") modeTag.textContent = "DLA Dendritic Crystal";
       else if (id === "epidemic") modeTag.textContent = "SIR Epidemic Network";
       else if (id === "changes") modeTag.textContent = "Change Ringing";
+      else if (id === "physarum") modeTag.textContent = "Physarum Slime Mould";
       modeTag.style.display = "inline-block";
     }
   }
@@ -688,6 +711,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "epidemic") showModel("epidemic", false);
     } else if (h === "#changes" || h === "#bells" || h === "#campanology") {
       if (activeModelId !== "changes") showModel("changes", false);
+    } else if (h === "#physarum" || h === "#slime" || h === "#mould") {
+      if (activeModelId !== "physarum") showModel("physarum", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -734,6 +759,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("epidemic", false);
   } else if (initialHash === "#changes" || initialHash === "#bells" || initialHash === "#campanology") {
     showModel("changes", false);
+  } else if (initialHash === "#physarum" || initialHash === "#slime" || initialHash === "#mould") {
+    showModel("physarum", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {
