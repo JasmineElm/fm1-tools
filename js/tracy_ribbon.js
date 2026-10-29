@@ -290,7 +290,7 @@ let creatureTabEls = [];
 export function initTracyPreset(presetId) {
   const p = TRACY_PRESETS.find(item => item.id === presetId) || TRACY_PRESETS[0];
   state.tracyPreset = p.id;
-  state.tracySpeed = state.tracySpeed ?? 1.0;
+  state.modelSpeed = state.modelSpeed ?? 1.0;
   state.tracyCreatureCount = state.tracyCreatureCount ?? 4;
 
   for (let i = 0; i < MAX_CREATURES; i++) {
@@ -448,7 +448,7 @@ export function randomizeTracy() {
  */
 export function stepSimulation(dt = 0.016) {
   const numActive = Math.min(MAX_CREATURES, Math.max(1, state.tracyCreatureCount ?? 4));
-  const masterSpeed = Math.max(0.1, Number(state.tracySpeed ?? 1.0));
+  const masterSpeed = Math.max(0.1, Number(state.modelSpeed ?? state.tracySpeed ?? 1.0));
   let anyTriggered = false;
 
   for (let k = 0; k < numActive; k++) {
@@ -1032,20 +1032,8 @@ export function initTracyRibbon() {
     tip: "Number of active simultaneous creatures on the grid (1-8)"
   }));
 
-  const rowSpeed = R("tracySpeed", knob({
-    label: "Master Spd",
-    min: 0.2,
-    max: 3.0,
-    step: 0.05,
-    value: state.tracySpeed ?? 1.0,
-    format: v => `${v.toFixed(2)}x`,
-    onInput: v => { state.tracySpeed = v; },
-    tip: "Master speed multiplier for all grid creatures"
-  }));
-
   sectPath.appendChild(rowPreset);
   sectPath.appendChild(rowCreatureCount);
-  sectPath.appendChild(rowSpeed);
 
   // Section B: Selected Creature Parameter Controls
   const sectSelectedCreature = document.createElement("div");
@@ -1122,10 +1110,6 @@ export function initTracyRibbon() {
   globalActions.style.gap = "6px";
   globalActions.style.marginTop = "8px";
 
-  const btnRandomize = actionBtn("Randomize", () => {
-    randomizeTracy();
-  }, "Randomize number of creatures, pitch offsets, and node routes");
-
   const btnResetAll = actionBtn("Reset All", () => {
     for (let i = 0; i < MAX_CREATURES; i++) {
       creatures[i].segIndex = 0;
@@ -1144,7 +1128,6 @@ export function initTracyRibbon() {
     status("Cleared all creature paths");
   }, "Clear paths for all creatures");
 
-  globalActions.appendChild(btnRandomize);
   globalActions.appendChild(btnResetAll);
   globalActions.appendChild(btnClearAll);
 
@@ -1210,7 +1193,6 @@ export function updateTracyScaleAndOctave() {
  * Refresh UI control widgets when state values update.
  */
 function syncControls() {
-  if (refs.tracySpeed?.setValue) refs.tracySpeed.setValue(state.tracySpeed);
   if (refs.tracyCreatureCount?.setValue) refs.tracyCreatureCount.setValue(state.tracyCreatureCount);
   if (refs.tracyPreset?.setValue) refs.tracyPreset.setValue(state.tracyPreset);
   syncCreatureControls();
@@ -1265,7 +1247,7 @@ registerModel({
       preset: state.tracyPreset,
       creatureCount: state.tracyCreatureCount ?? 4,
       selectedCreature: selectedCreatureIndex,
-      masterSpeed: state.tracySpeed ?? 1.0,
+      masterSpeed: state.modelSpeed ?? 1.0,
       masterOctave: state.tracyOctave ?? 0,
       creatures: creatures.map(c => ({
         nodes: [...c.nodes],
@@ -1278,8 +1260,13 @@ registerModel({
   restore: (data) => {
     if (!data) return;
     if (data.preset) state.tracyPreset = data.preset;
-    if (data.masterSpeed !== undefined) state.tracySpeed = data.masterSpeed;
-    if (data.speed !== undefined && data.masterSpeed === undefined) state.tracySpeed = data.speed;
+    if (data.masterSpeed !== undefined) {
+      state.modelSpeed = data.masterSpeed;
+      if (refs.speed?.setValue) refs.speed.setValue(state.modelSpeed, false);
+    } else if (data.speed !== undefined) {
+      state.modelSpeed = data.speed;
+      if (refs.speed?.setValue) refs.speed.setValue(state.modelSpeed, false);
+    }
     if (data.masterOctave !== undefined) state.tracyOctave = data.masterOctave;
     if (data.octave !== undefined && data.masterOctave === undefined) state.tracyOctave = data.octave;
     if (data.creatureCount !== undefined) state.tracyCreatureCount = data.creatureCount;
