@@ -19,7 +19,7 @@ import {
 } from "./state.js";
 import { knob, dropdown } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -473,13 +473,6 @@ function dispatchAvalancheAudio(toppleCount, comX, comY, siteCount, S) {
       spawnRipple(cxCell, cyCell, 16 + v * 6, col);
     }
   }
-
-  // MIDI CC #74 Brightness Modulation
-  dispatchTimbreCc(toppleCount / 40, {
-    dest: state.sandpileCcDest ?? 74,
-    depth: state.sandpileCcDepth ?? 80,
-    floorFactor: 0
-  });
 }
 
 // ---- Autonomous Free Physics Loop ----
@@ -804,7 +797,6 @@ function syncControlsFromState() {
   if (refs.sandpileSpan?.setValue) refs.sandpileSpan.setValue(String(state.sandpileSpan ?? 2), false);
   if (refs.sandpileGateLen?.setValue) refs.sandpileGateLen.setValue(state.sandpileGateLen, false);
   if (refs.sandpileVelocity?.setValue) refs.sandpileVelocity.setValue(state.sandpileVelocity, false);
-  if (refs.sandpileCcDepth?.setValue) refs.sandpileCcDepth.setValue(state.sandpileCcDepth, false);
   if (refs.sandpileDropPattern?.setValue) refs.sandpileDropPattern.setValue(state.sandpileDropPattern || "center", false);
   if (refs.sandpileBoundary?.setValue) refs.sandpileBoundary.setValue(state.sandpileBoundary || "open", false);
   if (refs.sandpilePitchMapping?.setValue) refs.sandpilePitchMapping.setValue(state.sandpilePitchMapping || "x-axis", false);
@@ -1024,19 +1016,7 @@ export function initSandpile() {
   });
   R("sandpileVelocity", kVel);
 
-  const kCc = knob({
-    label: "FM CC74",
-    min: 0, max: 127, step: 1,
-    value: state.sandpileCcDepth ?? 80,
-    unit: "",
-    title: "MIDI CC #74 Brightness modulation depth driven by avalanche power",
-    onChange: (v) => {
-      state.sandpileCcDepth = v;
-    }
-  });
-  R("sandpileCcDepth", kCc);
-
-  paramGrid.append(kSize, kRate, kAmount, kSpan, kGate, kVel, kCc);
+  paramGrid.append(kSize, kRate, kAmount, kSpan, kGate, kVel);
 
   // Dropdown Row: Pattern, Boundary, Pitch Mapping
   const dropdownRow = document.createElement("div");

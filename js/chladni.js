@@ -27,7 +27,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -353,9 +353,6 @@ export function stepSimulation(dtMs = 16) {
       probes[p].pulseAnim = 0;
     }
   }
-
-  // Continuous Timbre Modulation via Plate Vibrational Energy: dispatch CC #74 Brightness
-  dispatchTimbreCc(meanVibrationRms, 0.5, 200);
 }
 
 /**

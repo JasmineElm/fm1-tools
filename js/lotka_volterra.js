@@ -16,7 +16,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -187,14 +187,6 @@ function rk4Step(dt) {
 function playSpeciesVoice(speciesIdx, note, vel, durMs) {
   playVoice(speciesIdx, note, vel, durMs);
   voiceSlots[speciesIdx] = note;
-
-  // Modulate FM-1 CC #74 Brightness with predator-prey intensity
-  const ratio = Math.min(1, Math.max(0, simY / (simX + 0.1)));
-  dispatchTimbreCc(ratio, {
-    dest: state.lvCcDest ?? 74,
-    depth: state.lvCcDepth ?? 85,
-    minVal: 15
-  });
 }
 
 // ---- 2D (X, Y) Phase Space Position to Pitch Mapping ----
@@ -491,15 +483,6 @@ export function onLotkaVolterraLiveStep(stepIndex) {
     rk4Step(0.04);
     renderPhaseCanvas();
     updateHud();
-
-    // Modulate FM-1 CC #74 Brightness with predator-prey intensity
-    const ratio = Math.min(1, Math.max(0, simY / (simX + 0.1)));
-    dispatchTimbreCc(ratio, {
-      dest: state.lvCcDest ?? 74,
-      depth: state.lvCcDepth ?? 85,
-      minVal: 15,
-      requireLive: true
-    });
 
     // Dynamically derive triggered note pitch from current (X, Y) phase trajectory
     const curBank = getBank();
@@ -944,17 +927,7 @@ export function initLotkaVolterra() {
   });
   R("lvThresholdY", kThY);
 
-  const kCc = knob({
-    label: "FM CC#74",
-    min: 0, max: 127, step: 1,
-    value: state.lvCcDepth ?? 85,
-    unit: "",
-    title: "FM-1 CC #74 Brightness modulation depth driven by predator-prey ratio",
-    onChange: (v) => { state.lvCcDepth = v; }
-  });
-  R("lvCcDepth", kCc);
-
-  paramGrid.append(kSpeed, kA, kB1, kC, kD2, kThX, kThY, kCc);
+  paramGrid.append(kSpeed, kA, kB1, kC, kD2, kThX, kThY);
   paramCard.appendChild(paramGrid);
 
   module.append(headerCard, meterCard, paramCard);

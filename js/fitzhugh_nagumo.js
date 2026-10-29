@@ -28,7 +28,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -368,11 +368,6 @@ export function stepSimulation(dtMs = 16) {
 
   traceHead = (traceHead + 1) % HISTORY_LEN;
   meanPotential = sumV / MAX_NEURONS;
-
-  // Continuous Timbre CC #74 Brightness Modulation driven by average membrane potential
-  // Normalized from [-1.2, 1.8] to [0, 1]
-  const vNorm = Math.max(0.0, Math.min(1.0, (meanPotential + 1.2) / 2.6));
-  dispatchTimbreCc(vNorm, 0.5, 200);
 }
 
 /**

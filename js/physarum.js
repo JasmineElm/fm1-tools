@@ -27,7 +27,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -399,12 +399,11 @@ export function stepSimulation(dt = 16) {
   // Copy diffused values back to trailField (typed array set)
   trailField.set(diffusedField);
 
-  // 4. Continuous Timbre Modulation (CC #74) driven by network connectivity
+  // 4. Vein network flux monitoring
   if (activeNodesCount > 0) {
     const avgFluxPerNode = totalNetworkFlux / activeNodesCount;
     const normConnectivity = Math.min(1.0, avgFluxPerNode / 150);
     globalFluxMetric = normConnectivity;
-    dispatchTimbreCc(normConnectivity, 0.5, 200);
   }
 }
 

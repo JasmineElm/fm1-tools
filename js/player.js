@@ -126,24 +126,9 @@ export function liveControlChange(controller, value, channel = 1, timestamp = 0)
  * @param {boolean} [options.requireLive=false] - Only send if transport/model is currently live
  * @param {number} [options.channel=1] - MIDI channel [1 .. 16]
  */
-export function dispatchTimbreCc(normVal, {
-  depth = 80,
-  dest = 74,
-  minVal = 0,
-  maxVal = 127,
-  floorFactor = 0.25,
-  requireLive = false,
-  channel = 1
-} = {}) {
-  const safeDepth = Math.min(127, Math.max(0, Number(depth) || 0));
-  if (safeDepth <= 0) return;
-  if (requireLive && !isLive()) return;
-  const clampedNorm = Math.min(1.0, Math.max(0.0, Number(normVal) || 0.0));
-  const baseline = (127 - safeDepth) * floorFactor;
-  const ccVal = Math.min(maxVal, Math.max(minVal, Math.round(clampedNorm * safeDepth + baseline)));
-  try {
-    liveControlChange(dest, ccVal, channel);
-  } catch (_) {}
+export function dispatchTimbreCc() {
+  // No-op: Hardware constraint — M-VAVE FM-1 firmware cannot process continuous MIDI CC.
+  // Models are strictly limited to note triggering and velocity.
 }
 
 export function panicPreview() {

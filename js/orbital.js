@@ -18,7 +18,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -339,15 +339,6 @@ function playPlanetVoice(bodyIdx, note, vel, durMs) {
   triggerRipple[bodyIdx] = 6.0;
   triggerNoteName[bodyIdx] = midiName(note);
   starPulse = 1.0;
-
-  // Modulate FM-1 CC #74 Brightness with total orbital kinetic energy
-  const speed = Math.hypot(velX[bodyIdx], velY[bodyIdx]);
-  const normSpeed = Math.min(1.0, Math.max(0.1, speed / 120.0));
-  dispatchTimbreCc(normSpeed, {
-    dest: state.orbitalCcDest ?? 74,
-    depth: state.orbitalCcDepth ?? 80,
-    minVal: 20
-  });
 }
 
 // Derives a scale-quantized pitch for planet body `i`
@@ -759,7 +750,6 @@ function syncControlsFromState() {
   if (refs.speed?.setValue) refs.speed.setValue(state.modelSpeed ?? state.orbitalSpeed ?? 1.0, false);
   if (refs.orbitalEccentricity?.setValue) refs.orbitalEccentricity.setValue(state.orbitalEccentricity, false);
   if (refs.orbitalGravity?.setValue) refs.orbitalGravity.setValue(state.orbitalGravity, false);
-  if (refs.orbitalCcDepth?.setValue) refs.orbitalCcDepth.setValue(state.orbitalCcDepth, false);
   if (presetSelect) presetSelect.value = state.orbitalPreset || "laplace";
   if (notesSection?.sync) notesSection.sync();
 }
@@ -905,16 +895,6 @@ export function initOrbital() {
   });
   R("orbitalGravity", kGrav);
 
-  const kCc = knob({
-    label: "FM CC74",
-    min: 0, max: 127, step: 1,
-    value: state.orbitalCcDepth ?? 80,
-    unit: "",
-    title: "FM-1 CC #74 Brightness modulation depth driven by orbital kinetic energy",
-    onChange: (v) => { state.orbitalCcDepth = v; }
-  });
-  R("orbitalCcDepth", kCc);
-
   const kGate = knob({
     label: "GATE",
     min: 80, max: 500, step: 10,
@@ -925,7 +905,7 @@ export function initOrbital() {
   });
   R("orbitalGateLen", kGate);
 
-  paramGrid.append(kBodies, kEcc, kGrav, kCc, kGate);
+  paramGrid.append(kBodies, kEcc, kGrav, kGate);
   paramCard.appendChild(paramGrid);
 
   // Card 3: Notes & Musical Pitch Controls
@@ -1123,7 +1103,6 @@ registerModel({
       preset: state.orbitalPreset,
       mode: state.orbitalMode,
       span: state.orbitalSpan,
-      ccDepth: state.orbitalCcDepth,
       gateLen: state.orbitalGateLen
     };
   },
@@ -1139,7 +1118,6 @@ registerModel({
     if (h?.preset !== undefined) state.orbitalPreset = h.preset;
     if (h?.mode !== undefined) state.orbitalMode = h.mode;
     if (h?.span !== undefined) state.orbitalSpan = h.span;
-    if (h?.ccDepth !== undefined) state.orbitalCcDepth = h.ccDepth;
     if (h?.gateLen !== undefined) state.orbitalGateLen = h.gateLen;
 
     initPlanetarySystem(state.orbitalPreset || "laplace");

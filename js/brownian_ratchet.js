@@ -28,7 +28,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -391,13 +391,6 @@ export function stepSimulation(dt = 0.016) {
       gasVy[i] = Math.sin(ang) * gasSpeed;
     }
   }
-
-  // 9. Continuous Timbre CC #74 Modulation
-  // Map instantaneous rotational kinetic energy + thermal bath T1 to MIDI CC #74
-  const kineticNorm = Math.min(1.0, (omega * omega * 0.04) + (T1 * 0.06));
-  const targetCc = Math.round(30 + kineticNorm * 90);
-  smoothedCcVal = Math.round(smoothedCcVal * 0.92 + targetCc * 0.08);
-  dispatchTimbreCc(smoothedCcVal);
 
   // 10. Decay visual chime pulses
   for (let i = 0; i < MAX_VOICES; i++) {

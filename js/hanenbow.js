@@ -18,7 +18,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -296,14 +296,6 @@ export function firePlankton() {
 function playLeafVoice(leafIdx, note, vel, durMs) {
   playVoice(leafIdx, note, vel, durMs);
   voiceSlots[leafIdx] = note;
-
-  // Modulate FM-1 CC #74 Brightness with impact force
-  const normVel = Math.min(1.0, Math.max(0.1, vel / 127.0));
-  dispatchTimbreCc(normVel, {
-    dest: state.hanenbowCcDest ?? 74,
-    depth: state.hanenbowCcDepth ?? 85,
-    minVal: 20
-  });
 }
 
 // Resolves a scale-quantized pitch for leaf `i`.
@@ -856,7 +848,6 @@ function syncControlsFromState() {
   if (refs.hanenbowLaunchSpeed?.setValue) refs.hanenbowLaunchSpeed.setValue(state.hanenbowLaunchSpeed, false);
   if (refs.hanenbowTimingPeriod?.setValue) refs.hanenbowTimingPeriod.setValue(state.hanenbowTimingPeriod, false);
   if (refs.hanenbowGateLen?.setValue) refs.hanenbowGateLen.setValue(state.hanenbowGateLen, false);
-  if (refs.hanenbowCcDepth?.setValue) refs.hanenbowCcDepth.setValue(state.hanenbowCcDepth, false);
   if (refs.hanenbowSpan?.setValue) refs.hanenbowSpan.setValue(String(state.hanenbowSpan ?? state.pitchSpan ?? 2), false);
   if (presetSelect) presetSelect.value = state.hanenbowPreset || "cascade";
   if (notesSection?.sync) notesSection.sync();
@@ -1060,19 +1051,7 @@ export function initHanenbow() {
   });
   R("hanenbowGateLen", kGate);
 
-  const kCc = knob({
-    label: "FM CC74",
-    min: 0, max: 127, step: 1,
-    value: state.hanenbowCcDepth ?? 85,
-    unit: "",
-    title: "FM-1 CC #74 Brightness modulation depth driven by impact kinetic force",
-    onChange: (v) => {
-      state.hanenbowCcDepth = v;
-    }
-  });
-  R("hanenbowCcDepth", kCc);
-
-  paramGrid.append(kLeaves, kGrav, kElast, kTrigSpeed, kLaunchSpeed, kPeriod, kGate, kCc);
+  paramGrid.append(kLeaves, kGrav, kElast, kTrigSpeed, kLaunchSpeed, kPeriod, kGate);
   paramCard.appendChild(paramGrid);
 
   // Card 3: Notes & Scale Controls
@@ -1338,7 +1317,6 @@ registerModel({
       preset: state.hanenbowPreset,
       mode: state.hanenbowMode,
       span: state.hanenbowSpan,
-      ccDepth: state.hanenbowCcDepth,
       gateLen: state.hanenbowGateLen,
       timingPeriod: state.hanenbowTimingPeriod,
       cannon: { x: cannonX, y: cannonY, angle: cannonAngle, speed: cannonSpeed },
@@ -1354,7 +1332,6 @@ registerModel({
     if (h?.preset !== undefined) state.hanenbowPreset = h.preset;
     if (h?.mode !== undefined) state.hanenbowMode = h.mode;
     if (h?.span !== undefined) state.hanenbowSpan = h.span;
-    if (h?.ccDepth !== undefined) state.hanenbowCcDepth = h.ccDepth;
     if (h?.gateLen !== undefined) state.hanenbowGateLen = h.gateLen;
     if (h?.timingPeriod !== undefined) state.hanenbowTimingPeriod = h.timingPeriod;
 

@@ -8,12 +8,13 @@
 ## 2. DRY & Core Primitive Reuse
 Always reuse existing engine primitives before inventing new helpers:
 - **Pitch & Quantization**: Use `getRootMidi()`, `getActiveScaleIntervals()`, and `quantize()` from `js/scale.js`.
-- **Audio Dispatch**: Route note triggers through `liveNoteOn()`, `liveNoteOff()`, and CC via `midi.sendControlChange()` in `js/player.js`.
+- **Audio Dispatch**: Route note triggers through `liveNoteOn()`, `liveNoteOff()` in `js/player.js` (note triggers and velocity only). Note: M-VAVE FM-1 firmware does not process continuous MIDI CC; all models strictly control note triggering and velocity only.
 - **Lifecycle & Navigation**: Wire into `js/modes.js` (`showModel`, `onEnterModel`, `onExitModel`), `js/state.js`, and `js/rack.js`.
 - **Zero Runtime Dependencies**: Plain ES modules only (`import`/`export`). No npm runtime packages or build steps.
 
 ## 3. Hardware Constraints & Performance
 - **8-Voice Polyphony Ceiling**: M-VAVE FM-1 hardware is strictly limited to 8 voices. All generative engines must maintain a voice allocation map / FIFO ring buffer to steal or terminate the oldest note (`liveNoteOff`) when voice count exceeds 8.
+- **Notes & Velocity Only**: The FM-1 hardware firmware cannot process continuous MIDI CC commands. Models must never attempt continuous CC streaming.
 - **Zero GC Churn**: Pre-allocate simulation buffers using TypedArrays (`Float32Array`, `Uint8Array`, `Int16Array`). Avoid object instantiation in animation or step loops.
 
 ## 4. State, Serialization & Generator Contracts

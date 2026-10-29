@@ -28,7 +28,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -511,12 +511,6 @@ export function stepSimulation(deltaTime) {
     bellLastStrike[bellIdx] = evt.time;
     const impulse = evt.stroke === 0 ? 0.35 : -0.35;
     bellAngles[bellIdx] += impulse;
-
-    if (evt.bell === currentStage || evt.bell === 1) {
-      const entropy = calculateRowEntropy();
-      const leadProgress = (evt.leadIndex % (currentStage * 2)) / (currentStage * 2);
-      dispatchTimbreCc(entropy, leadProgress, Number(state.changesRate) || 160);
-    }
   }
 }
 

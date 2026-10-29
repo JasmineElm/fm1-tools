@@ -26,7 +26,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -554,10 +554,6 @@ export function stepSimulation(dtMs = 16) {
     probe.lastCloud = curCloud;
     probe.lastV = curV;
   }
-
-  // 6. Continuous Timbre CC #74 Modulation
-  const cloudMetric = Math.min(1.0, totalCloudMass * 5.0);
-  dispatchTimbreCc(cloudMetric, 0.5, 200);
 }
 
 /**

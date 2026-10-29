@@ -14,7 +14,7 @@ import {
   setModelGenerator, setModelRandomizer
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, liveNoteOn, liveNoteOff, panicPreview, setModelTransportHandler, dispatchTimbreCc } from "./player.js?v=1";
+import { isLive, liveNoteOn, liveNoteOff, panicPreview, setModelTransportHandler } from "./player.js?v=1";
 import * as audio from "./audio.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, getRootMidi, getActiveScaleIntervals, quantize, midiName, SCALES } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
@@ -211,13 +211,6 @@ function krellTick(time) {
     krellVoices[i].update(dt);
     if (krellVoices[i].env > maxEnv) maxEnv = krellVoices[i].env;
   }
-
-  // Stream continuous MIDI CC #74 (Filter Cutoff / Brightness)
-  dispatchTimbreCc(maxEnv, {
-    dest: state.krellCcDest ?? 74,
-    depth: state.krellCcDepth ?? 95,
-    requireLive: true
-  });
 
   renderKrellVisualizer();
   animFrameId = requestAnimationFrame(krellTick);
@@ -564,7 +557,6 @@ export function initKrell() {
     state.krellCurve = p.curve;
     state.krellDwell = p.dwell;
     state.krellSpan = p.span;
-    state.krellCcDepth = p.ccDepth;
 
     if (refs.krellVoices?.setValue) refs.krellVoices.setValue(p.voices, false);
     if (refs.krellRise?.setValue) refs.krellRise.setValue(p.rise, false);
@@ -680,17 +672,7 @@ export function initKrell() {
   });
   R("krellSpan", kSpan);
 
-  const kCc = knob({
-    label: "FM CC#74",
-    min: 0, max: 127, step: 1,
-    value: state.krellCcDepth ?? 95,
-    unit: "",
-    title: "FM-1 CC #74 Brightness modulation depth from envelope trajectory",
-    onChange: (v) => { state.krellCcDepth = v; }
-  });
-  R("krellCcDepth", kCc);
-
-  paramGrid.append(kVoices, kRise, kFall, kCrossMod, kDwell, kSpan, kCc);
+  paramGrid.append(kVoices, kRise, kFall, kCrossMod, kDwell, kSpan);
   paramCard.appendChild(paramGrid);
 
   // 3. Canvas Card (Oscilloscope & S&H Status)

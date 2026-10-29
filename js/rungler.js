@@ -16,7 +16,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -89,13 +89,6 @@ export const RUNGLER_PRESETS = [
 // ---- Voice Allocation & MIDI Output (via js/poly.js) ----
 function playRunglerVoice(note, velocity, durMs) {
   playVoice(0, note, velocity, durMs);
-
-  // Send continuous FM-1 CC #74 (Brightness / Filter Cutoff)
-  dispatchTimbreCc(currentDacVal / 15, {
-    dest: state.runglerCcDest ?? 74,
-    depth: state.runglerCcDepth ?? 80,
-    floorFactor: 0.3
-  });
 }
 
 // ---- Core Circuit Simulation ----
@@ -199,13 +192,6 @@ function handleRunglerStep(stepIndex) {
 
   // Shift and decode
   clockShiftRegister();
-
-  // Send continuous CC#74 for FM-1 brightness
-  dispatchTimbreCc(currentDacVal / 15, {
-    dest: state.runglerCcDest ?? 74,
-    depth: state.runglerCcDepth ?? 80,
-    floorFactor: 0.3
-  });
 
   // Update current step note in bank so player.js plays the exact Rungler note if gate is active
   const currentBank = getBank();
@@ -854,16 +840,6 @@ export function initRungler() {
   });
   R("runglerFeedback", kFb);
 
-  const kCc = knob({
-    label: "FM CC#74",
-    min: 0, max: 127, step: 1,
-    value: state.runglerCcDepth ?? 80,
-    unit: "",
-    title: "FM-1 CC #74 Brightness modulation depth from Rungler voltage",
-    onChange: (v) => { state.runglerCcDepth = v; }
-  });
-  R("runglerCcDepth", kCc);
-
   const kGate = knob({
     label: "GATE",
     min: 50, max: 600, step: 10,
@@ -874,7 +850,7 @@ export function initRungler() {
   });
   R("runglerGateLen", kGate);
 
-  paramGrid.append(kF1, kF2, kToOsc1, kToOsc2, kFb, kCc, kGate);
+  paramGrid.append(kF1, kF2, kToOsc1, kToOsc2, kFb, kGate);
   paramCard.appendChild(paramGrid);
 
   // 4. Lissajous Scope & 4-Bit Stepped DAC Ladder Canvas Card

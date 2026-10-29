@@ -25,7 +25,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -467,10 +467,6 @@ export function stepSimulation(dtMs = 16) {
         const vel = Math.max(50, Math.min(127, Math.round(75 + intensity * 45)));
         const durMs = Math.round(200 + (1.0 - (damping - 0.95) / 0.05) * 220);
 
-        // Send stereo pan CC #10 mapped to pickup horizontal position in tank
-        const panVal = Math.max(0, Math.min(127, Math.round((pickup.x / GRID_W) * 127)));
-        audio.sendControlChange(10, panVal);
-
         // Dispatch voice strictly through poly.js manager (slot p, 0 to 7)
         playVoice(`ripple_${p}`, note, vel, durMs);
       }
@@ -478,11 +474,6 @@ export function stepSimulation(dtMs = 16) {
 
     pickup.lastHeight = h;
   }
-
-  // 4. Continuous Timbre Modulation (CC #74) driven by tank acoustic wave energy
-  const avgEnergy = totalEnergy / MAX_PICKUPS;
-  const energyNorm = Math.min(1.0, avgEnergy / 0.6);
-  dispatchTimbreCc(energyNorm, 0.5, 200);
 }
 
 /**

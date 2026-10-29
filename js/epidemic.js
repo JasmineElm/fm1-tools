@@ -17,7 +17,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -229,14 +229,6 @@ export function infectNode(nodeId, sourceId = -1, playSound = true) {
     const gateMs = Math.min(600, Math.max(40, Number(state.epidemicGateLen ?? 200)));
 
     playEpidemicVoice(`epi_${nodeId % 8}`, note, vel, gateMs);
-
-    // Modulate FM-1 CC #74 Brightness with epidemic prevalence (I / N)
-    const prevalence = Math.min(1.0, countI / N);
-    dispatchTimbreCc(prevalence, {
-      dest: state.epidemicCcDest ?? 74,
-      depth: state.epidemicCcDepth ?? 85,
-      minVal: 20
-    });
   }
 }
 
@@ -885,21 +877,6 @@ export function initEpidemic() {
       state.epidemicGateLen = v;
     }
   });
-  gridWrap.appendChild(kGate);
-
-  // CC #74 Brightness Depth Knob (0 to 127)
-  const kCc = knob({
-    label: "CC #74",
-    min: 0, max: 127, step: 1,
-    value: state.epidemicCcDepth ?? 85,
-    unit: "",
-    title: "Depth of continuous FM-1 CC #74 modulation driven by active infection prevalence",
-    onChange: (v) => {
-      state.epidemicCcDepth = v;
-    }
-  });
-  gridWrap.appendChild(kCc);
-
   paramsCard.appendChild(gridWrap);
   epidemicContainer.appendChild(paramsCard);
 
@@ -960,8 +937,7 @@ registerModel({
       recovery: state.epidemicRecovery,
       immunity: state.epidemicImmunity,
       span: state.epidemicSpan,
-      gateLen: state.epidemicGateLen,
-      ccDepth: state.epidemicCcDepth
+      gateLen: state.epidemicGateLen
     };
   },
   restore: (h) => {
@@ -973,7 +949,6 @@ registerModel({
     if (h.immunity !== undefined) state.epidemicImmunity = h.immunity;
     if (h.span !== undefined) state.epidemicSpan = h.span;
     if (h.gateLen !== undefined) state.epidemicGateLen = h.gateLen;
-    if (h.ccDepth !== undefined) state.epidemicCcDepth = h.ccDepth;
     initEpidemicGraph(state.epidemicPreset || "spiral");
   }
 });

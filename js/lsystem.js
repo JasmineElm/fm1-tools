@@ -16,7 +16,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -170,16 +170,6 @@ let presetSelect = null;
 // ---- Audio Dispatch & 8-Voice Polyphony Ceiling (via js/poly.js) ----
 function playLsystemVoice(note, vel, durMs, depth = 0) {
   playVoice(depth, note, vel, durMs);
-
-  // Modulate FM-1 CC #74 Brightness with branch stack depth
-  // Top-level trunk = bright; deep branches = softer/darker filter
-  const depthRatio = Math.max(0, 1 - depth * 0.2);
-  dispatchTimbreCc(depthRatio, {
-    dest: state.lsystemCcDest ?? 74,
-    depth: state.lsystemCcDepth ?? 80,
-    minVal: 10,
-    floorFactor: 0.3
-  });
 }
 
 // ---- String Expansion & Grammar Compilation ----
@@ -1009,16 +999,6 @@ export function initLsystem() {
   });
   R("lsystemSpan", kSpan);
 
-  const kCc = knob({
-    label: "FM CC#74",
-    min: 0, max: 127, step: 1,
-    value: state.lsystemCcDepth ?? 80,
-    unit: "",
-    title: "FM-1 CC #74 Brightness modulation depth from branch stack depth",
-    onChange: (v) => { state.lsystemCcDepth = v; }
-  });
-  R("lsystemCcDepth", kCc);
-
   const kGate = knob({
     label: "GATE",
     min: 50, max: 600, step: 10,
@@ -1029,7 +1009,7 @@ export function initLsystem() {
   });
   R("lsystemGateLen", kGate);
 
-  paramGrid.append(kDepth, kStep, kAngle, kDecay, kSpan, kCc, kGate);
+  paramGrid.append(kDepth, kStep, kAngle, kDecay, kSpan, kGate);
   paramCard.appendChild(paramGrid);
 
   module.append(headerCard, ruleCard, paramCard);

@@ -29,7 +29,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -392,11 +392,9 @@ export function stepSimulation(dtMs = 16) {
     }
   }
 
-  // Continuous Timbre Modulation via Shannon Entropy H in [0, 3 bits]
+  // Shannon Entropy H monitoring
   if (activeWalkerCount > 0) {
     meanEntropy = totalEntropy / activeWalkerCount;
-    const entropyNorm = Math.min(1.0, Math.max(0.0, meanEntropy / 3.0));
-    dispatchTimbreCc(entropyNorm, 0.5, 200);
   }
 }
 

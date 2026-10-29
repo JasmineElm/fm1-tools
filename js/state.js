@@ -138,8 +138,6 @@ export const DEFAULT = {
   runglerRoot: 48,
   runglerRootNote: 0,
   runglerRootOctave: 3,
-  runglerCcDest: 74,   // MIDI CC destination (74 = Brightness / Cutoff)
-  runglerCcDepth: 80,  // CC modulation depth (0 to 127)
   runglerGateLen: 180, // Gate duration in ms
 
   // Buchla 266 Krell Generative Patch parameters
@@ -155,8 +153,6 @@ export const DEFAULT = {
   krellRoot: 48,
   krellRootNote: 0,
   krellRootOctave: 3,
-  krellCcDest: 74,     // FM-1 CC #74 Brightness
-  krellCcDepth: 95,    // Continuous filter modulation depth (0 to 127)
 
   // L-System Morphogenetic Grammar parameters
   lsystemAxiom: "F",
@@ -171,8 +167,6 @@ export const DEFAULT = {
   lsystemPreset: "canopy",
   lsystemMode: "sync",     // "sync" | "free"
   lsystemSpan: 3,
-  lsystemCcDest: 74,
-  lsystemCcDepth: 80,
   lsystemGateLen: 180,
 
   // Lotka-Volterra Predator-Prey Ecological Phase Space parameters
@@ -192,8 +186,6 @@ export const DEFAULT = {
   lvPreset: "limcycle",
   lvMode: "sync",
   lvSpan: 3,
-  lvCcDest: 74,
-  lvCcDepth: 85,
   lvGateLen: 180,
 
   // Keplerian Orbital Resonance model parameters
@@ -213,8 +205,6 @@ export const DEFAULT = {
   orbitalRoot: 48,
   orbitalRootNote: 0,
   orbitalRootOctave: 3,
-  orbitalCcDest: 74,
-  orbitalCcDepth: 80,
   orbitalGateLen: 220,
 
   // Electroplankton Hanenbow Ballistics model parameters
@@ -232,8 +222,6 @@ export const DEFAULT = {
   hanenbowRoot: 48,
   hanenbowRootNote: 0,
   hanenbowRootOctave: 3,
-  hanenbowCcDest: 74,
-  hanenbowCcDepth: 85,
   hanenbowGateLen: 240,
   hanenbowTimingPeriod: 1.5,
 
@@ -255,8 +243,6 @@ export const DEFAULT = {
   sandpileRoot: 48,
   sandpileRootNote: 0,
   sandpileRootOctave: 3,
-  sandpileCcDest: 74,
-  sandpileCcDepth: 80,
   sandpileGateLen: 180,
   sandpileVelocity: 90,
 };

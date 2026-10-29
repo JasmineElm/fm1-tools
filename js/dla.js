@@ -17,7 +17,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -286,13 +286,6 @@ function stepBrownianWalkers(subSteps = 8) {
           const vel = Math.min(127, Math.max(30, Math.round(baseVel * 0.7 + (dist / maxClusterRadius) * (baseVel * 0.45))));
           const voiceSlot = `dla_${clusterCount % 8}`;
           playDlaVoice(voiceSlot, note, vel, gateMs);
-
-          // Continuous CC #74 Brightness modulation
-          dispatchTimbreCc(Math.min(1.0, maxClusterRadius / (GRID_SIZE * 0.45)), {
-            dest: state.dlaCcDest ?? 74,
-            depth: state.dlaCcDepth ?? 80,
-            minVal: 20
-          });
 
           // Re-spawn this walker
           respawnWalker(i);
@@ -767,19 +760,6 @@ export function initDla() {
   });
   gridWrap.appendChild(kVel);
 
-  // CC #74 Brightness Depth Knob (0 to 127)
-  const kCc = knob({
-    label: "CC #74",
-    min: 0, max: 127, step: 1,
-    value: state.dlaCcDepth ?? 80,
-    unit: "",
-    title: "Depth of continuous FM-1 CC #74 filter cutoff modulation",
-    onChange: (v) => {
-      state.dlaCcDepth = v;
-    }
-  });
-  gridWrap.appendChild(kCc);
-
   paramsCard.appendChild(gridWrap);
   dlaContainer.appendChild(paramsCard);
 
@@ -839,8 +819,7 @@ registerModel({
       speed: state.dlaSpeed,
       span: state.dlaSpan,
       gateLen: state.dlaGateLen,
-      vel: state.dlaVelocity,
-      ccDepth: state.dlaCcDepth
+      vel: state.dlaVelocity
     };
   },
   restore: (h) => {
@@ -851,7 +830,6 @@ registerModel({
     if (h.span !== undefined) state.dlaSpan = h.span;
     if (h.gateLen !== undefined) state.dlaGateLen = h.gateLen;
     if (h.vel !== undefined) state.dlaVelocity = h.vel;
-    if (h.ccDepth !== undefined) state.dlaCcDepth = h.ccDepth;
     initDlaLattice(state.dlaPreset || "center");
   }
 });
