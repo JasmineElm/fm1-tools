@@ -73,6 +73,7 @@ const PREFIX = {
   genetic_breeder: /^gene[A-Z]/,
   chladni: /^chladni[A-Z]/,
   brownian_ratchet: /^ratchet[A-Z]/,
+  tracy_ribbon: /^tracy[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

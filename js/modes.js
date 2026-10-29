@@ -25,7 +25,8 @@ export const POLYPHONIC_MODELS = new Set([
   "markov_matrix",
   "genetic_breeder",
   "chladni",
-  "brownian_ratchet"
+  "brownian_ratchet",
+  "tracy_ribbon"
 ]);
 
 export const MODELS = [
@@ -432,6 +433,20 @@ export const MODELS = [
       <path d="M16 8l-4 4-2-2" />
       <circle cx="12" cy="12" r="2" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "tracy_ribbon",
+    name: "Electroplankton Tracy Ribbon",
+    kicker: "Spline Vector Trajectory · Organic Kinematics · Curvature Dynamics",
+    available: true,
+    desc: "Toshio Iwai’s Tracy plankton creature from Nintendo Electroplankton. Draw continuous vector gestures across an aquatic workbench canvas to construct a closed, looping ribbon contour. An autonomous Tracy creature navigates the closed ribbon with continuous momentum; local curvature modulates dynamics and articulation while swimming tail oscillations spawn trailing polyphonic echo droplets.",
+    tags: ["Tracy", "Electroplankton", "Spline Trajectory", "Vector Ribbon", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12c4-8 12-8 16 0s-12 8-16 0z" />
+      <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+      <path d="M7 10c1-2 3-2 4 0" />
+      <circle cx="9" cy="8" r="1" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -648,6 +663,8 @@ export function showLanding(updateHash = true) {
   if (modelChladni) modelChladni.style.display = "none";
   const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
   if (modelBrownianRatchet) modelBrownianRatchet.style.display = "none";
+  const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
+  if (modelTracyRibbon) modelTracyRibbon.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -692,6 +709,7 @@ export function showModel(id, updateHash = true) {
   const modelGeneticBreeder = document.getElementById("model-genetic_breeder");
   const modelChladni = document.getElementById("model-chladni");
   const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
+  const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -705,8 +723,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, and Brownian Ratchet are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, Brownian Ratchet, and Tracy Ribbon are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -775,6 +793,7 @@ export function showModel(id, updateHash = true) {
     if (modelGeneticBreeder) modelGeneticBreeder.style.display = id === "genetic_breeder" ? "block" : "none";
     if (modelChladni) modelChladni.style.display = id === "chladni" ? "block" : "none";
     if (modelBrownianRatchet) modelBrownianRatchet.style.display = id === "brownian_ratchet" ? "block" : "none";
+    if (modelTracyRibbon) modelTracyRibbon.style.display = id === "tracy_ribbon" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -808,6 +827,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "genetic_breeder") modeTag.textContent = "Melodic Genome Breeder";
       else if (id === "chladni") modeTag.textContent = "Chladni Cymatics";
       else if (id === "brownian_ratchet") modeTag.textContent = "Brownian Ratchet";
+      else if (id === "tracy_ribbon") modeTag.textContent = "Tracy Ribbon";
       modeTag.style.display = "inline-block";
     }
   }
@@ -914,6 +934,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "chladni") showModel("chladni", false);
     } else if (h === "#brownian_ratchet" || h === "#ratchet" || h === "#feynman-diode" || h === "#thermal-ratchet") {
       if (activeModelId !== "brownian_ratchet") showModel("brownian_ratchet", false);
+    } else if (h === "#tracy_ribbon" || h === "#tracy" || h === "#ribbon" || h === "#electroplankton") {
+      if (activeModelId !== "tracy_ribbon") showModel("tracy_ribbon", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -980,6 +1002,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("chladni", false);
   } else if (initialHash === "#brownian_ratchet" || initialHash === "#ratchet" || initialHash === "#feynman-diode" || initialHash === "#thermal-ratchet") {
     showModel("brownian_ratchet", false);
+  } else if (initialHash === "#tracy_ribbon" || initialHash === "#tracy" || initialHash === "#ribbon" || initialHash === "#electroplankton") {
+    showModel("tracy_ribbon", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

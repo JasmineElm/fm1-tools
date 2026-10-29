@@ -8,8 +8,7 @@ This master plan tracks the implementation of remaining, unimplemented non-step,
 
 | Model ID | Model Name | Primary Domain | Core Mathematical / Physical Primitives | Complexity | Status |
 |---|---|---|---|---|---|
-| `tracy_ribbon` | **Electroplankton Tracy Ribbon** | Continuous Vector Trajectory | Organic spline path curvature, tangent velocity mapping, expressive FM envelopes | Moderate (2.5/5) | **Next / Pending** |
-| `self_avoiding_walk` | **Polymer Self-Avoiding Walk** | Molecular Folding / Jamming | Lattice self-avoidance, conformational steric hindrance, collapse cascades | Moderate (3/5) | Backlog |
+| `self_avoiding_walk` | **Polymer Self-Avoiding Walk** | Molecular Folding / Jamming | 2D lattice self-avoidance, conformational steric hindrance, collapse cascades | Moderate (3/5) | **Next / Pending** |
 
 ---
 
@@ -39,25 +38,24 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ---
 
-## 3. Active Specification: Electroplankton "Tracy" Ribbon Path Trajectory
+## 3. Active Specification: Polymer Self-Avoiding Walk & Steric Jamming Folding
 
-- **Model ID**: `tracy_ribbon`
-- **Category**: Continuous Vector Trajectory / Organic Gestural Graphics / Spline Kinematics.
-- **Architectural Scope**: Inspired by Toshio Iwai’s Tracy plankton creature from Nintendo *Electroplankton*. The user draws or records continuous freehand vector gestures across an aquatic workbench canvas to construct a closed, looping ribbon contour. An autonomous Tracy creature navigates the closed ribbon with continuous momentum, centripetal acceleration, and organic swimming wiggle.
+- **Model ID**: `self_avoiding_walk`
+- **Category**: Statistical Polymer Physics / Molecular Conformation / Kinetic Jamming.
+- **Architectural Scope**: Simulates a growing self-avoiding random walk (SAW) on a 2D discrete lattice representing synthetic polymer chain growth and molecular protein folding. At each step, the polymer head advances randomly to an adjacent lattice site strictly subject to the self-avoidance constraint (it can never intersect its own existing monomers).
 - **Mathematical Formulation**:
-  - Closed Catmull-Rom or cubic B-spline interpolation parameterized by arc length $s \in [0, L]$.
-  - Tangent vector $\mathbf{T}(s) = \mathbf{r}'(s) / \|\mathbf{r}'(s)\|$, normal vector $\mathbf{N}(s)$, and local curvature $\kappa(s) = \|\mathbf{r}'(s) \times \mathbf{r}''(s)\| / \|\mathbf{r}'(s)\|^3$.
-  - Creature kinematics: Position $\mathbf{r}(t)$ advances with variable speed $v(t) = v_0 \cdot (1 - \beta \kappa(s))$ (creature slows naturally when rounding sharp bends, accelerates through long open straights).
+  - 2D grid lattice $\mathbb{Z}^2$.
+  - Chain path $\omega = (\omega_0, \omega_1, \dots, \omega_N)$ with $\|\omega_{i+1} - \omega_i\| = 1$ and $\omega_i \neq \omega_j$ for all $i \neq j$.
+  - Neighborhood coordination number $z = 4$ (Von Neumann neighbors). Available forward moves: $A(\omega_N) = \{ v \in \mathcal{N}(\omega_N) \mid v \notin \omega \}$.
+  - Steric Hindrance & Jamming Trap: When $|A(\omega_N)| = 0$, the chain is deadlocked (steric entrapment).
+  - Collapse & Folding Cascade: Upon jamming or reaching target chain length, the trapped polymer undergoes global conformational collapse / structural annealing, discharging an explosive, harmonically resolved polyphonic chord cascade before crystallizing a new structural domain.
 - **Musical Mapping**:
-  - Spatial coordinates $(x(s), y(s))$ map to 2D scale pitch and octave degrees.
-  - Local path curvature $\kappa(s)$ modulates gate duration, velocity dynamics, and FM modulator depth (sharp turns trigger punchy staccato pings, while smooth arcs generate lyrical legato swells).
-  - Swimming tail oscillations spawn trailing polyphonic echo droplets (up to 8 polyphonic voices managed via `js/poly.js`).
-  - Speed $v(s)$ and tangential acceleration continuously modulate FM-1 CC #74 Brightness.
+  - Each polymer monomer addition triggers a melodic step quantized to the active scale based on 2D coordinates and turn angle.
+  - Steric trapping / deadlock events trigger an explosive, harmonically resolved polyphonic chord cascade across up to 8 voices (`js/poly.js`).
+  - Chain radius of gyration $R_g$ and mean end-to-end distance continuously modulate FM-1 CC #74 Brightness.
 
 ---
 
-## 4. Backlog Models Catalogue (Two-Sentence References)
+## 4. Backlog Models Catalogue
 
-For future reference and extension, these additional models are documented with concise descriptions:
-
-1. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.
+All previously planned non-step and generative models from the backlog catalogue have now been promoted to active specifications or fully implemented.
