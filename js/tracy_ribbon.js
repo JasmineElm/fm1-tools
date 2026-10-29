@@ -61,16 +61,42 @@ export function getNodeIndex(col, row) {
 }
 
 // Helper: Calculate scale pitch for node (col, row)
+// Strictly determined by the global notes div: sits within both active scale and octave spread.
 export function getTracyNodePitch(col, row, basePitchOffset = 0, masterOctave = 0) {
   const root = getRootMidi();
   const intervals = getActiveScaleIntervals();
-  const intLen = Math.max(1, intervals.length);
-  const totalOffset = col + basePitchOffset;
-  const scaleDeg = ((totalOffset % intLen) + intLen) % intLen;
-  const octaveFromDeg = Math.floor(totalOffset / intLen);
-  const registerOctave = (row - 2) + octaveFromDeg + masterOctave;
-  const rawMidi = root + registerOctave * 12 + (intervals[scaleDeg] || 0);
-  return Math.max(12, Math.min(127, quantize(rawMidi, intervals, root)));
+  const N = Math.max(1, intervals.length);
+  const span = Math.min(4, Math.max(1, Number(state.pitchSpan ?? 2)));
+  const totalDegrees = span * N;
+
+  const c = Math.max(0, Math.min(GRID_COLS - 1, Math.round(col)));
+  const r = Math.max(0, Math.min(GRID_ROWS - 1, Math.round(row)));
+
+  // Account for octaveMode direction ("up", "down", "both") from global notes div
+  let effectiveRoot = root;
+  const dir = (state.octaveMode || "up").toLowerCase();
+  if (dir === "down") {
+    effectiveRoot = root - span * 12;
+  } else if (dir === "both") {
+    effectiveRoot = root - Math.floor(span / 2) * 12;
+  }
+
+  // 2D Normalized position across grid:
+  // bottom-left (c=0, r=0) -> 0.0 (lowest), top-right (c=7, r=5) -> 1.0 (highest)
+  const norm = (r / (GRID_ROWS - 1)) * 0.6 + (c / (GRID_COLS - 1)) * 0.4;
+  const baseDeg = Math.round(norm * totalDegrees);
+
+  // Apply creature's base pitch offset (choosing from the scale defined in the notes div)
+  const deg = baseDeg + Number(basePitchOffset || 0);
+
+  // Map degree to octave and scale interval
+  const octFromDeg = Math.floor(deg / N);
+  const scaleDeg = ((deg % N) + N) % N;
+  const totalOctave = octFromDeg + Number(masterOctave || 0);
+
+  const rawMidi = effectiveRoot + totalOctave * 12 + (intervals[scaleDeg] || 0);
+  const quantStrength = (state.quantSteps ?? 100) / 100;
+  return Math.max(12, Math.min(127, quantize(rawMidi, intervals, effectiveRoot, quantStrength)));
 }
 
 // Compatibility wrapper for coordinates
@@ -552,7 +578,9 @@ export function renderCanvas() {
 
       // Pitch indicator text for hovered node or selected path nodes
       if (isHovered || inSelectedPath) {
-        const notePitch = getTracyNodePitch(c, r, selC?.basePitchOffset ?? 0, state.tracyOctave ?? 0);
+        const notePitch = inSelectedPath
+          ? getTracyNodePitch(c, r, selC?.basePitchOffset ?? 0, state.tracyOctave ?? 0)
+          : getTracyNodePitch(c, r, 0, 0);
         ctx.fillStyle = inSelectedPath ? selC.color : colorDim;
         ctx.font = "8px monospace";
         ctx.textAlign = "center";
@@ -614,8 +642,11 @@ export function renderCanvas() {
   const selC = creatures[selectedCreatureIndex];
   const pathLength = selC?.nodes?.length || 0;
   const currentPitchName = selC?.currentNote ? midiName(selC.currentNote) : "--";
+  const basePitch = getTracyNodePitch(0, 0, selC?.basePitchOffset ?? 0, state.tracyOctave ?? 0);
+  const span = Math.min(4, Math.max(1, Number(state.pitchSpan ?? 2)));
+  const scaleName = SCALE_LABELS[state.scale] || state.scale || "Scale";
   ctx.fillText(
-    `CREATURE C${selectedCreatureIndex + 1} (${selC?.color}) · NODES: ${pathLength} · SPEED: ${selC?.speed?.toFixed(2)}x · NOTE: ${currentPitchName} · ACTIVE: ${numActive}/8`,
+    `C${selectedCreatureIndex + 1} (${selC?.color}) · BASE: ${midiName(basePitch)} · SPEED: ${selC?.speed?.toFixed(2)}x · NOTE: ${currentPitchName} · SCALE: ${scaleName} (${span} Oct) · ACTIVE: ${numActive}/8`,
     12, h - 10
   );
 }
@@ -934,12 +965,17 @@ export function initTracyRibbon() {
     max: 14,
     step: 1,
     value: creatures[0].basePitchOffset,
-    format: v => (v > 0 ? `+${v}` : `${v}`),
-    onInput: v => {
+    format: (v) => {
+      const offset = Math.round(v);
+      const note = getTracyNodePitch(0, 0, offset, state.tracyOctave ?? 0);
+      return `${offset >= 0 ? "+" : ""}${offset} (${midiName(note)})`;
+    },
+    onInput: (v) => {
       creatures[selectedCreatureIndex].basePitchOffset = Math.round(v);
+      syncCreatureControls();
       renderCanvas();
     },
-    tip: "Base scale degree offset for selected creature"
+    tip: "Base scale degree offset choosing from the active scale"
   }));
 
   const creatureActions = document.createElement("div");
@@ -1054,11 +1090,21 @@ function syncCreatureControls() {
   if (typeof document !== "undefined" && typeof document.querySelector === "function") {
     const cardTitle = document.querySelector("#tracy-selected-creature-card .chladni-card-title");
     if (cardTitle) {
-      cardTitle.textContent = `Selected Creature C${selectedCreatureIndex + 1} (${c.color}) Settings`;
+      const baseNote = getTracyNodePitch(0, 0, c.basePitchOffset, state.tracyOctave ?? 0);
+      cardTitle.textContent = `Selected Creature C${selectedCreatureIndex + 1} (${c.color}) · Base: ${midiName(baseNote)}`;
     }
   }
   if (refs.tracyCSpeed?.setValue) refs.tracyCSpeed.setValue(c.speed);
   if (refs.tracyCPitch?.setValue) refs.tracyCPitch.setValue(c.basePitchOffset);
+}
+
+/**
+ * Called when scale, root note, root octave, or octave spread updates in the global notes bar.
+ */
+export function updateTracyScaleAndOctave() {
+  syncCreatureControls();
+  updateCreatureTabs();
+  renderCanvas();
 }
 
 /**

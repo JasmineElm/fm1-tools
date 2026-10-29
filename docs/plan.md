@@ -66,9 +66,10 @@ Every model implementation must strictly adhere to the following shared framewor
 - **Category**: Kinetic Path Tracing / Multi-Agent Route Navigation.
 - **Architectural Scope**: Inspired by Toshio Iwai's *Electroplankton* Tracy creature, this model features an interactive 2D node matrix ($8 \times 6 = 48$ nodes) where users directly trace looping routes for up to 8 simultaneous creatures.
 - **Mathematical & Structural Primitives**:
-  - Discrete Node Grid: $\text{Cols} = 8$ (scale degrees), $\text{Rows} = 6$ (register octaves).
+  - Discrete Node Grid: $\text{Cols} = 8$ by $\text{Rows} = 6$ ($48$ interactive nodes).
+  - Notes Div & Pitch Confinement: All node pitches strictly sit within both the active scale (`state.scale`, `state.customScale`) and the octave spread (`state.pitchSpan` $\in [1, 4]$) configured in the global Notes div, starting at `getRootMidi()` and obeying `state.octaveMode`.
   - Multi-Creature Routes: Up to 8 creatures simultaneously traversing independent closed circuits.
-  - Per-Creature Parameters: Individual path waypoints, base pitch offset in scale degrees, and speed multiplier ($0.25\times \dots 3.0\times$).
+  - Per-Creature Parameters: Individual path waypoints, distinct base pitch chosen from the scale defined in the notes div (displayed with note name), and definable speed multiplier ($0.25\times \dots 3.0\times$).
   - Curated Color Palette: 8 distinct flat color circles (`#00f0ff`, `#ff007f`, `#ffb700`, `#39ff14`, `#a855f7`, `#38bdf8`, `#f43f5e`, `#eab308`).
   - Polyphony & Audio Dispatch: Dispatches note events on node arrivals via `selectPolyVoices()` and `playVoice()`, observing the M-VAVE FM-1 8-voice hardware ceiling.
 

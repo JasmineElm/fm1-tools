@@ -124,6 +124,7 @@ test("initTracyPreset initializes multi-creature routes and parameters", () => {
 test("getTracyNodePitch quantizes grid coordinates to valid scale MIDI pitches", () => {
   state.scale = "pentMinor";
   state.root = 60; // C4
+  state.pitchSpan = 2; // 2 octaves
 
   for (let r = 0; r < GRID_ROWS; r++) {
     for (let c = 0; c < GRID_COLS; c++) {
@@ -137,6 +138,55 @@ test("getTracyNodePitch quantizes grid coordinates to valid scale MIDI pitches",
   const p0 = getTracyNodePitch(0, 2, 0, 0);
   const p2 = getTracyNodePitch(0, 2, 2, 0);
   assert.ok(p2 > p0, "Higher scale degree offset should yield higher or harmonized pitch");
+});
+
+test("Grid pitches strictly sit within both the active scale and the octave spread", () => {
+  state.scale = "pentMinor";
+  state.root = 60; // C4
+  state.octaveMode = "up";
+
+  // Test across multiple octave spread settings (1, 2, 3, 4 octaves)
+  for (const span of [1, 2, 3, 4]) {
+    state.pitchSpan = span;
+    const minExpected = state.root;
+    const maxExpected = state.root + span * 12;
+
+    for (let r = 0; r < GRID_ROWS; r++) {
+      for (let c = 0; c < GRID_COLS; c++) {
+        const pitch = getTracyNodePitch(c, r, 0, 0);
+        assert.ok(
+          pitch >= minExpected && pitch <= maxExpected,
+          `Pitch ${pitch} at (${c}, ${r}) must sit within octave spread [${minExpected}, ${maxExpected}] for span ${span}`
+        );
+        // Verify pitch is in the pentatonic minor scale intervals [0, 3, 5, 7, 10]
+        const relSemitone = ((pitch - state.root) % 12 + 12) % 12;
+        assert.ok(
+          [0, 3, 5, 7, 10].includes(relSemitone),
+          `Pitch ${pitch} (rel ${relSemitone}) must conform to active pentMinor scale`
+        );
+      }
+    }
+  }
+});
+
+test("Each creature chooses a distinct base pitch from the scale defined in the notes div", () => {
+  state.scale = "major";
+  state.root = 48; // C3
+  state.pitchSpan = 3;
+
+  const basePitches = new Set();
+  for (let i = 0; i < MAX_CREATURES; i++) {
+    const c = creatures[i];
+    const pitch = getTracyNodePitch(0, 0, c.basePitchOffset, 0);
+    assert.ok(pitch >= 12 && pitch <= 127);
+    // Relative interval must be in major scale [0, 2, 4, 5, 7, 9, 11]
+    const rel = ((pitch - state.root) % 12 + 12) % 12;
+    assert.ok([0, 2, 4, 5, 7, 9, 11].includes(rel), `Creature ${i} base pitch ${pitch} must be in major scale`);
+    basePitches.add(pitch);
+  }
+
+  // At least 4 distinct pitch classes across the 8 default creature base pitches
+  assert.ok(basePitches.size >= 4, `Creatures must have distinct base pitches (found ${basePitches.size})`);
 });
 
 test("getTracyNote compatibility wrapper produces valid pitches", () => {

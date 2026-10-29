@@ -45,7 +45,7 @@ import { initMarkovMatrix, activateMarkovMatrixModel, deactivateMarkovMatrixMode
 import { initGeneticBreeder, activateGeneticBreederModel, deactivateGeneticBreederModel } from "./genetic_breeder.js";
 import { initChladni, activateChladniModel, deactivateChladniModel } from "./chladni.js";
 import { initBrownianRatchet, activateBrownianRatchetModel, deactivateBrownianRatchetModel } from "./brownian_ratchet.js";
-import { initTracyRibbon, activateTracyRibbonModel, deactivateTracyRibbonModel } from "./tracy_ribbon.js";
+import { initTracyRibbon, activateTracyRibbonModel, deactivateTracyRibbonModel, updateTracyScaleAndOctave } from "./tracy_ribbon.js";
 import { initSelfAvoidingWalk, activateSelfAvoidingWalkModel, deactivateSelfAvoidingWalkModel } from "./self_avoiding_walk.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
@@ -348,6 +348,9 @@ export function buildNotesBar() {
 
       if (getActiveModel() === "lotka_volterra") {
         updateLotkaVolterraScaleAndOctave();
+      } else if (getActiveModel() === "tracy_ribbon") {
+        updateTracyScaleAndOctave();
+        scheduleRegen();
       } else {
         scheduleRegen();
       }
