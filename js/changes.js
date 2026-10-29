@@ -91,6 +91,7 @@ let lastFrameTime = 0;
 
 // Strike timer within current row
 let currentStrikePos = 0; // 0 to stage - 1
+let activeStrikePos = -1;
 let strikeTimer = 0;
 let isRowPause = false;
 let rowPauseTimer = 0;
@@ -114,6 +115,7 @@ export function resetToRounds(stage = currentStage) {
   leadIndex = 0;
   stroke = 0;
   currentStrikePos = 0;
+  activeStrikePos = -1;
   strikeTimer = 0;
   isRowPause = false;
   rowPauseTimer = 0;
@@ -442,12 +444,12 @@ function decayVisuals() {
  * Main simulation step loop for autonomous / Free mode ringing.
  * Obeys both changesRate and the global SPEED knob multiplier (state.modelSpeed).
  */
-function stepSimulation(deltaTime) {
+export function stepSimulation(deltaTime) {
   const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
   const effectiveDt = deltaTime * speedMult;
 
   const rateMs = Math.max(60, Math.min(500, Number(state.changesRate) || 160));
-  const openLeadPercent = Math.max(0, Math.min(200, Number(state.changesOpenLead) || 50));
+  const openLeadPercent = Math.max(0, Math.min(200, Number(state.changesOpenLead ?? 0)));
   const openLeadMs = rateMs * (openLeadPercent / 100);
 
   decayVisuals();
@@ -457,32 +459,38 @@ function stepSimulation(deltaTime) {
     if (rowPauseTimer >= openLeadMs) {
       isRowPause = false;
       rowPauseTimer = 0;
-      currentStrikePos = 0;
       strikeTimer = 0;
       advanceMethodRow();
+      currentStrikePos = 0;
+      activeStrikePos = 0;
+      const bellToStrike = currentRow[0];
+      strikeBell(bellToStrike);
+      currentStrikePos = 1;
     }
     return;
   }
 
   strikeTimer += effectiveDt;
   if (strikeTimer >= rateMs) {
-    strikeTimer = 0;
-    // Strike the bell at current position
-    const bellToStrike = currentRow[currentStrikePos];
-    strikeBell(bellToStrike);
+    strikeTimer -= rateMs;
+    if (strikeTimer > rateMs * 2) strikeTimer = 0; // Prevent runaway drift after backgrounding
 
-    currentStrikePos++;
     if (currentStrikePos >= currentStage) {
-      // Row completed!
-      currentStrikePos = 0;
-      // If just finished a backstroke (stroke == 1), traditionally an open lead pause occurs before next handstroke
+      // Completed row: check if authentic backstroke open lead pause is requested
       if (stroke === 1 && openLeadMs > 5) {
         isRowPause = true;
         rowPauseTimer = 0;
-      } else {
-        advanceMethodRow();
+        activeStrikePos = -1;
+        return;
       }
+      advanceMethodRow();
+      currentStrikePos = 0;
     }
+
+    activeStrikePos = currentStrikePos;
+    const bellToStrike = currentRow[currentStrikePos];
+    strikeBell(bellToStrike);
+    currentStrikePos++;
   }
 }
 
@@ -681,7 +689,7 @@ export function renderCanvas() {
       const bellNum = currentRow[p];
       const bellIdx = bellNum - 1;
       const bx = sheetX + (p + 1) * colStep;
-      const isCurrentStriking = (p === currentStrikePos && isChangesPlaying);
+      const isCurrentStriking = (isChangesPlaying && !isRowPause && p === activeStrikePos);
       const isWorking = (bellNum === workingBell);
       const isTreble = (bellNum === 1);
       const flash = bellFlash[bellIdx] || 0;
@@ -890,13 +898,23 @@ export function startChanges() {
   if (isChangesPlaying) return;
   isChangesPlaying = true;
   audio.unlock();
-  strikeTimer = 0;
+  currentStrikePos = 0;
+  activeStrikePos = -1;
+  isRowPause = false;
+  rowPauseTimer = 0;
+  const rateMs = Math.max(60, Math.min(500, Number(state.changesRate) || 160));
+  strikeTimer = rateMs; // Strike first bell immediately on Play
   updatePlayBtnUI();
   status("Changes campanology: Ringing bells · Method changes active", "ok");
 }
 
 export function stopChanges() {
   isChangesPlaying = false;
+  isRowPause = false;
+  rowPauseTimer = 0;
+  activeStrikePos = -1;
+  currentStrikePos = 0;
+  strikeTimer = 0;
   releasePolyVoices();
   updatePlayBtnUI();
   status("stopped");
@@ -969,6 +987,19 @@ export function deactivateChangesModel() {
  * Initialize DOM UI layout, controls, parameters, and canvas for Changes model.
  */
 export function initChanges() {
+  // Register state defaults
+  if (state.changesStage === undefined) state.changesStage = 8;
+  if (state.changesMethod === undefined) state.changesMethod = "plain_bob";
+  if (state.changesRate === undefined) state.changesRate = 160;
+  if (state.changesOpenLead === undefined) state.changesOpenLead = 0;
+  if (state.changesSelectedBell === undefined) state.changesSelectedBell = 2;
+  if (state.changesVelocity === undefined) state.changesVelocity = 96;
+  if (state.changesSwing === undefined) state.changesSwing = 5;
+
+  currentStage = Number(state.changesStage) || 8;
+  currentMethod = state.changesMethod || "plain_bob";
+  resetToRounds(currentStage);
+
   container = document.getElementById("model-changes");
   if (!container) return;
 
@@ -991,25 +1022,13 @@ export function initChanges() {
     setupCanvasInteraction();
   }
 
-  // Register state defaults
-  if (state.changesStage === undefined) state.changesStage = 8;
-  if (state.changesMethod === undefined) state.changesMethod = "plain_bob";
-  if (state.changesRate === undefined) state.changesRate = 160;
-  if (state.changesOpenLead === undefined) state.changesOpenLead = 50;
-  if (state.changesSelectedBell === undefined) state.changesSelectedBell = 2;
-  if (state.changesVelocity === undefined) state.changesVelocity = 96;
-  if (state.changesSwing === undefined) state.changesSwing = 5;
-
-  currentStage = Number(state.changesStage) || 8;
-  currentMethod = state.changesMethod || "plain_bob";
-  resetToRounds(currentStage);
-
   // Mount controls rack
   const rackEl = document.getElementById("changes-controls-rack");
   if (rackEl) {
     // 1. Stage dropdown (Minimus 4 to Major 8)
     const stageDropdown = dropdown({
       label: "STG",
+      tip: "Number of bells in the change ringing peal (Minimus 4 to Major 8)",
       options: STAGES.map(s => ({ value: s.v, label: s.t })),
       value: state.changesStage,
       onChange: (val) => {
@@ -1025,6 +1044,7 @@ export function initChanges() {
     // 2. Method dropdown
     const methodDropdown = dropdown({
       label: "METH",
+      tip: "Traditional English change ringing algorithm (Plain Bob, Grandsire, Stedman, Cambridge)",
       options: METHODS.map(m => ({ value: m.v, label: m.t })),
       value: state.changesMethod,
       onChange: (val) => {
@@ -1040,6 +1060,7 @@ export function initChanges() {
     // 3. Strike Rate knob (ms)
     const rateKnob = knob({
       label: "RATE",
+      tip: "Inter-strike interval between successive bell strikes in milliseconds",
       min: 60,
       max: 400,
       step: 5,
@@ -1054,10 +1075,11 @@ export function initChanges() {
     // 4. Open Lead pause knob (%)
     const leadPauseKnob = knob({
       label: "LEAD",
+      tip: "Open lead pause length after each backstroke (set to 0% for steady dependable rhythm)",
       min: 0,
       max: 150,
       step: 5,
-      value: state.changesOpenLead,
+      value: Number(state.changesOpenLead ?? 0),
       unit: "%",
       onChange: (val) => {
         setState({ changesOpenLead: Math.round(val) });
@@ -1068,6 +1090,7 @@ export function initChanges() {
     // 5. Selected working bell knob (1 to 8)
     const bellSelectKnob = knob({
       label: "BELL",
+      tip: "Selected working bell to highlight and follow through the blue line course",
       min: 1,
       max: 8,
       step: 1,
@@ -1083,6 +1106,7 @@ export function initChanges() {
     // 6. Base Velocity knob
     const velKnob = knob({
       label: "VEL",
+      tip: "Base MIDI velocity for bell strikes",
       min: 30,
       max: 127,
       step: 1,
@@ -1096,6 +1120,7 @@ export function initChanges() {
     // 7. Swing / Rubato knob
     const swingKnob = knob({
       label: "SWNG",
+      tip: "Handstroke swing / rubato timing displacement percentage",
       min: 0,
       max: 25,
       step: 1,
@@ -1112,14 +1137,14 @@ export function initChanges() {
       pendingCall = "bob";
       status("Conductor Call: BOB called for next lead end!");
       renderCanvas();
-    });
+    }, "Conductor call inserting a 4th-place swap at the lead end");
     rackEl.appendChild(btnBob);
 
     const btnSingle = actionBtn("SNGL", () => {
       pendingCall = "single";
       status("Conductor Call: SINGLE called for next lead end!");
       renderCanvas();
-    });
+    }, "Conductor call inserting 2nd & 3rd place swaps to permute coursing order");
     rackEl.appendChild(btnSingle);
 
     // 9. Call Changes presets: ROUNDS, QUEENS, TITTUMS
@@ -1127,21 +1152,21 @@ export function initChanges() {
       applyCallPreset("rounds");
       status("Bells reset to Rounds");
       renderCanvas();
-    });
+    }, "Reset bells to descending pitch order (Rounds: 1-2-3-4-5-6-7-8)");
     rackEl.appendChild(btnRounds);
 
     const btnQueens = actionBtn("QN", () => {
       applyCallPreset("queens");
       status("Call Change: Queens (Odds then Evens)");
       renderCanvas();
-    });
+    }, "Call Change: Queens pattern (odd bells then even bells)");
     rackEl.appendChild(btnQueens);
 
     const btnTittums = actionBtn("TIT", () => {
       applyCallPreset("tittums");
       status("Call Change: Tittums (Woven)");
       renderCanvas();
-    });
+    }, "Call Change: Tittums pattern (interwoven heavy and light bells)");
     rackEl.appendChild(btnTittums);
   }
 }

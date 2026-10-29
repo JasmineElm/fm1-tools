@@ -664,6 +664,7 @@ export function initChladni() {
     presetCtrl.appendChild(
       dropdown({
         label: "Figure",
+        tip: "Cymatics nodal line standing wave resonant pattern preset",
         options: CHLADNI_PRESETS.map(p => ({ value: p.id, label: p.name })),
         value: state.chladniPreset || "concentric_cross",
         onChange: (val) => {
@@ -681,6 +682,7 @@ export function initChladni() {
     mCtrl.appendChild(
       knob({
         label: "Mode M",
+        tip: "Horizontal modal wavenumber m (number of nodal lines along X axis)",
         min: 1,
         max: 7,
         step: 1,
@@ -699,6 +701,7 @@ export function initChladni() {
     nCtrl.appendChild(
       knob({
         label: "Mode N",
+        tip: "Vertical modal wavenumber n (number of nodal lines along Y axis)",
         min: 1,
         max: 7,
         step: 1,
@@ -717,6 +720,7 @@ export function initChladni() {
     driveCtrl.appendChild(
       knob({
         label: "Drive",
+        tip: "Plate acoustic excitation amplitude and sand particle propulsion energy",
         min: 0.2,
         max: 3.5,
         step: 0.1,
@@ -735,6 +739,7 @@ export function initChladni() {
     spanCtrl.appendChild(
       knob({
         label: "Span",
+        tip: "Pitch range across octaves mapped across the nodal pickup probes",
         min: 1,
         max: 4,
         step: 1,

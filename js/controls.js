@@ -132,13 +132,14 @@ export function actionBtn(label, onClick, tip = "") {
   return wrap;
 }
 
-export function rotary(label, opts, value, onInput, size = "md") {
+export function rotary(label, opts, value, onInput, size = "md", tip = "", title = "") {
   const el = knob({
     label, min: 0, max: opts.length - 1, step: 1,
     value: Math.max(0, opts.findIndex((o) => String(o.v) === String(value))),
     def: 0, size, ticks: Math.max(1, opts.length - 1), majorEvery: 0, smallVal: true,
     format: (v) => opts[Math.min(opts.length - 1, Math.max(0, Math.round(v)))]?.t ?? "",
     onInput: (v) => { const o = opts[Math.round(v)]; if (o) onInput(o.v); },
+    tip: tip || title || ""
   });
   const setIdx = el.setValue;
   el.setValue = (v) => {

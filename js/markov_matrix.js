@@ -796,6 +796,7 @@ export function initMarkovMatrix() {
     presetCtrl.appendChild(
       dropdown({
         label: "Corpus",
+        tip: "Markov transition probability network topology preset",
         options: MARKOV_PRESETS.map(p => ({ value: p.id, label: p.name })),
         value: state.markovPreset || "bach_chorale",
         onChange: (val) => {
@@ -821,6 +822,7 @@ export function initMarkovMatrix() {
     tempCtrl.appendChild(
       knob({
         label: "Temp τ",
+        tip: "Softmax sampling temperature (lower = predictable tonic loops, higher = exploratory chaos)",
         min: 0.1,
         max: 3.0,
         step: 0.05,
@@ -839,6 +841,7 @@ export function initMarkovMatrix() {
     orderCtrl.appendChild(
       knob({
         label: "Order N",
+        tip: "Markov memory depth (1st, 2nd, or 3rd order conditional history)",
         min: 1,
         max: 3,
         step: 1,
@@ -857,6 +860,7 @@ export function initMarkovMatrix() {
     walkersCtrl.appendChild(
       knob({
         label: "Walkers",
+        tip: "Number of concurrent polyphonic state-transition walkers (1 to 8 hardware voices)",
         min: 1,
         max: 8,
         step: 1,
@@ -878,6 +882,7 @@ export function initMarkovMatrix() {
     driftCtrl.appendChild(
       knob({
         label: "Drift",
+        tip: "Entropy mutation rate slowly drifting transition probability weights over time",
         min: 0.0,
         max: 0.15,
         step: 0.01,
@@ -896,6 +901,7 @@ export function initMarkovMatrix() {
     spanCtrl.appendChild(
       knob({
         label: "Span",
+        tip: "Pitch span in octaves mapped across the 12 Markov pitch states",
         min: 1,
         max: 4,
         step: 1,

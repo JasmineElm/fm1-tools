@@ -893,6 +893,7 @@ export function initConvection() {
     presetCtrl.appendChild(
       dropdown({
         label: "Regime",
+        tip: "Convective circulation regime preset (Bénard rolls, thunderheads, mist)",
         options: CONVECTION_PRESETS.map(p => ({ value: p.id, label: p.name })),
         value: state.convectPreset || "cumulus_rolls",
         onChange: (val) => {
@@ -918,6 +919,7 @@ export function initConvection() {
     raCtrl.appendChild(
       knob({
         label: "Buoyancy Ra",
+        tip: "Rayleigh buoyancy acceleration driving warm updrafts and convective overturning",
         min: 0.5,
         max: 3.5,
         step: 0.1,
@@ -936,6 +938,7 @@ export function initConvection() {
     tempCtrl.appendChild(
       knob({
         label: "Ground T",
+        tip: "Surface plate heating temperature driving thermal bubble generation",
         min: 0.5,
         max: 1.5,
         step: 0.05,
@@ -954,6 +957,7 @@ export function initConvection() {
     humCtrl.appendChild(
       knob({
         label: "Humidity Q",
+        tip: "Ambient tropospheric moisture available for cloud condensation",
         min: 0.3,
         max: 1.0,
         step: 0.05,
@@ -972,6 +976,7 @@ export function initConvection() {
     dewCtrl.appendChild(
       knob({
         label: "Dew Point",
+        tip: "Thermodynamic saturation threshold where vapor condenses into clouds and triggers notes",
         min: 0.20,
         max: 0.70,
         step: 0.05,
@@ -990,6 +995,7 @@ export function initConvection() {
     spanCtrl.appendChild(
       knob({
         label: "Span",
+        tip: "Pitch span in octaves mapped across the vertical atmospheric column",
         min: 1,
         max: 4,
         step: 1,

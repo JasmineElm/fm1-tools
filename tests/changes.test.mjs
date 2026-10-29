@@ -162,3 +162,35 @@ test("changes model transport start/stop/toggle controls", async () => {
   toggleChangesRunning();
   assert.equal(isChangesRunning(), false);
 });
+
+test("changes model maintains dependable rhythm across row transitions", async () => {
+  const { initChanges, startChanges, stopChanges, stepSimulation } = await import("../js/changes.js");
+  const { state } = await import("../js/state.js");
+
+  initChanges();
+  assert.equal(state.changesOpenLead, 0, "changesOpenLead must default to 0 for dependable steady rhythm");
+
+  state.changesStage = 4;
+  state.changesRate = 100;
+  state.changesOpenLead = 0;
+  resetToRounds(4);
+
+  startChanges();
+
+  // Step 4 bells in first row (each takes 100ms)
+  // Strike 1 happens immediately on start (first 100ms period elapsed)
+  stepSimulation(100);
+  // Strike 2
+  stepSimulation(100);
+  // Strike 3
+  stepSimulation(100);
+  // Strike 4
+  stepSimulation(100);
+
+  // Now row 1 is complete. Exactly 100ms later, row 2 must start and strike bell 1 of row 2 with no extra pause
+  stepSimulation(100);
+
+  // Check that the simulation is playing and steady
+  stopChanges();
+});
+

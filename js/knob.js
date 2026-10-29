@@ -17,7 +17,9 @@ const SIZES = { lg: 62, md: 50, sm: 40 };
 
 let knobSeq = 0;
 
-export function knob({ label, min, max, step = 1, value = 0, def, size = "md", format, ticks = 10, majorEvery = 5, smallVal = false, onInput, tip = "", onDblClick }) {
+export function knob({ label, min, max, step = 1, value = 0, def, size = "md", format, ticks = 10, majorEvery = 5, smallVal = false, onInput, onChange, tip = "", title = "", onDblClick }) {
+  const effectiveTip = tip || title || "";
+  const notify = onInput || onChange;
   const px = SIZES[size] || SIZES.md;
   const el = document.createElement("div");
   el.className = `knob k-${size}` + (smallVal ? " k-smallval" : "");
@@ -89,7 +91,7 @@ export function knob({ label, min, max, step = 1, value = 0, def, size = "md", f
     ptr.setAttribute("x1", 50); ptr.setAttribute("y1", 50);
     ptr.setAttribute("x2", x.toFixed(2)); ptr.setAttribute("y2", y.toFixed(2));
     val.textContent = fmt(cur);
-    el.title = `${label}: ${fmt(cur)}${tip ? " — " + tip : ""}`;
+    el.title = `${label}: ${fmt(cur)}${effectiveTip ? " — " + effectiveTip : ""}`;
     el.setAttribute("aria-valuemin", String(min));
     el.setAttribute("aria-valuemax", String(max));
     el.setAttribute("aria-valuenow", String(cur));
@@ -101,7 +103,7 @@ export function knob({ label, min, max, step = 1, value = 0, def, size = "md", f
     if (n === cur) { paint(); return; }
     cur = n;
     paint();
-    if (fire && onInput) onInput(cur);
+    if (fire && notify) notify(cur);
   }
 
   el.addEventListener("pointerdown", (e) => {
@@ -147,7 +149,8 @@ export function knob({ label, min, max, step = 1, value = 0, def, size = "md", f
 
 // An encoder-style panel switch: ‹ value › . Replaces native <select> so nothing
 // in the panel looks like browser chrome.
-export function sw({ label, options, value, onInput }) {
+export function sw({ label, options, value, onInput, tip = "", title = "" }) {
+  const effectiveTip = tip || title || "";
   const el = document.createElement("div");
   el.className = "sw";
   el.tabIndex = 0;
@@ -171,7 +174,7 @@ export function sw({ label, options, value, onInput }) {
   const paint = () => {
     const o = options[idx];
     val.textContent = o?.t ?? "";
-    el.title = `${label}: ${o?.title ?? o?.t ?? ""}`;
+    el.title = `${label}: ${o?.title ?? o?.t ?? ""}${effectiveTip ? " — " + effectiveTip : ""}`;
   };
   const move = (d) => {
     idx = (idx + d + options.length) % options.length;
@@ -209,7 +212,8 @@ export function toggle({ label, value = false, onInput }) {
 }
 
 // A panel dropdown select box for choosing from a list of options.
-export function dropdown({ label, options, value, onInput, onChange, tip = "", labelPos = "top" }) {
+export function dropdown({ label, options, value, onInput, onChange, tip = "", title = "", labelPos = "top" }) {
+  const effectiveTip = tip || title || "";
   const el = document.createElement("div");
   el.className = "dropdown-wrap" + (labelPos === "right" ? " lab-right" : "");
 
@@ -219,7 +223,10 @@ export function dropdown({ label, options, value, onInput, onChange, tip = "", l
 
   const select = document.createElement("select");
   select.className = "p-select";
-  if (tip) el.title = `${label}: ${tip}`;
+  if (effectiveTip) {
+    el.title = `${label}: ${effectiveTip}`;
+    select.title = `${label}: ${effectiveTip}`;
+  }
 
   for (const opt of options) {
     const o = document.createElement("option");
@@ -250,7 +257,9 @@ export function dropdown({ label, options, value, onInput, onChange, tip = "", l
   return el;
 }
 
-export function fader({ label, min, max, step = 1, value = 0, def, format, onInput, tip = "", onDblClick, checkbox }) {
+export function fader({ label, min, max, step = 1, value = 0, def, format, onInput, onChange, tip = "", title = "", onDblClick, checkbox }) {
+  const effectiveTip = tip || title || "";
+  const notify = onInput || onChange;
   const el = document.createElement("div");
   el.className = "fader";
   el.tabIndex = 0;
@@ -321,7 +330,7 @@ export function fader({ label, min, max, step = 1, value = 0, def, format, onInp
     }
 
     val.textContent = fmt(cur);
-    el.title = `${label}: ${fmt(cur)}${tip ? " — " + tip : ""}`;
+    el.title = `${label}: ${fmt(cur)}${effectiveTip ? " — " + effectiveTip : ""}`;
     el.setAttribute("aria-valuemin", String(min));
     el.setAttribute("aria-valuemax", String(max));
     el.setAttribute("aria-valuenow", String(cur));
@@ -334,7 +343,7 @@ export function fader({ label, min, max, step = 1, value = 0, def, format, onInp
     if (n === cur) { paint(); return; }
     cur = n;
     paint();
-    if (fire && onInput) onInput(cur);
+    if (fire && notify) notify(cur);
   }
 
   function updateFromPointer(clientX) {

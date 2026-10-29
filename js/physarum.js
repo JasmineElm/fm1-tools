@@ -750,46 +750,46 @@ export function initPhysarum() {
     <div class="physarum-enclosure">
       <!-- Top Control Bar -->
       <div class="physarum-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-        <button id="physarum-play-btn" class="btn btn-ok" style="min-width: 60px;">Play</button>
+        <button id="physarum-play-btn" class="btn btn-ok" style="min-width: 60px;" title="Start/Stop Physarum slime mould simulation engine">Play</button>
         <button id="physarum-rnd-btn" class="btn" title="Randomise trail field with Perlin noise">RND</button>
         <button id="physarum-reseed-btn" class="btn" title="Re-seed swarm around active food hubs">Re-Seed</button>
         <button id="physarum-clear-btn" class="btn" title="Clear all trails">Clear</button>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Slime mould network topology preset (Tokyo railway network, hub, golden spiral, organic)">
           Preset:
-          <select id="physarum-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;">
+          <select id="physarum-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;" title="Slime mould network topology preset (Tokyo railway network, hub, golden spiral, organic)">
             ${PHYSARUM_PRESETS.map(p => `<option value="${p.id}" ${p.id === (state.physarumPreset || "tokyo") ? "selected" : ""}>${p.name}</option>`).join("")}
           </select>
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Agent Sensor Distance">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Sensor Distance: Forward distance (grid pixels) agents sample chemoattractant scent gradients">
           Sens Dist:
-          <input type="range" id="physarum-sens-dist" min="2" max="10" step="0.5" value="${state.physarumSensorDist ?? 4}" style="width: 70px;">
+          <input type="range" id="physarum-sens-dist" min="2" max="10" step="0.5" value="${state.physarumSensorDist ?? 4}" style="width: 70px;" title="Sensor Distance: Forward distance (grid pixels) agents sample chemoattractant scent gradients">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Sensor Heading Angle (degrees)">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Sensor Angle: Angular spread of left/right heading sensors (narrow = direct highways, wide = branching networks)">
           Sens Ang:
-          <input type="range" id="physarum-sens-ang" min="20" max="60" step="5" value="${state.physarumSensorAngle ?? 35}" style="width: 70px;">
+          <input type="range" id="physarum-sens-ang" min="20" max="60" step="5" value="${state.physarumSensorAngle ?? 35}" style="width: 70px;" title="Sensor Angle: Angular spread of left/right heading sensors (narrow = direct highways, wide = branching networks)">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pheromone Decay Factor">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pheromone Decay: Trail persistence factor per tick (lower = fast evaporation, higher = durable veins)">
           Decay:
-          <input type="range" id="physarum-decay" min="0.85" max="0.98" step="0.01" value="${state.physarumDecay ?? 0.94}" style="width: 70px;">
+          <input type="range" id="physarum-decay" min="0.85" max="0.98" step="0.01" value="${state.physarumDecay ?? 0.94}" style="width: 70px;" title="Pheromone Decay: Trail persistence factor per tick (lower = fast evaporation, higher = durable veins)">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Contractile Flux Note Threshold">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Contractile Flux Threshold: Chemoattractant flux required at a food oat node to trigger a peristaltic note pulse">
           Thresh:
-          <input type="range" id="physarum-thresh" min="8" max="40" step="2" value="${state.physarumThreshold ?? 18}" style="width: 70px;">
+          <input type="range" id="physarum-thresh" min="8" max="40" step="2" value="${state.physarumThreshold ?? 18}" style="width: 70px;" title="Contractile Flux Threshold: Chemoattractant flux required at a food oat node to trigger a peristaltic note pulse">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Agent Swarm Population">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Agent Swarm Population: Number of active bio-computational foraging particles (128 to 768)">
           Agents:
-          <input type="range" id="physarum-agents" min="128" max="768" step="64" value="${state.physarumAgents ?? 512}" style="width: 70px;">
+          <input type="range" id="physarum-agents" min="128" max="768" step="64" value="${state.physarumAgents ?? 512}" style="width: 70px;" title="Agent Swarm Population: Number of active bio-computational foraging particles (128 to 768)">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pitch Octave Span">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Octave Span: Pitch range across octaves mapped vertically across food oat nodes">
           Span:
-          <input type="range" id="physarum-span" min="1" max="4" step="1" value="${state.physarumSpan ?? 2}" style="width: 50px;">
+          <input type="range" id="physarum-span" min="1" max="4" step="1" value="${state.physarumSpan ?? 2}" style="width: 50px;" title="Octave Span: Pitch range across octaves mapped vertically across food oat nodes">
         </label>
       </div>
 

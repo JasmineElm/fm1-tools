@@ -640,36 +640,36 @@ export function initReactionDiffusion() {
     <div class="rd-enclosure">
       <!-- Top Control Bar -->
       <div class="rd-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-        <button id="rd-play-btn" class="btn btn-ok" style="min-width: 60px;">Play</button>
+        <button id="rd-play-btn" class="btn btn-ok" style="min-width: 60px;" title="Start/Stop reaction-diffusion simulation engine">Play</button>
         <button id="rd-rnd-btn" class="btn" title="Randomise chemical substrate with Perlin noise">RND</button>
         <button id="rd-seed-btn" class="btn" title="Re-inoculate chemical seeds">Re-Seed</button>
         <button id="rd-clear-btn" class="btn" title="Clear substrate to pure U">Clear</button>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Turing morphogenesis preset: chemical reaction parameters dictating coral labyrinth, spot mitosis, soliton wave, or spiral patterns">
           Preset:
-          <select id="rd-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;">
+          <select id="rd-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;" title="Turing morphogenesis preset: chemical reaction parameters dictating coral labyrinth, spot mitosis, soliton wave, or spiral patterns">
             ${RD_PRESETS.map(p => `<option value="${p.id}" ${p.id === (state.rdPreset || "coral") ? "selected" : ""}>${p.name}</option>`).join("")}
           </select>
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Chemical Feed Rate F">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Chemical Feed Rate (F): Rate at which nutrient U is continuously supplied, determining pattern density and corridor thickness">
           Feed:
-          <input type="range" id="rd-feed" min="0.010" max="0.080" step="0.001" value="${state.rdFeed ?? 0.054}" style="width: 70px;">
+          <input type="range" id="rd-feed" min="0.010" max="0.080" step="0.001" value="${state.rdFeed ?? 0.054}" style="width: 70px;" title="Chemical Feed Rate (F): Rate at which nutrient U is continuously supplied, determining pattern density and corridor thickness">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Chemical Kill Rate k">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Chemical Kill Rate (k): Rate at which morphogen V decays or converts to inert products, controlling spot stability vs extinction">
           Kill:
-          <input type="range" id="rd-kill" min="0.045" max="0.070" step="0.001" value="${state.rdKill ?? 0.062}" style="width: 70px;">
+          <input type="range" id="rd-kill" min="0.045" max="0.070" step="0.001" value="${state.rdKill ?? 0.062}" style="width: 70px;" title="Chemical Kill Rate (k): Rate at which morphogen V decays or converts to inert products, controlling spot stability vs extinction">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Activation Note Threshold">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Activation Threshold: Concentration of morphogen V required at a probe sensor to trigger a note pulse">
           Thresh:
-          <input type="range" id="rd-thresh" min="0.15" max="0.55" step="0.02" value="${state.rdThreshold ?? 0.28}" style="width: 70px;">
+          <input type="range" id="rd-thresh" min="0.15" max="0.55" step="0.02" value="${state.rdThreshold ?? 0.28}" style="width: 70px;" title="Activation Threshold: Concentration of morphogen V required at a probe sensor to trigger a note pulse">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pitch Octave Span">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pitch Octave Span: Pitch range across octaves mapped vertically across the chemical substrate">
           Span:
-          <input type="range" id="rd-span" min="1" max="4" step="1" value="${state.rdSpan ?? 2}" style="width: 50px;">
+          <input type="range" id="rd-span" min="1" max="4" step="1" value="${state.rdSpan ?? 2}" style="width: 50px;" title="Pitch Octave Span: Pitch range across octaves mapped vertically across the chemical substrate">
         </label>
       </div>
 

@@ -825,6 +825,7 @@ export function initRippleTank() {
         label: "Geometry",
         options: RIPPLE_PRESETS.map(p => ({ value: p.id, label: p.name })),
         value: state.ripplePreset || "double_slit",
+        tip: "Acoustic boundary, reflector, and barrier layout preset",
         onChange: (val) => {
           setState("ripplePreset", val);
           const p = RIPPLE_PRESETS.find(x => x.id === val);
@@ -851,6 +852,7 @@ export function initRippleTank() {
         max: 1.00,
         step: 0.05,
         value: Number(state.rippleSpeed ?? 0.65),
+        tip: "Acoustic wave propagation phase velocity across the fluid lattice",
         onChange: (v) => {
           setState("rippleSpeed", v);
           renderCanvas();
@@ -869,6 +871,7 @@ export function initRippleTank() {
         max: 0.998,
         step: 0.002,
         value: Number(state.rippleDamping ?? 0.988),
+        tip: "Fluid viscosity decay rate (lower = fast attenuation, higher = sustained reverberation)",
         onChange: (v) => {
           setState("rippleDamping", v);
           renderCanvas();
@@ -888,6 +891,7 @@ export function initRippleTank() {
         step: 0.1,
         value: Number(state.rippleDripRate ?? 1.0),
         unit: "x",
+        tip: "Frequency of periodic water droplet emissions into the acoustic tank",
         onChange: (v) => {
           setState("rippleDripRate", v);
           renderCanvas();
@@ -907,6 +911,7 @@ export function initRippleTank() {
         step: 1,
         value: Number(state.rippleSpan ?? 2),
         unit: "oct",
+        tip: "Pitch span in octaves mapped across the hydrophone sensor pickups",
         onChange: (v) => {
           setState("rippleSpan", v);
           renderCanvas();

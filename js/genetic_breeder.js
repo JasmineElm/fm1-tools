@@ -826,6 +826,7 @@ export function initGeneticBreeder() {
     presetCtrl.appendChild(
       dropdown({
         label: "Lineage",
+        tip: "Evolutionary melodic chromosome lineage and aesthetic target preset",
         options: BREEDER_PRESETS.map(p => ({ value: p.id, label: p.name })),
         value: state.genePreset || "baroque_inventions",
         onChange: (val) => {
@@ -848,6 +849,7 @@ export function initGeneticBreeder() {
     crossoverCtrl.appendChild(
       knob({
         label: "Crossover",
+        tip: "Probability of homologous chromosome genetic crossover during sexual reproduction",
         min: 0.2,
         max: 0.95,
         step: 0.05,
@@ -866,6 +868,7 @@ export function initGeneticBreeder() {
     mutationCtrl.appendChild(
       knob({
         label: "Mutation",
+        tip: "Point mutation rate per gene during generation reproduction",
         min: 0.01,
         max: 0.30,
         step: 0.01,
@@ -884,6 +887,7 @@ export function initGeneticBreeder() {
     spanCtrl.appendChild(
       knob({
         label: "Span",
+        tip: "Pitch span in octaves mapped across chromosome alleles",
         min: 1,
         max: 4,
         step: 1,

@@ -791,6 +791,7 @@ export function initFitzhughNagumo() {
     presetCtrl.appendChild(
       dropdown({
         label: "Topology",
+        tip: "Neuromorphic biophysical synaptic connection network topology preset",
         options: FHN_PRESETS.map(p => ({ value: p.id, label: p.name })),
         value: state.fhnPreset || "synfire",
         onChange: (val) => {
@@ -816,6 +817,7 @@ export function initFitzhughNagumo() {
     stimCtrl.appendChild(
       knob({
         label: "Bias I",
+        tip: "Tonic depolarizing current injected into neurons to provoke spontaneous action potentials",
         min: 0.0,
         max: 2.0,
         step: 0.05,
@@ -835,6 +837,7 @@ export function initFitzhughNagumo() {
     weightCtrl.appendChild(
       knob({
         label: "Weight W",
+        tip: "Global synaptic coupling conductance scaling across the neural circuit",
         min: 0.0,
         max: 3.0,
         step: 0.05,
@@ -854,6 +857,7 @@ export function initFitzhughNagumo() {
     recCtrl.appendChild(
       knob({
         label: "Recov ε",
+        tip: "Recovery timescale ε (higher = brief spikes and quick reset, lower = sustained bursts)",
         min: 0.02,
         max: 0.20,
         step: 0.01,
@@ -872,6 +876,7 @@ export function initFitzhughNagumo() {
     noiseCtrl.appendChild(
       knob({
         label: "Noise",
+        tip: "Stochastic membrane current noise driving random biological firing",
         min: 0.0,
         max: 0.40,
         step: 0.01,
@@ -890,6 +895,7 @@ export function initFitzhughNagumo() {
     spanCtrl.appendChild(
       knob({
         label: "Span",
+        tip: "Pitch span in octaves mapped across the 8 neuromorphic neurons",
         min: 1,
         max: 4,
         step: 1,

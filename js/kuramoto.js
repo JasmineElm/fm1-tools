@@ -541,34 +541,34 @@ export function initKuramoto() {
     <div class="kuramoto-enclosure">
       <!-- Top Control Bar -->
       <div class="kuramoto-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-        <button id="kuramoto-play-btn" class="btn btn-ok" style="min-width: 60px;">Play</button>
+        <button id="kuramoto-play-btn" class="btn btn-ok" style="min-width: 60px;" title="Start/Stop Kuramoto phase synchronization simulation engine">Play</button>
         <button id="kuramoto-reset-btn" class="btn" title="Reset phases and random frequencies">Reset</button>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Phase oscillator network coupling regime preset (synchrony, polyrhythms, critical, bimodal, chaotic)">
           Preset:
-          <select id="kuramoto-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;">
+          <select id="kuramoto-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;" title="Phase oscillator network coupling regime preset (synchrony, polyrhythms, critical, bimodal, chaotic)">
             ${KURAMOTO_PRESETS.map(p => `<option value="${p.id}" ${p.id === (state.kuramotoPreset || "near_sync") ? "selected" : ""}>${p.name}</option>`).join("")}
           </select>
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Coupling Strength K (Synchronization force)">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Coupling Strength (K): Inter-oscillator attractive force pulling natural frequencies into collective phase synchronization">
           Coupling K:
-          <input type="range" id="kuramoto-coupling" min="0" max="3.5" step="0.1" value="${state.kuramotoCoupling ?? 2.2}" style="width: 70px;">
+          <input type="range" id="kuramoto-coupling" min="0" max="3.5" step="0.1" value="${state.kuramotoCoupling ?? 2.2}" style="width: 70px;" title="Coupling Strength (K): Inter-oscillator attractive force pulling natural frequencies into collective phase synchronization">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Natural Frequency Dispersion Sigma">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Natural Frequency Dispersion (σ): Intrinsic frequency variance between oscillators (higher = polyrhythmic drift, lower = tight unison)">
           Dispersion:
-          <input type="range" id="kuramoto-sigma" min="0.05" max="1.5" step="0.05" value="${state.kuramotoSigma ?? 0.15}" style="width: 70px;">
+          <input type="range" id="kuramoto-sigma" min="0.05" max="1.5" step="0.05" value="${state.kuramotoSigma ?? 0.15}" style="width: 70px;" title="Natural Frequency Dispersion (σ): Intrinsic frequency variance between oscillators (higher = polyrhythmic drift, lower = tight unison)">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Thermal Perturbation Noise">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Thermal Phase Noise: Stochastic angular jitter perturbing oscillator orbits">
           Noise:
-          <input type="range" id="kuramoto-noise" min="0" max="0.5" step="0.02" value="${state.kuramotoNoise ?? 0.05}" style="width: 60px;">
+          <input type="range" id="kuramoto-noise" min="0" max="0.5" step="0.02" value="${state.kuramotoNoise ?? 0.05}" style="width: 60px;" title="Thermal Phase Noise: Stochastic angular jitter perturbing oscillator orbits">
         </label>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pitch Octave Span">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pitch Octave Span: Pitch range across octaves mapped across the 8 phase oscillators">
           Span:
-          <input type="range" id="kuramoto-span" min="1" max="4" step="1" value="${state.kuramotoSpan ?? 2}" style="width: 50px;">
+          <input type="range" id="kuramoto-span" min="1" max="4" step="1" value="${state.kuramotoSpan ?? 2}" style="width: 50px;" title="Pitch Octave Span: Pitch range across octaves mapped across the 8 phase oscillators">
         </label>
       </div>
 
