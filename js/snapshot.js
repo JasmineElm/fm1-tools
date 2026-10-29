@@ -70,6 +70,7 @@ const PREFIX = {
   ripple_tank: /^ripple[A-Z]/,
   convection: /^convect[A-Z]/,
   markov_matrix: /^markov[A-Z]/,
+  genetic_breeder: /^gene[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

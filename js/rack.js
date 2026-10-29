@@ -42,6 +42,7 @@ import { initFitzhughNagumo, activateFitzhughNagumoModel, deactivateFitzhughNagu
 import { initRippleTank, activateRippleTankModel, deactivateRippleTankModel } from "./ripple_tank.js";
 import { initConvection, activateConvectionModel, deactivateConvectionModel } from "./convection.js";
 import { initMarkovMatrix, activateMarkovMatrixModel, deactivateMarkovMatrixModel } from "./markov_matrix.js";
+import { initGeneticBreeder, activateGeneticBreederModel, deactivateGeneticBreederModel } from "./genetic_breeder.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -596,6 +597,7 @@ initFitzhughNagumo();
 initRippleTank();
 initConvection();
 initMarkovMatrix();
+initGeneticBreeder();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -1084,9 +1086,40 @@ initModes({
       deactivateFitzhughNagumoModel();
       deactivateRippleTankModel();
       deactivateConvectionModel();
+      deactivateGeneticBreederModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateMarkovMatrixModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "genetic_breeder") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateRippleTankModel();
+      deactivateConvectionModel();
+      deactivateMarkovMatrixModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateGeneticBreederModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -1123,6 +1156,7 @@ initModes({
     try { deactivateRippleTankModel(); } catch (e) { console.warn("Error deactivating ripple_tank model:", e); }
     try { deactivateConvectionModel(); } catch (e) { console.warn("Error deactivating convection model:", e); }
     try { deactivateMarkovMatrixModel(); } catch (e) { console.warn("Error deactivating markov_matrix model:", e); }
+    try { deactivateGeneticBreederModel(); } catch (e) { console.warn("Error deactivating genetic_breeder model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

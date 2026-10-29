@@ -8,8 +8,7 @@ This master plan tracks the implementation of remaining, unimplemented non-step,
 
 | Model ID | Model Name | Primary Domain | Core Mathematical / Physical Primitives | Complexity | Status |
 |---|---|---|---|---|---|
-| `genetic_breeder` | **Interactive Genetic Algorithm** | Evolutionary Melodic Breeding | Musical chromosome crossover/mutation, interactive fitness scoring | Moderate (3/5) | **Next / Pending** |
-| `chladni` | **Chladni Resonant Cymatics Plate** | Standing Wave Acoustics | 2D eigenfunction nodal lines, sand particle propulsion, chime harmonics | Moderate (3/5) | Backlog |
+| `chladni` | **Chladni Resonant Cymatics Plate** | Standing Wave Acoustics | 2D eigenfunction nodal lines, sand particle propulsion, chime harmonics | Moderate (3/5) | **Next / Pending** |
 | `brownian_ratchet` | **Brownian Thermal Ratchet** | Statistical Thermodynamics | Stochastic thermal Langevin fluctuations, asymmetric potential barrier | Low-Mod (2.5/5) | Backlog |
 | `tracy_ribbon` | **Electroplankton Tracy Ribbon** | Continuous Vector Trajectory | Organic spline path curvature, tangent velocity mapping, expressive FM envelopes | Moderate (2.5/5) | Backlog |
 | `self_avoiding_walk` | **Polymer Self-Avoiding Walk** | Molecular Folding / Jamming | Lattice self-avoidance, conformational steric hindrance, collapse cascades | Moderate (3/5) | Backlog |
@@ -42,20 +41,19 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ---
 
-## 3. Active Specification: Interactive Genetic Algorithm Melodic Genome Breeder
+## 3. Active Specification: Chladni Resonant Cymatics Plate & Nodal Sand Patterns
 
-- **Model ID**: `genetic_breeder`
-- **Category**: Evolutionary Biology / Genetic Algorithms / Interactive Fitness Breeding.
-- **Architectural Scope**: Maintains a population of musical genome chromosomes (encoding 16-step pitch intervals, gate triggers, velocities, and rhythm accents). Features one-point or uniform genetic crossover, mutation perturbations, and direct interactive user fitness evaluation (upvote/downvote buttons or dragging genomes in a 2D fitness arena).
+- **Model ID**: `chladni`
+- **Category**: Standing Wave Acoustics / Cymatics / Eigenfunction Harmonics.
+- **Architectural Scope**: Simulates Ernst Chladni’s vibrating square acoustic plate where virtual sand particles are propelled away from anti-nodal regions and settle onto geometric nodal lines.
 - **Mathematical Formulation**:
-  - Chromosome representation: Array of genes $g_i = (\Delta\text{pitch}, \text{gate}, \text{velocity}, \text{accent})$.
-  - Crossover: $C_1, C_2 = \text{Crossover}(P_1, P_2)$ with user-defined crossover probability $p_c \in [0.5, 0.95]$.
-  - Mutation: Random allele perturbation with probability $p_m \in [0.01, 0.25]$.
-  - Fitness proportional selection / tournament selection to produce the next generation.
+  - 2D eigenfunction nodal lines for a free-edge square plate:
+    $$w(x, y) = a \cos\left(\frac{n \pi x}{L}\right)\cos\left(\frac{m \pi y}{L}\right) - b \cos\left(\frac{m \pi x}{L}\right)\cos\left(\frac{n \pi y}{L}\right) = 0$$
+  - Sand particle dynamics: Particles experience acceleration proportional to the gradient of vibrational energy $\nabla (w(x, y)^2)$ and viscous damping, drifting toward nodal lines where $w \approx 0$.
 - **Musical Mapping**:
-  - Up to 8 concurrent active genomes auditioning in polyphonic counterpoint.
-  - Interactive workbench UI showing generational lineage, fitness landscape, and chromosome mutation controls.
-  - Mean genetic variance across the population modulates continuous CC #74 Brightness.
+  - Up to 8 hydrophone/pickup probes positioned along high-symmetry nodal quadrants trigger chime harmonics and bell tones when sand density peaks.
+  - Sweeping mode integers $(m, n)$ or frequency ratio shifts the nodal geometry in real time.
+  - Mean anti-nodal vibrational acceleration modulates continuous CC #74 Brightness.
 
 ---
 
@@ -63,7 +61,6 @@ Every model implementation must strictly adhere to the following shared framewor
 
 For future reference and extension, these additional models are documented with concise descriptions:
 
-1. **Chladni Acoustic Resonant Plate & Nodal Sand Patterns**: Simulates Ernst Chladni’s vibrating square acoustic plates where virtual sand grains are propelled off anti-nodal zones and settle onto geometric nodal lines defined by 2D standing wave eigenfunctions $\cos(n \pi x / L)\cos(m \pi y / L) - \cos(m \pi x / L)\cos(n \pi y / L) = 0$. Grains settling into equilibrium nodal pockets trigger micro-tonal chime harmonics that shift dramatically as modal vibrational frequencies $m$ and $n$ are swept.
-2. **Brownian Ratchet / Feynman Thermal Diode**: A microscopic mechanical paddle immersed in a fluctuating thermal bath attempts to drive a cogwheel restricted to unidirectional rotation by an asymmetric spring-loaded pawl. Stochastic thermal collisions occasionally overcome the pawl barrier, generating aperiodic rhythmic step advances whose statistical burst frequencies are governed by temperature and mechanical load.
-3. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
-4. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.
+1. **Brownian Ratchet / Feynman Thermal Diode**: A microscopic mechanical paddle immersed in a fluctuating thermal bath attempts to drive a cogwheel restricted to unidirectional rotation by an asymmetric spring-loaded pawl. Stochastic thermal collisions occasionally overcome the pawl barrier, generating aperiodic rhythmic step advances whose statistical burst frequencies are governed by temperature and mechanical load.
+2. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
+3. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.
