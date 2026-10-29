@@ -8,8 +8,7 @@ This master plan tracks the implementation of remaining, unimplemented non-step,
 
 | Model ID | Model Name | Primary Domain | Core Mathematical / Physical Primitives | Complexity | Status |
 |---|---|---|---|---|---|
-| `chladni` | **Chladni Resonant Cymatics Plate** | Standing Wave Acoustics | 2D eigenfunction nodal lines, sand particle propulsion, chime harmonics | Moderate (3/5) | **Next / Pending** |
-| `brownian_ratchet` | **Brownian Thermal Ratchet** | Statistical Thermodynamics | Stochastic thermal Langevin fluctuations, asymmetric potential barrier | Low-Mod (2.5/5) | Backlog |
+| `brownian_ratchet` | **Brownian Thermal Ratchet** | Statistical Thermodynamics | Stochastic thermal Langevin fluctuations, asymmetric potential barrier | Low-Mod (2.5/5) | **Next / Pending** |
 | `tracy_ribbon` | **Electroplankton Tracy Ribbon** | Continuous Vector Trajectory | Organic spline path curvature, tangent velocity mapping, expressive FM envelopes | Moderate (2.5/5) | Backlog |
 | `self_avoiding_walk` | **Polymer Self-Avoiding Walk** | Molecular Folding / Jamming | Lattice self-avoidance, conformational steric hindrance, collapse cascades | Moderate (3/5) | Backlog |
 
@@ -41,19 +40,20 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ---
 
-## 3. Active Specification: Chladni Resonant Cymatics Plate & Nodal Sand Patterns
+## 3. Active Specification: Brownian Thermal Ratchet / Feynman Thermal Diode
 
-- **Model ID**: `chladni`
-- **Category**: Standing Wave Acoustics / Cymatics / Eigenfunction Harmonics.
-- **Architectural Scope**: Simulates Ernst Chladni’s vibrating square acoustic plate where virtual sand particles are propelled away from anti-nodal regions and settle onto geometric nodal lines.
+- **Model ID**: `brownian_ratchet`
+- **Category**: Statistical Mechanics / Non-Equilibrium Thermodynamics / Thermal Langevin Fluctuations.
+- **Architectural Scope**: Simulates Richard Feynman’s microscopic thermal ratchet: a paddle wheel immersed in a fluctuating thermal bath $(T_1)$ drives a toothed cogwheel restricted to unidirectional forward rotation by an asymmetric pawl and spring immersed in a separate heat bath $(T_2)$.
 - **Mathematical Formulation**:
-  - 2D eigenfunction nodal lines for a free-edge square plate:
-    $$w(x, y) = a \cos\left(\frac{n \pi x}{L}\right)\cos\left(\frac{m \pi y}{L}\right) - b \cos\left(\frac{m \pi x}{L}\right)\cos\left(\frac{n \pi y}{L}\right) = 0$$
-  - Sand particle dynamics: Particles experience acceleration proportional to the gradient of vibrational energy $\nabla (w(x, y)^2)$ and viscous damping, drifting toward nodal lines where $w \approx 0$.
+  - Overdamped Langevin equation of motion:
+    $$\gamma \frac{d\theta}{dt} = -\frac{dV(\theta)}{d\theta} - \tau_{\text{load}} + \sqrt{2 \gamma k_B T_1} \xi(t)$$
+  - Asymmetric sawtooth potential energy barrier $V(\theta)$ with spatial asymmetry ratio $L_1 / L_2 \neq 1$.
+  - Thermal rectifier work output: Forward stochastic ratcheting occurs whenever $T_1 > T_2$, while reverse slippage occurs under high counter-torque load.
 - **Musical Mapping**:
-  - Up to 8 hydrophone/pickup probes positioned along high-symmetry nodal quadrants trigger chime harmonics and bell tones when sand density peaks.
-  - Sweeping mode integers $(m, n)$ or frequency ratio shifts the nodal geometry in real time.
-  - Mean anti-nodal vibrational acceleration modulates continuous CC #74 Brightness.
+  - Each ratchet forward tooth click triggers quantized rhythmic step advances across up to 8 polyphonic pawl chimes.
+  - Thermal temperature differential $\Delta T = T_1 - T_2$ and mechanical counter-torque modulate stepping probability and burst cadence.
+  - Instantaneous thermal velocity variance modulates continuous CC #74 Brightness.
 
 ---
 
@@ -61,6 +61,5 @@ Every model implementation must strictly adhere to the following shared framewor
 
 For future reference and extension, these additional models are documented with concise descriptions:
 
-1. **Brownian Ratchet / Feynman Thermal Diode**: A microscopic mechanical paddle immersed in a fluctuating thermal bath attempts to drive a cogwheel restricted to unidirectional rotation by an asymmetric spring-loaded pawl. Stochastic thermal collisions occasionally overcome the pawl barrier, generating aperiodic rhythmic step advances whose statistical burst frequencies are governed by temperature and mechanical load.
-2. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
-3. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.
+1. **Electroplankton "Tracy" Ribbon Path Trajectory**: Inspired by Toshio Iwai’s Tracy plankton species, the user draws continuous organic vector gestures across an aquatic canvas, spawning a creature that perpetually navigates the closed contour. As the creature traverses segments of the ribbon, local curvature, speed, and heading direction are continuously translated into quantized pitch shifts, gate lengths, and expressive FM modulation envelopes.
+2. **Self-Avoiding Random Walk (Polymer Chain Folding)**: A growing molecular polymer chain steps randomly onto neighboring unoccupied lattice nodes while strictly forbidding self-intersection. When the chain approaches conformational jamming (steric hindrance traps), the chain collapses and folds with an explosive, harmonically resolved chord cascade before initiating a new structural domain.

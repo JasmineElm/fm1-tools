@@ -71,6 +71,7 @@ const PREFIX = {
   convection: /^convect[A-Z]/,
   markov_matrix: /^markov[A-Z]/,
   genetic_breeder: /^gene[A-Z]/,
+  chladni: /^chladni[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

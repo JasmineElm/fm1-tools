@@ -23,7 +23,8 @@ export const POLYPHONIC_MODELS = new Set([
   "ripple_tank",
   "convection",
   "markov_matrix",
-  "genetic_breeder"
+  "genetic_breeder",
+  "chladni"
 ]);
 
 export const MODELS = [
@@ -402,6 +403,20 @@ export const MODELS = [
       <circle cx="8" cy="8" r="1.5" fill="currentColor" />
       <circle cx="16" cy="16" r="1.5" fill="currentColor" />
     </svg>`
+  },
+  {
+    id: "chladni",
+    name: "Chladni Cymatics Plate",
+    kicker: "Standing Wave Acoustics · Nodal Sand Patterns · Harmonic Probes",
+    available: true,
+    desc: "Ernst Chladni’s vibrating square acoustic plate simulation. Virtual sand grains are repelled from anti-nodal zones, accumulating into geometric standing wave nodal figures. Eight hydrophone pickup probes capture chime harmonics and bell overtones while plate vibrational energy modulates FM-1 CC #74 Brightness.",
+    tags: ["Chladni", "Cymatics", "Standing Waves", "Eigenfunctions", "Sand Patterns", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="1" />
+      <path d="M3 12h18M12 3v18" stroke-dasharray="2 2" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    </svg>`
   }
 ];
 
@@ -614,6 +629,8 @@ export function showLanding(updateHash = true) {
   if (modelMarkovMatrix) modelMarkovMatrix.style.display = "none";
   const modelGeneticBreeder = document.getElementById("model-genetic_breeder");
   if (modelGeneticBreeder) modelGeneticBreeder.style.display = "none";
+  const modelChladni = document.getElementById("model-chladni");
+  if (modelChladni) modelChladni.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -656,6 +673,7 @@ export function showModel(id, updateHash = true) {
   const modelConvection = document.getElementById("model-convection");
   const modelMarkovMatrix = document.getElementById("model-markov_matrix");
   const modelGeneticBreeder = document.getElementById("model-genetic_breeder");
+  const modelChladni = document.getElementById("model-chladni");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -669,8 +687,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, and Genetic Breeder are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, and Chladni are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -737,6 +755,7 @@ export function showModel(id, updateHash = true) {
     if (modelConvection) modelConvection.style.display = id === "convection" ? "block" : "none";
     if (modelMarkovMatrix) modelMarkovMatrix.style.display = id === "markov_matrix" ? "block" : "none";
     if (modelGeneticBreeder) modelGeneticBreeder.style.display = id === "genetic_breeder" ? "block" : "none";
+    if (modelChladni) modelChladni.style.display = id === "chladni" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -768,6 +787,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "convection") modeTag.textContent = "Atmospheric Convection";
       else if (id === "markov_matrix") modeTag.textContent = "Markov Melodic Memory";
       else if (id === "genetic_breeder") modeTag.textContent = "Melodic Genome Breeder";
+      else if (id === "chladni") modeTag.textContent = "Chladni Cymatics";
       modeTag.style.display = "inline-block";
     }
   }
@@ -870,6 +890,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "markov_matrix") showModel("markov_matrix", false);
     } else if (h === "#genetic_breeder" || h === "#breeder" || h === "#genetic" || h === "#genome" || h === "#genetic-algorithm") {
       if (activeModelId !== "genetic_breeder") showModel("genetic_breeder", false);
+    } else if (h === "#chladni" || h === "#cymatics" || h === "#standing-waves" || h === "#nodal-plate") {
+      if (activeModelId !== "chladni") showModel("chladni", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -932,6 +954,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("markov_matrix", false);
   } else if (initialHash === "#genetic_breeder" || initialHash === "#breeder" || initialHash === "#genetic" || initialHash === "#genome" || initialHash === "#genetic-algorithm") {
     showModel("genetic_breeder", false);
+  } else if (initialHash === "#chladni" || initialHash === "#cymatics" || initialHash === "#standing-waves" || initialHash === "#nodal-plate") {
+    showModel("chladni", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

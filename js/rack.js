@@ -43,6 +43,7 @@ import { initRippleTank, activateRippleTankModel, deactivateRippleTankModel } fr
 import { initConvection, activateConvectionModel, deactivateConvectionModel } from "./convection.js";
 import { initMarkovMatrix, activateMarkovMatrixModel, deactivateMarkovMatrixModel } from "./markov_matrix.js";
 import { initGeneticBreeder, activateGeneticBreederModel, deactivateGeneticBreederModel } from "./genetic_breeder.js";
+import { initChladni, activateChladniModel, deactivateChladniModel } from "./chladni.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -598,6 +599,7 @@ initRippleTank();
 initConvection();
 initMarkovMatrix();
 initGeneticBreeder();
+initChladni();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -1117,9 +1119,41 @@ initModes({
       deactivateRippleTankModel();
       deactivateConvectionModel();
       deactivateMarkovMatrixModel();
+      deactivateChladniModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateGeneticBreederModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "chladni") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateRippleTankModel();
+      deactivateConvectionModel();
+      deactivateMarkovMatrixModel();
+      deactivateGeneticBreederModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateChladniModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -1157,6 +1191,7 @@ initModes({
     try { deactivateConvectionModel(); } catch (e) { console.warn("Error deactivating convection model:", e); }
     try { deactivateMarkovMatrixModel(); } catch (e) { console.warn("Error deactivating markov_matrix model:", e); }
     try { deactivateGeneticBreederModel(); } catch (e) { console.warn("Error deactivating genetic_breeder model:", e); }
+    try { deactivateChladniModel(); } catch (e) { console.warn("Error deactivating chladni model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }
