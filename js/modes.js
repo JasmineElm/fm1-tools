@@ -19,7 +19,8 @@ export const POLYPHONIC_MODELS = new Set([
   "physarum",
   "reaction_diffusion",
   "kuramoto",
-  "fitzhugh_nagumo"
+  "fitzhugh_nagumo",
+  "ripple_tank"
 ]);
 
 export const MODELS = [
@@ -341,6 +342,20 @@ export const MODELS = [
       <path d="M9 11l6-4M9 13l6 4M18 9v6" />
       <path d="M2 12h1m18-6h1m-1 12h1" stroke-dasharray="1 1" />
     </svg>`
+  },
+  {
+    id: "ripple_tank",
+    name: "Acoustic Ripple Tank",
+    kicker: "Physical Wave Mechanics · FDTD 2D Interference · Hydrophone Sensors",
+    available: true,
+    desc: "2D acoustic wave equation ripple tank simulated via Finite-Difference Time-Domain (FDTD). Fluid surface ripples propagate, reflect off barrier walls and apertures, and create interference fringes. Up to 8 virtual hydrophone pickups detect crest crossings, triggering scale-quantized notes with stereo panning across the tank.",
+    tags: ["Wave Equation", "FDTD", "Interference", "Diffraction", "Hydrophones", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="8" stroke-dasharray="2 2" />
+      <path d="M4 12h2m12 0h2M12 4v2m0 12v2" />
+    </svg>`
   }
 ];
 
@@ -545,6 +560,8 @@ export function showLanding(updateHash = true) {
   if (modelKuramoto) modelKuramoto.style.display = "none";
   const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
   if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = "none";
+  const modelRippleTank = document.getElementById("model-ripple_tank");
+  if (modelRippleTank) modelRippleTank.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -583,6 +600,7 @@ export function showModel(id, updateHash = true) {
   const modelReactionDiffusion = document.getElementById("model-reaction_diffusion");
   const modelKuramoto = document.getElementById("model-kuramoto");
   const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
+  const modelRippleTank = document.getElementById("model-ripple_tank");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -596,8 +614,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, and FitzHugh-Nagumo are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, and Ripple Tank are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -660,6 +678,7 @@ export function showModel(id, updateHash = true) {
     if (modelReactionDiffusion) modelReactionDiffusion.style.display = id === "reaction_diffusion" ? "block" : "none";
     if (modelKuramoto) modelKuramoto.style.display = id === "kuramoto" ? "block" : "none";
     if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = id === "fitzhugh_nagumo" ? "block" : "none";
+    if (modelRippleTank) modelRippleTank.style.display = id === "ripple_tank" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -687,6 +706,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "reaction_diffusion") modeTag.textContent = "Reaction-Diffusion";
       else if (id === "kuramoto") modeTag.textContent = "Kuramoto Oscillators";
       else if (id === "fitzhugh_nagumo") modeTag.textContent = "FitzHugh-Nagumo";
+      else if (id === "ripple_tank") modeTag.textContent = "Acoustic Ripple Tank";
       modeTag.style.display = "inline-block";
     }
   }
@@ -781,6 +801,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "kuramoto") showModel("kuramoto", false);
     } else if (h === "#fitzhugh_nagumo" || h === "#fitzhugh-nagumo" || h === "#fhn" || h === "#spiking-network" || h === "#neuromorphic") {
       if (activeModelId !== "fitzhugh_nagumo") showModel("fitzhugh_nagumo", false);
+    } else if (h === "#ripple_tank" || h === "#ripple-tank" || h === "#waves" || h === "#acoustic-tank") {
+      if (activeModelId !== "ripple_tank") showModel("ripple_tank", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -835,6 +857,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("kuramoto", false);
   } else if (initialHash === "#fitzhugh_nagumo" || initialHash === "#fitzhugh-nagumo" || initialHash === "#fhn" || initialHash === "#spiking-network" || initialHash === "#neuromorphic") {
     showModel("fitzhugh_nagumo", false);
+  } else if (initialHash === "#ripple_tank" || initialHash === "#ripple-tank" || initialHash === "#waves" || initialHash === "#acoustic-tank") {
+    showModel("ripple_tank", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

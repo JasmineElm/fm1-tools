@@ -67,6 +67,7 @@ const PREFIX = {
   reaction_diffusion: /^rd[A-Z]/,
   kuramoto: /^kuramoto[A-Z]/,
   fitzhugh_nagumo: /^fhn[A-Z]/,
+  ripple_tank: /^ripple[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

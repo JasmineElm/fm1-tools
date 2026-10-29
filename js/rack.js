@@ -39,6 +39,7 @@ import { initPhysarum, activatePhysarumModel, deactivatePhysarumModel } from "./
 import { initReactionDiffusion, activateReactionDiffusionModel, deactivateReactionDiffusionModel } from "./reaction_diffusion.js";
 import { initKuramoto, activateKuramotoModel, deactivateKuramotoModel } from "./kuramoto.js";
 import { initFitzhughNagumo, activateFitzhughNagumoModel, deactivateFitzhughNagumoModel } from "./fitzhugh_nagumo.js";
+import { initRippleTank, activateRippleTankModel, deactivateRippleTankModel } from "./ripple_tank.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -590,6 +591,7 @@ initPhysarum();
 initReactionDiffusion();
 initKuramoto();
 initFitzhughNagumo();
+initRippleTank();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -991,9 +993,37 @@ initModes({
       deactivatePhysarumModel();
       deactivateReactionDiffusionModel();
       deactivateKuramotoModel();
+      deactivateRippleTankModel();
       deactivateDxPatch();
       deactivateLibrarian();
       activateFitzhughNagumoModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "ripple_tank") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateRippleTankModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -1027,6 +1057,7 @@ initModes({
     try { deactivateReactionDiffusionModel(); } catch (e) { console.warn("Error deactivating reaction_diffusion model:", e); }
     try { deactivateKuramotoModel(); } catch (e) { console.warn("Error deactivating kuramoto model:", e); }
     try { deactivateFitzhughNagumoModel(); } catch (e) { console.warn("Error deactivating fitzhugh_nagumo model:", e); }
+    try { deactivateRippleTankModel(); } catch (e) { console.warn("Error deactivating ripple_tank model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }
