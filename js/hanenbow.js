@@ -64,13 +64,28 @@ const leafPitchIdx = new Int32Array(MAX_LEAVES);
 const leafLastHitTime = new Float64Array(MAX_LEAVES).fill(-999);
 const leafCycleCount = new Int32Array(MAX_LEAVES);
 
-// Cannon Launcher State
+// Cannon Launcher State & Bounds (Node is fully visible within canvas at all times)
+export const CAN_PAD = 36;
+export const CAN_MIN_X = CAN_PAD;
+export const CAN_MAX_X = 800 - CAN_PAD;
+export const CAN_MIN_Y = CAN_PAD;
+export const CAN_MAX_Y = 540 - CAN_PAD;
+
 let cannonX = 80;
 let cannonY = 480;
 let cannonAngle = -Math.PI / 3; // -60 degrees
 let cannonSpeed = 650;
 let cannonPulse = 0;
 let fireTimer = 0;
+
+export function getCannon() {
+  return { x: cannonX, y: cannonY, angle: cannonAngle, speed: cannonSpeed };
+}
+
+export function setCannonPosition(x, y) {
+  cannonX = Math.max(CAN_MIN_X, Math.min(CAN_MAX_X, x));
+  cannonY = Math.max(CAN_MIN_Y, Math.min(CAN_MAX_Y, y));
+}
 
 let lastLiveStep = -1;
 let animFrameId = null;
@@ -737,12 +752,13 @@ function renderPondCanvas() {
   ctx.arc(bx, by, 3 * scaleX, 0, Math.PI * 2);
   ctx.fill();
 
-  // Cannon launch label
+  // Cannon launch label (placed cleanly above or below depending on shooting angle)
   ctx.fillStyle = colAccent;
   ctx.font = `bold ${Math.round(9 * scaleX)}px monospace`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("LAUNCH", cx, cy + 22 * scaleY);
+  const labelOffsetY = (Math.sin(cannonAngle) > 0.3 && cy > 35 * scaleY) ? -22 : 22;
+  ctx.fillText("LAUNCH", cx, cy + labelOffsetY * scaleY);
 
   // Cannon aiming trajectory guide arc (shows launch arc and multi-leaf deflections)
   ctx.save();
@@ -1111,14 +1127,29 @@ export function initHanenbow() {
     const num = Math.min(MAX_LEAVES, Math.max(2, state.hanenbowLeaves ?? 5));
     isDragging = null;
 
-    // Check click on cannon launch node: triggers another ball to be launched immediately!
+    // Check click on cannon launch node:
+    // Outer tip handle aims angle; Base/body drags to position anywhere on canvas
     const distBase = Math.hypot(mx - cannonX, my - cannonY);
     const barrelTipX = cannonX + Math.cos(cannonAngle) * 24;
     const barrelTipY = cannonY + Math.sin(cannonAngle) * 24;
-    const distBarrel = Math.hypot(mx - barrelTipX, my - barrelTipY);
-    if (distBase < 32 || distBarrel < 20) {
-      firePlankton(); // Fire another ball on click!
-      isDragging = { type: "cannon-angle", idx: 0 };
+    const distTip = Math.hypot(mx - barrelTipX, my - barrelTipY);
+
+    if (distTip < 16) {
+      isDragging = { type: "cannon-angle", startMx: mx, startMy: my, moved: false };
+      pondCanvas.setPointerCapture(e.pointerId);
+      renderPondCanvas();
+      return;
+    }
+
+    if (distBase < 28 || (Math.abs(mx - cannonX) < 26 && Math.abs(my - cannonY) < 32)) {
+      isDragging = {
+        type: "cannon-pos",
+        startMx: mx,
+        startMy: my,
+        offsetX: cannonX - mx,
+        offsetY: cannonY - my,
+        moved: false
+      };
       pondCanvas.setPointerCapture(e.pointerId);
       renderPondCanvas();
       return;
@@ -1185,7 +1216,16 @@ export function initHanenbow() {
         const i = isDragging.idx;
         leafX[i] = Math.max(60, Math.min(740, mx));
         leafY[i] = Math.max(120, Math.min(480, my));
+      } else if (isDragging.type === "cannon-pos") {
+        if (Math.hypot(mx - isDragging.startMx, my - isDragging.startMy) > 3) {
+          isDragging.moved = true;
+        }
+        cannonX = Math.max(CAN_MIN_X, Math.min(CAN_MAX_X, mx + isDragging.offsetX));
+        cannonY = Math.max(CAN_MIN_Y, Math.min(CAN_MAX_Y, my + isDragging.offsetY));
       } else if (isDragging.type === "cannon-angle") {
+        if (Math.hypot(mx - isDragging.startMx, my - isDragging.startMy) > 3) {
+          isDragging.moved = true;
+        }
         cannonAngle = Math.atan2(my - cannonY, mx - cannonX);
       }
       renderPondCanvas();
@@ -1193,8 +1233,16 @@ export function initHanenbow() {
       // Hover detection & dynamic cursor
       hoveredLeaf = -1;
       let cursor = "crosshair";
-      if (Math.hypot(mx - cannonX, my - cannonY) < 28) {
-        cursor = "pointer";
+
+      const distBase = Math.hypot(mx - cannonX, my - cannonY);
+      const barrelTipX = cannonX + Math.cos(cannonAngle) * 24;
+      const barrelTipY = cannonY + Math.sin(cannonAngle) * 24;
+      const distTip = Math.hypot(mx - barrelTipX, my - barrelTipY);
+
+      if (distTip < 16) {
+        cursor = "crosshair";
+      } else if (distBase < 28 || (Math.abs(mx - cannonX) < 26 && Math.abs(my - cannonY) < 32)) {
+        cursor = "move";
       } else {
         for (let i = 0; i < num; i++) {
           const lx = leafX[i];
@@ -1227,6 +1275,9 @@ export function initHanenbow() {
 
   const stopDrag = (e) => {
     if (isDragging) {
+      if ((isDragging.type === "cannon-pos" || isDragging.type === "cannon-angle") && !isDragging.moved) {
+        firePlankton(); // Tap to fire immediately!
+      }
       try { pondCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
       isDragging = null;
       forceRegenRhythm = true;
@@ -1335,13 +1386,6 @@ registerModel({
     if (h?.gateLen !== undefined) state.hanenbowGateLen = h.gateLen;
     if (h?.timingPeriod !== undefined) state.hanenbowTimingPeriod = h.timingPeriod;
 
-    if (h?.cannon) {
-      cannonX = h.cannon.x ?? cannonX;
-      cannonY = h.cannon.y ?? cannonY;
-      cannonAngle = h.cannon.angle ?? cannonAngle;
-      cannonSpeed = h.cannon.speed ?? cannonSpeed;
-    }
-
     if (Array.isArray(h?.leafData)) {
       for (let i = 0; i < Math.min(MAX_LEAVES, h.leafData.length); i++) {
         const ld = h.leafData[i];
@@ -1353,6 +1397,13 @@ registerModel({
       }
     } else {
       initHanenbowSystem(state.hanenbowPreset || "cascade");
+    }
+
+    if (h?.cannon) {
+      cannonX = Math.max(CAN_MIN_X, Math.min(CAN_MAX_X, h.cannon.x ?? cannonX));
+      cannonY = Math.max(CAN_MIN_Y, Math.min(CAN_MAX_Y, h.cannon.y ?? cannonY));
+      cannonAngle = h.cannon.angle ?? cannonAngle;
+      cannonSpeed = h.cannon.speed ?? cannonSpeed;
     }
 
     syncControlsFromState();
