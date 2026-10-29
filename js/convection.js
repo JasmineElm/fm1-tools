@@ -637,10 +637,11 @@ export function generateConvectionBank(stateObj) {
     const idx = s % MAX_PROBES;
     const note = getProbeNote(probes[idx]);
     const isDownbeat = (s % 8 === 0);
-
+    const vel = isDownbeat ? 112 : 84;
     steps.push({
       note,
-      vel: isDownbeat ? 112 : 84,
+      vel,
+      notes: [{ note, vel }],
       gate: 1,
       accent: isDownbeat ? 1 : 0,
       slide: 0,

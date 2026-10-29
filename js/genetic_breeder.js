@@ -564,6 +564,7 @@ export function generateGeneticBreederBank(stateObj) {
     steps.push({
       note,
       vel,
+      notes: isGate ? [{ note, vel }] : [],
       gate: isGate ? 1 : 0,
       accent,
       slide: 0,

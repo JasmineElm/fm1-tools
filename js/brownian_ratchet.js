@@ -445,6 +445,7 @@ export function generateBrownianRatchetBank(s) {
     steps.push({
       note,
       vel,
+      notes: isGateOn ? [{ note, vel }] : [],
       gate: isGateOn ? 0.75 : 0.0,
       skip: false
     });

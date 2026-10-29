@@ -771,6 +771,7 @@ export function generateChangesBank(stateObj) {
     steps.push({
       note,
       vel,
+      notes: [{ note, vel }],
       gate: 1,
       accent: bellNumber === 1 || bellNumber === stage ? 1 : 0,
       slide: 0,

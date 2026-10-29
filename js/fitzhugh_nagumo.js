@@ -605,6 +605,7 @@ export function generateFitzhughNagumoBank(stateObj) {
     steps.push({
       note,
       vel: isDownbeat ? 112 : 85,
+      notes: [{ note, vel: isDownbeat ? 112 : 85 }],
       gate: 1,
       accent: isDownbeat ? 1 : 0,
       slide: 0,

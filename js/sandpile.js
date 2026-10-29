@@ -743,11 +743,11 @@ export function generateSandpileBank(s = state) {
       const polyphony = Math.min(MAX_VOICES, Math.max(1, s.sandpilePolyphony ?? 3));
       const voiceCount = extractSandpilePitches(toppleSiteCount, S, root, intervals, span, polyphony, mapping, rule);
 
+      const vel = Math.min(127, Math.max(40, 70 + Math.round(Math.log2(topples + 1) * 10)));
       const stepNotes = [];
       for (let v = 0; v < voiceCount; v++) {
-        stepNotes.push(chosenPitches[v]);
+        stepNotes.push({ note: chosenPitches[v], vel });
       }
-      const vel = Math.min(127, Math.max(40, 70 + Math.round(Math.log2(topples + 1) * 10)));
 
       steps.push({
         notes: stepNotes,

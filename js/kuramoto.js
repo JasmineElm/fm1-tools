@@ -443,6 +443,7 @@ export function generateKuramotoBank(stateObj) {
     steps.push({
       note,
       vel: isDownbeat ? 115 : 88,
+      notes: [{ note, vel: isDownbeat ? 115 : 88 }],
       gate: 1,
       accent: isDownbeat ? 1 : 0,
       slide: 0,

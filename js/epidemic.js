@@ -222,7 +222,7 @@ export function infectNode(nodeId, sourceId = -1, playSound = true) {
   const note = getEpidemicNodeNote(posX[nodeId], posY[nodeId]);
   nodePitch[nodeId] = note;
 
-  if (playSound && isRunning) {
+  if (playSound && isEpidemicPlaying) {
     const baseVel = Math.min(127, Math.max(30, Number(state.epidemicVelocity ?? 90)));
     const dist = Math.hypot(posX[nodeId] - 0.5, posY[nodeId] - 0.5);
     const vel = Math.min(127, Math.max(35, Math.round(baseVel * 0.75 + (dist / 0.5) * (baseVel * 0.35))));

@@ -696,8 +696,10 @@ onBufferRender(() => {
 });
 
 // Re-render contour on window resize
-window.addEventListener("resize", () => {
-  if (getActiveModel && getActiveModel() === "turing") {
-    renderDacContour();
-  }
-});
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => {
+    if (getActiveModel && getActiveModel() === "turing") {
+      renderDacContour();
+    }
+  });
+}

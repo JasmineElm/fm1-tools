@@ -480,6 +480,7 @@ export function generateChladniBank(stateObj) {
     steps.push({
       note,
       vel: isDownbeat ? 112 : 84,
+      notes: [{ note, vel: isDownbeat ? 112 : 84 }],
       gate: 1,
       accent: isDownbeat ? 1 : 0,
       slide: 0,

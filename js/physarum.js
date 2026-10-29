@@ -609,6 +609,7 @@ export function generatePhysarumBank(stateObj) {
       steps.push({
         note: 60,
         vel: 80,
+        notes: [],
         gate: 0,
         accent: 0,
         slide: 0,
@@ -626,6 +627,7 @@ export function generatePhysarumBank(stateObj) {
     steps.push({
       note,
       vel: isDownbeat ? 110 : 85,
+      notes: [{ note, vel: isDownbeat ? 110 : 85 }],
       gate: 1,
       accent: isDownbeat ? 1 : 0,
       slide: 0,

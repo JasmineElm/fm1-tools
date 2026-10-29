@@ -487,6 +487,7 @@ export function generateReactionDiffusionBank(stateObj) {
       steps.push({
         note: 60,
         vel: 80,
+        notes: [],
         gate: 0,
         accent: 0,
         slide: 0,
@@ -499,10 +500,12 @@ export function generateReactionDiffusionBank(stateObj) {
     const probe = activeProbes[s % activeProbes.length];
     const note = getProbeNote(probe);
     const isDownbeat = (s % 8 === 0);
+    const vel = isDownbeat ? 112 : 86;
 
     steps.push({
       note,
-      vel: isDownbeat ? 112 : 86,
+      vel,
+      notes: [{ note, vel }],
       gate: 1,
       accent: isDownbeat ? 1 : 0,
       slide: 0,

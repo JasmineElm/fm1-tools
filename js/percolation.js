@@ -838,6 +838,7 @@ export function generatePercolationBank(s = state) {
         on,
         note,
         vel: on ? vel : 80,
+        notes: on ? [{ note, vel }] : [],
         gate: 0.5,
         mod: 0
       });

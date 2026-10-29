@@ -458,6 +458,7 @@ export function generateTracyRibbonBank(s) {
     steps.push({
       note,
       vel,
+      notes: isStepTrigger ? [{ note, vel }] : [],
       gate: isStepTrigger ? 0.75 : 0.0,
       skip: false
     });

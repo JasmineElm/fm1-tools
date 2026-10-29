@@ -440,6 +440,7 @@ export function generateSelfAvoidingWalkBank(s) {
     steps.push({
       note,
       vel,
+      notes: [{ note, vel }],
       gate: 0.75,
       skip: false
     });

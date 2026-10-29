@@ -598,6 +598,7 @@ export function generateRippleTankBank(stateObj) {
     steps.push({
       note,
       vel: isDownbeat ? 110 : 86,
+      notes: [{ note, vel: isDownbeat ? 110 : 86 }],
       gate: 1,
       accent: isDownbeat ? 1 : 0,
       slide: 0,
