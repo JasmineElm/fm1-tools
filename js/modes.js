@@ -20,7 +20,8 @@ export const POLYPHONIC_MODELS = new Set([
   "reaction_diffusion",
   "kuramoto",
   "fitzhugh_nagumo",
-  "ripple_tank"
+  "ripple_tank",
+  "convection"
 ]);
 
 export const MODELS = [
@@ -356,6 +357,20 @@ export const MODELS = [
       <circle cx="12" cy="12" r="8" stroke-dasharray="2 2" />
       <path d="M4 12h2m12 0h2M12 4v2m0 12v2" />
     </svg>`
+  },
+  {
+    id: "convection",
+    name: "Rayleigh-Bénard Convection",
+    kicker: "Thermal Fluid Dynamics · Dew Point Condensation · Tropospheric Clouds",
+    available: true,
+    desc: "Atmospheric Rayleigh-Bénard thermal convection simulation with Boussinesq Navier-Stokes fluid mechanics. Heated air from the ground plate rises in counter-rotating convection rolls; upon cooling past saturation dew points in the upper troposphere, vapor condenses into cloud billows, triggering crystalline high-octave chimes and deep grounding sub-bass downdrafts.",
+    tags: ["Convection", "Thermodynamics", "Navier-Stokes", "Clouds", "Condensation", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 20h18" stroke-width="2" />
+      <path d="M7 16c0-3 2-5 5-5s5 2 5 5" />
+      <path d="M12 11V4M9 7l3-3 3 3" />
+      <path d="M16 8a3 3 0 0 1 5 2c0 2-2 3-5 3" stroke-dasharray="1 1" />
+    </svg>`
   }
 ];
 
@@ -562,6 +577,8 @@ export function showLanding(updateHash = true) {
   if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = "none";
   const modelRippleTank = document.getElementById("model-ripple_tank");
   if (modelRippleTank) modelRippleTank.style.display = "none";
+  const modelConvection = document.getElementById("model-convection");
+  if (modelConvection) modelConvection.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -601,6 +618,7 @@ export function showModel(id, updateHash = true) {
   const modelKuramoto = document.getElementById("model-kuramoto");
   const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
   const modelRippleTank = document.getElementById("model-ripple_tank");
+  const modelConvection = document.getElementById("model-convection");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -614,8 +632,8 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, and Ripple Tank are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "dxpatch" && id !== "librarian");
+  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, and Convection are unlinked free models: hide discrete step sequencer bars
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -679,6 +697,7 @@ export function showModel(id, updateHash = true) {
     if (modelKuramoto) modelKuramoto.style.display = id === "kuramoto" ? "block" : "none";
     if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = id === "fitzhugh_nagumo" ? "block" : "none";
     if (modelRippleTank) modelRippleTank.style.display = id === "ripple_tank" ? "block" : "none";
+    if (modelConvection) modelConvection.style.display = id === "convection" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -707,6 +726,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "kuramoto") modeTag.textContent = "Kuramoto Oscillators";
       else if (id === "fitzhugh_nagumo") modeTag.textContent = "FitzHugh-Nagumo";
       else if (id === "ripple_tank") modeTag.textContent = "Acoustic Ripple Tank";
+      else if (id === "convection") modeTag.textContent = "Atmospheric Convection";
       modeTag.style.display = "inline-block";
     }
   }
@@ -803,6 +823,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "fitzhugh_nagumo") showModel("fitzhugh_nagumo", false);
     } else if (h === "#ripple_tank" || h === "#ripple-tank" || h === "#waves" || h === "#acoustic-tank") {
       if (activeModelId !== "ripple_tank") showModel("ripple_tank", false);
+    } else if (h === "#convection" || h === "#thermal-convection" || h === "#clouds" || h === "#rayleigh-benard") {
+      if (activeModelId !== "convection") showModel("convection", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -859,6 +881,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("fitzhugh_nagumo", false);
   } else if (initialHash === "#ripple_tank" || initialHash === "#ripple-tank" || initialHash === "#waves" || initialHash === "#acoustic-tank") {
     showModel("ripple_tank", false);
+  } else if (initialHash === "#convection" || initialHash === "#thermal-convection" || initialHash === "#clouds" || initialHash === "#rayleigh-benard") {
+    showModel("convection", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {
