@@ -152,20 +152,44 @@ export async function sendPattern(msgs, label = "") {
   return out.name;
 }
 
-// Live note out (for the audition / sound-module mode).
-export function sendNoteOn(note, vel, channel = 1) {
+// Live note out (for the audition / sound-module mode) with high-precision timestamp scheduling.
+export function sendNoteOn(note, vel, channel = 1, timestamp = 0) {
   const out = findFm1();
-  if (out) out.send(new Uint8Array([0x90 | ((channel - 1) & 0x0F), note & 0x7F, vel & 0x7F]));
+  if (out) {
+    const bytes = new Uint8Array([0x90 | ((channel - 1) & 0x0F), note & 0x7F, vel & 0x7F]);
+    if (typeof timestamp === "number" && timestamp > 0) out.send(bytes, timestamp);
+    else out.send(bytes);
+  }
 }
 
-export function sendNoteOff(note, channel = 1) {
+export function sendNoteOff(note, channel = 1, timestamp = 0) {
   const out = findFm1();
-  if (out) out.send(new Uint8Array([0x80 | ((channel - 1) & 0x0F), note & 0x7F, 0]));
+  if (out) {
+    const bytes = new Uint8Array([0x80 | ((channel - 1) & 0x0F), note & 0x7F, 0]);
+    if (typeof timestamp === "number" && timestamp > 0) out.send(bytes, timestamp);
+    else out.send(bytes);
+  }
 }
 
-export function sendControlChange(controller, value, channel = 1) {
+export function sendControlChange(controller, value, channel = 1, timestamp = 0) {
   const out = findFm1();
-  if (out) out.send(new Uint8Array([0xB0 | ((channel - 1) & 0x0F), controller & 0x7F, value & 0x7F]));
+  if (out) {
+    const bytes = new Uint8Array([0xB0 | ((channel - 1) & 0x0F), controller & 0x7F, value & 0x7F]);
+    if (typeof timestamp === "number" && timestamp > 0) out.send(bytes, timestamp);
+    else out.send(bytes);
+  }
+}
+
+export function sendAllNotesOff(channel = 1) {
+  const out = findFm1();
+  if (out) {
+    if (typeof out.clear === "function") {
+      try { out.clear(); } catch (_) {}
+    }
+    // CC #123 All Notes Off and CC #120 All Sound Off
+    out.send(new Uint8Array([0xB0 | ((channel - 1) & 0x0F), 123, 0]));
+    out.send(new Uint8Array([0xB0 | ((channel - 1) & 0x0F), 120, 0]));
+  }
 }
 
 export function hasAccess() { return !!access; }
@@ -272,13 +296,34 @@ function bleSend(bytes) {
   catch { return false; }
 }
 
-export function bleSendNoteOn(note, vel, channel = 1) {
+export function bleSendNoteOn(note, vel, channel = 1, timestamp = 0) {
+  if (typeof timestamp === "number" && timestamp > 0) {
+    const delay = Math.max(0, timestamp - performance.now());
+    if (delay > 1) {
+      setTimeout(() => bleSendNoteOn(note, vel, channel), delay);
+      return true;
+    }
+  }
   return bleSend(new Uint8Array([0x90 | ((channel - 1) & 0x0F), note & 0x7F, vel & 0x7F]));
 }
-export function bleSendNoteOff(note, channel = 1) {
+export function bleSendNoteOff(note, channel = 1, timestamp = 0) {
+  if (typeof timestamp === "number" && timestamp > 0) {
+    const delay = Math.max(0, timestamp - performance.now());
+    if (delay > 1) {
+      setTimeout(() => bleSendNoteOff(note, channel), delay);
+      return true;
+    }
+  }
   return bleSend(new Uint8Array([0x80 | ((channel - 1) & 0x0F), note & 0x7F, 0]));
 }
-export function bleSendControlChange(controller, value, channel = 1) {
+export function bleSendControlChange(controller, value, channel = 1, timestamp = 0) {
+  if (typeof timestamp === "number" && timestamp > 0) {
+    const delay = Math.max(0, timestamp - performance.now());
+    if (delay > 1) {
+      setTimeout(() => bleSendControlChange(controller, value, channel), delay);
+      return true;
+    }
+  }
   return bleSend(new Uint8Array([0xB0 | ((channel - 1) & 0x0F), controller & 0x7F, value & 0x7F]));
 }
 

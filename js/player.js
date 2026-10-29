@@ -87,29 +87,29 @@ export function resetSafeNoteHistory() {
 }
 
 // Live note out — routes to BLE when it is connected (play-only), USB otherwise.
-export function liveNoteOn(note, vel, fromPoly = false) {
+export function liveNoteOn(note, vel, fromPoly = false, timestamp = 0) {
   if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return false;
-  if (!fromPoly && !recordAndCheckSafeNote()) return false;
-  if (midi.bleConnected()) { midi.bleSendNoteOn(note, vel); return true; }
-  midi.sendNoteOn(note, vel);
+  if (!fromPoly && !recordAndCheckSafeNote(timestamp > 0 ? timestamp : undefined)) return false;
+  if (midi.bleConnected()) { midi.bleSendNoteOn(note, vel, 1, timestamp); return true; }
+  midi.sendNoteOn(note, vel, 1, timestamp);
   return true;
 }
 
-export function liveNoteOff(note) {
+export function liveNoteOff(note, timestamp = 0) {
   if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
-  if (midi.bleConnected()) { midi.bleSendNoteOff(note); return; }
-  midi.sendNoteOff(note);
+  if (midi.bleConnected()) { midi.bleSendNoteOff(note, 1, timestamp); return; }
+  midi.sendNoteOff(note, 1, timestamp);
 }
 
 // Live CC out — routes to BLE when connected, USB otherwise.
 let controlChangeSink = null;
 export function setControlChangeSink(fn) { controlChangeSink = fn; }
 
-export function liveControlChange(controller, value, channel = 1) {
+export function liveControlChange(controller, value, channel = 1, timestamp = 0) {
   if (typeof controller !== "number" || typeof value !== "number") return;
   if (controlChangeSink) controlChangeSink(controller, value, channel);
-  if (midi.bleConnected()) { midi.bleSendControlChange(controller, value, channel); return; }
-  midi.sendControlChange(controller, value, channel);
+  if (midi.bleConnected()) { midi.bleSendControlChange(controller, value, channel, timestamp); return; }
+  midi.sendControlChange(controller, value, channel, timestamp);
 }
 
 /**
@@ -152,6 +152,7 @@ export function panicPreview() {
     try { audio.noteOff(n); } catch (_) {}
   }
   previewHeld.clear();
+  try { midi.sendAllNotesOff(); } catch (_) {}
 }
 
 export async function playOnce(index) {
@@ -258,6 +259,7 @@ export function stopLive() {
   clearPlayhead();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
+  try { midi.sendAllNotesOff(); } catch (_) {}
   const btn = document.getElementById("audition");
   if (btn) { btn.textContent = "▶ Play"; btn.classList.remove("playing"); }
   status("stopped");
@@ -302,65 +304,107 @@ export function toggleLive() {
   liveLoop(liveToken);
 }
 
+/**
+ * Dual-Clock Lookahead Scheduler for Grid / Step Sequencer Playback.
+ * Looks ahead into an 80ms window and schedules Note On and Note Off events
+ * ahead of time into high-precision Web Audio and Web MIDI hardware buffers.
+ */
 export async function liveLoop(token) {
-  let t0 = performance.now();
-  let elapsed = 0;
-  let i = 0;
+  const LOOKAHEAD_MS = 80;
+  const INTERVAL_MS = 25;
+
+  let nextStepTime = performance.now();
+  let stepIndex = 0;
+  const visualTimers = new Set();
+
+  const clearVisualTimers = () => {
+    for (const t of visualTimers) clearTimeout(t);
+    visualTimers.clear();
+  };
+
   while (live && token === liveToken) {
     if (modelTransportHandler) break;
     try {
       const bank = getBank();
       const p = bank[getSelected()];
-      if (!p || !p.length) { await sleep(100); t0 += 100; continue; }
-      if (i >= p.length) i = 0;
-      if (performance.now() - (t0 + elapsed) > 250) t0 = performance.now() - elapsed;
+      if (!p || !p.length) {
+        await sleep(100);
+        nextStepTime = performance.now();
+        continue;
+      }
 
-      const st = p.steps?.[i] || { notes: [], rate: p.rate ?? 6 };
-      const qMs = 60000 / Math.max(20, Math.min(300, state.tempo || 120));
-      const gate = Math.min(100, Math.max(5, state.gate ?? 50)) / 100;
-      const rIdx = typeof st.rate === "number" ? st.rate : RATE_NAMES.indexOf(st.rate);
-      const prIdx = typeof p.rate === "number" ? p.rate : RATE_NAMES.indexOf(p.rate);
-      const qMult = RATE_QUARTERS[rIdx >= 0 ? rIdx : (prIdx >= 0 ? prIdx : 6)] ?? 0.25;
-      const stepMs = qMs * qMult;
-      const late = i % 2 === 1 ? stepMs * swingFrac() : 0;
-      const humFactor = (state.humanize ?? 0) / 100;
-      const humJitter = humFactor > 0 ? (Math.random() * 2 - 1) * humFactor * 0.15 * stepMs : 0;
-      const sDur = Math.max(10, stepMs - late);
+      const seqLen = p.length || 64;
+      if (stepIndex >= seqLen) stepIndex = 0;
 
-      const startAt = t0 + elapsed + late + humJitter;
-      let w = startAt - performance.now();
-      if (w > 0) await sleep(w);
-      markStep(i);
-      if (st.notes && Array.isArray(st.notes) && st.notes.length) {
-        for (const n of st.notes) {
-          const pitch = typeof n === "number" ? n : n?.note;
-          const vel = typeof n === "number" ? 100 : (n?.vel ?? 100);
-          if (typeof pitch === "number" && isFinite(pitch)) {
-            if (liveNoteOn(pitch, vel)) {
-              audio.noteOn(pitch, vel);
+      const now = performance.now();
+      // If we fell behind by more than 250ms (e.g. system sleep or tab suspended), resync nextStepTime
+      if (now - nextStepTime > 250) {
+        nextStepTime = now;
+      }
+
+      // Schedule all steps falling inside the lookahead window [now, now + LOOKAHEAD_MS]
+      while (nextStepTime < now + LOOKAHEAD_MS && live && token === liveToken) {
+        const i = stepIndex;
+        const st = p.steps?.[i] || { notes: [], rate: p.rate ?? 6 };
+        const qMs = 60000 / Math.max(20, Math.min(300, state.tempo || 120));
+        const gate = Math.min(100, Math.max(5, state.gate ?? 50)) / 100;
+        const rIdx = typeof st.rate === "number" ? st.rate : RATE_NAMES.indexOf(st.rate);
+        const prIdx = typeof p.rate === "number" ? p.rate : RATE_NAMES.indexOf(p.rate);
+        const qMult = RATE_QUARTERS[rIdx >= 0 ? rIdx : (prIdx >= 0 ? prIdx : 6)] ?? 0.25;
+        const stepMs = qMs * qMult;
+        const late = i % 2 === 1 ? stepMs * swingFrac() : 0;
+        const humFactor = (state.humanize ?? 0) / 100;
+        const humJitter = humFactor > 0 ? (Math.random() * 2 - 1) * humFactor * 0.15 * stepMs : 0;
+        const sDur = Math.max(10, stepMs - late);
+
+        const startPerfNow = nextStepTime + late + humJitter;
+        const offPerfNow = startPerfNow + Math.max(12, sDur * gate);
+        const deltaStartMs = Math.max(0, startPerfNow - now);
+        const deltaOffMs = Math.max(0, offPerfNow - now);
+
+        const audioCtx = audio.getAudioContext();
+        const baseAudioTime = audioCtx ? audioCtx.currentTime : 0;
+        const audioStartTime = audioCtx ? baseAudioTime + (deltaStartMs / 1000) : 0;
+        const audioOffTime = audioCtx ? baseAudioTime + (deltaOffMs / 1000) : 0;
+
+        // Visual playhead timer: fires right when the step starts sounding
+        const visualDelay = Math.max(0, startPerfNow - performance.now());
+        const vTimer = setTimeout(() => {
+          visualTimers.delete(vTimer);
+          if (live && token === liveToken) {
+            markStep(i);
+          }
+        }, visualDelay);
+        visualTimers.add(vTimer);
+
+        // Schedule Note On and Note Off ahead into hardware buffers
+        if (st.notes && Array.isArray(st.notes) && st.notes.length) {
+          for (const n of st.notes) {
+            const pitch = typeof n === "number" ? n : n?.note;
+            const vel = typeof n === "number" ? 100 : (n?.vel ?? 100);
+            if (typeof pitch === "number" && isFinite(pitch)) {
+              if (liveNoteOn(pitch, vel, false, startPerfNow)) {
+                audio.noteOn(pitch, vel, audioStartTime);
+              }
+              liveNoteOff(pitch, offPerfNow);
+              audio.noteOff(pitch, audioOffTime);
             }
           }
         }
-        const offAt = startAt + Math.max(12, sDur * gate);
-        w = offAt - performance.now(); if (w > 0) await sleep(w);
-        for (const n of st.notes) {
-          const pitch = typeof n === "number" ? n : n?.note;
-          if (typeof pitch === "number" && isFinite(pitch)) {
-            liveNoteOff(pitch);
-            audio.noteOff(pitch);
-          }
-        }
+
+        nextStepTime += stepMs;
+        stepIndex = (stepIndex + 1) % seqLen;
       }
-      w = (t0 + elapsed + stepMs) - performance.now();
-      if (w > 0) await sleep(w);
-      elapsed += stepMs;
-      i++;
+
+      await sleep(INTERVAL_MS);
     } catch (e) {
       status("play error: " + (e.message || e), "err");
-      await sleep(200);
-      t0 += 200;
+      await sleep(100);
+      nextStepTime = performance.now();
     }
   }
+
+  clearVisualTimers();
   clearPlayhead();
 }
 

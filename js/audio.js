@@ -185,13 +185,21 @@ function buildVoice(c, t, f, vel, id) {
   return { oscs, gain, rel };
 }
 
-export function noteOn(note, vel = 100) {
+export function getAudioContext() {
+  return ensure();
+}
+
+export function getAudioCurrentTime() {
+  return ensure()?.currentTime ?? 0;
+}
+
+export function noteOn(note, vel = 100, when = 0) {
   if (muted) return;
   if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
   const c = ensure();
   if (!c) return;
-  noteOff(note);                              // retrigger cleanly
-  const t = c.currentTime;
+  const t = typeof when === "number" && when > 0 ? when : c.currentTime;
+  noteOff(note, t);                              // retrigger cleanly at scheduled time
   const f = hz(note);
   if (typeof f !== "number" || !isFinite(f) || isNaN(f)) return;
 
@@ -201,11 +209,11 @@ export function noteOn(note, vel = 100) {
   voices.set(note, voice);
 }
 
-export function noteOff(note) {
+export function noteOff(note, when = 0) {
   if (typeof note !== "number" || !isFinite(note) || isNaN(note)) return;
   const v = voices.get(note);
   if (!v || !ctx) return;
-  const t = ctx.currentTime;
+  const t = typeof when === "number" && when > 0 ? when : ctx.currentTime;
   v.gain.gain.cancelScheduledValues(t);
   v.gain.gain.setValueAtTime(v.gain.gain.value, t);
   v.gain.gain.linearRampToValueAtTime(0, t + v.rel);          // release
@@ -214,3 +222,4 @@ export function noteOff(note) {
 }
 
 export function allOff() { for (const n of [...voices.keys()]) noteOff(n); }
+
