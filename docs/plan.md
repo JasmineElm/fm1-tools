@@ -58,6 +58,19 @@ Every model implementation must strictly adhere to the following shared framewor
 
 ---
 
-## 4. Backlog Models Catalogue
+## 4. Completed Model Specifications
 
-All previously planned non-step and generative models from the backlog catalogue have now been promoted to active specifications or fully implemented.
+### 4.1 Electroplankton Tracy Node Grid Path Tracing Sequencer
+
+- **Model ID**: `tracy_ribbon`
+- **Category**: Kinetic Path Tracing / Multi-Agent Route Navigation.
+- **Architectural Scope**: Inspired by Toshio Iwai's *Electroplankton* Tracy creature, this model features an interactive 2D node matrix ($8 \times 6 = 48$ nodes) where users directly trace looping routes for up to 8 simultaneous creatures.
+- **Mathematical & Structural Primitives**:
+  - Discrete Node Grid: $\text{Cols} = 8$ (scale degrees), $\text{Rows} = 6$ (register octaves).
+  - Multi-Creature Routes: Up to 8 creatures simultaneously traversing independent closed circuits.
+  - Per-Creature Parameters: Individual path waypoints, base pitch offset in scale degrees, and speed multiplier ($0.25\times \dots 3.0\times$).
+  - Curated Color Palette: 8 distinct flat color circles (`#00f0ff`, `#ff007f`, `#ffb700`, `#39ff14`, `#a855f7`, `#38bdf8`, `#f43f5e`, `#eab308`).
+  - Polyphony & Audio Dispatch: Dispatches note events on node arrivals via `selectPolyVoices()` and `playVoice()`, observing the M-VAVE FM-1 8-voice hardware ceiling.
+
+### 4.2 Polymer Self-Avoiding Walk & Steric Jamming Folding
+
