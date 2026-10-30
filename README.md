@@ -10,15 +10,16 @@ Browser-based generative MIDI workstation for the **M-VAVE FM-1** (6-operator FM
 
 FM-1 Pulses generates evolving musical phrases, continuous physical simulations, and polyphonic generative textures in real time for the M-VAVE FM-1 over MIDI, paired with a built-in browser FM synthesizer for cable-free auditioning. Sessions can be saved and restored deterministically (see **Session files** below).
 
-### Sequencer Models (31 Engines)
+### Sequencer Models (32 Engines)
 
-FM-1 Pulses includes **31 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
+FM-1 Pulses includes **32 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
 
 #### Classic Modular & Shift-Register Generators
 - **Mene311 (Stochastic)**: An analog-inspired generative signal chain combining Sample & Hold, continuous LFO waveshaping, Gaussian distribution weighting, scale quantization, and a looping Deja-Vu buffer.
 - **Turing Machine**: A shift-register melody generator inspired by Tom Whitwell's Music Thing Modular Turing Machine. Circulating bit registers mutate probabilistically, moving between locked repetitive loops and gradual melodic drift.
 - **Rob Hordijk Rungler**: Chaotic stepped shift-register generator inspired by the Benjolin and Blippoo Box. Two cross-modulating oscillators feed a comparator into a 16-bit shift register decoded by a 4-bit Rungler DAC ladder.
 - **Buchla Krell Patch**: Self-generating West Coast patch inspired by Todd Barton and *Forbidden Planet*. Dual non-linear function generators cross-modulate Rise and Fall slopes via Sample & Hold random voltages for organic non-metric phrasing.
+- **2D Shift Register**: Toroidal bit matrix with orthogonal X/Y shift clocks, feedback polynomial taps (Triadex Muse heritage), and register cross-sum scale pitch and velocity mapping.
 
 #### Cellular, Lattice & Criticality Models
 - **Cellular Automata**: Emergent step generator powered by 1D elementary cellular automata (Wolfram Rules 30, 90, 110, and 150), producing organic self-similar fractal patterns across generations.
@@ -35,6 +36,7 @@ FM-1 Pulses includes **31 algorithmic, physical, biological, and stochastic sequ
 - **Rayleigh-Bénard Convection**: Boussinesq Navier-Stokes thermal fluid simulation where rising warm plumes cool past upper-troposphere dew points to condense into cloud billows and downdrafts.
 - **Chladni Cymatics Plate**: Vibrating square acoustic plate (`m, n` eigenmodes) where virtual sand grains migrate toward nodal lines and 8 pickup probes capture harmonic overtones.
 - **Brownian Thermal Ratchet**: Richard Feynman's microscopic ratchet-and-pawl thermal engine driven by dual Langevin heat baths (`T1`, `T2`) against a counter-torque load.
+- **Ballistic Billiards**: Hamiltonian dynamical billiards in mathematical collision tables (Bunimovich Stadium, Sinai, Ellipse, Cardioid) with specular reflection ray acoustics.
 
 #### Biological, Ecological & Neuromorphic Systems
 - **Flocking Swarm**: Autonomous boid flocking chord engine driven by Separation, Alignment, and Cohesion. When the swarm congregates at interactive Attractor Targets, it fires up to 8-voice chords and scatters in a repulsion blast.
@@ -50,6 +52,7 @@ FM-1 Pulses includes **31 algorithmic, physical, biological, and stochastic sequ
 - **Change Ringing**: English full-circle church bell campanology engine (stages 4–8, Plain Hunt, Plain Bob, Grandsire, Stedman, and interactive Call Changes) with real-time Blue Line trajectory plotting.
 - **Markov Melodic Memory**: Conditional state-transition probability matrix with Boltzmann temperature scaling, N-gram memory, and multi-walker polyphony.
 - **Melodic Genome Breeder**: Interactive genetic algorithm maintaining 8 musical chromosomes evolving via roulette selection, single-point crossover, allele mutation, and user fitness ratings.
+- **Nodal Directed Graph**: Probabilistic directed state graph where autonomous walker tokens traverse topological network structures (Chordal Cycles, Binary Trees, Scale-Free Hubs, De Bruijn Shifts, Forward DAGs).
 
 #### Interactive Aquatic Toys (Electroplankton)
 - **Hanenbow Ballistics**: Inspired by Toshio Iwai's *Electroplankton*. Plankton launch from a draggable spring-cannon and ricochet off damped elastic leaves into syncopated arpeggio cascades.
@@ -121,7 +124,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 - Unknown parameters are preserved through an import/export round trip.
 - Models register hidden state (shift registers, cellular/lattice grids, particle/agent coordinates, and seeds) from their own module.
 - Files from before this format load as Mene311 v1.
-- Run `node --test tests/` for the unit test suite across all 31 models and core modules.
+- Run `node --test tests/` for the unit test suite across all 32 models and core modules.
 
 ---
 
@@ -145,7 +148,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 │   ├── modes.js              # Sequencer model & tools switcher, tag filters & modal guide
 │   ├── billiards.js          # Ballistic dynamical billiards Hamiltonian collision model
 │   ├── nodal_graph.js        # Nodal Directed Graph topological automata model
-│   ├── model_guides.js       # Contextual in-app guide content for all 31 models
+│   ├── model_guides.js       # Contextual in-app guide content for all 32 models
 │   ├── state.js              # Shared reactive application state & parameter defaults
 │   ├── poly.js               # 8-voice polyphony ceiling & voice allocation strategies
 │   ├── player.js             # Dual-clock lookahead scheduler & live note dispatch

@@ -1,6 +1,25 @@
 // js/model_guides.js — In-app guide descriptions and control specifications for all 29 sequencer models.
 
 export const MODEL_GUIDES = {
+  shift_register_2d: {
+    title: "2D Shift Register",
+    kicker: "Toroidal Bit Matrix · Orthogonal Clocks · Galois Feedback Logic",
+    paragraphs: [
+      "Draws inspiration from Marvin Minsky and Edward Fredkin's seminal Triadex Muse (1970) and Linear-Feedback Shift Registers, extended into an 8x8 two-dimensional toroidal bit matrix. Bits flow continuously across wrapped horizontal and vertical boundaries under the governance of orthogonal clock dividers and directional vector modes.",
+      "Feedback taps sample matrix cell coordinates through selectable Boolean logic (XOR, XNOR, Majority, serial adder with carry, Wolfram Rule 30/90) and reinject bits into designated target zones. Up to 8 concurrent voices scan rows, cross-sums, tap neighborhoods, or diagonal slices, deriving scale-quantized pitches and Hamming-weight velocity accents while strictly adhering to the FM-1 hardware polyphony ceiling."
+    ],
+    controls: [
+      { name: "PRESET", desc: "Selects curated shift register configurations (Techno Ostinato, Triadex Muse, Toroidal Warp, Euclidean Matrix, Fibonacci Chaos)." },
+      { name: "CLOCK X:Y", desc: "Orthogonal shift clock ratio (1:1, 1:2, 2:1, 2:3, 3:4, 4:3) controlling relative horizontal and vertical shift speeds." },
+      { name: "VOICES", desc: "Number of concurrent voice read heads (1 to 8), dynamically managed by the 8-voice FIFO stealing ceiling." },
+      { name: "FEEDBACK", desc: "Boolean polynomial function (XOR, XNOR, Majority, Adder+Carry, Rule 30, Rule 90) applied to feedback taps T1..T4." },
+      { name: "INJECT TO", desc: "Target matrix destination for computed feedback bits (Origin, Left Column, Top Row, Diagonal, Tap T1)." },
+      { name: "READ MODE", desc: "Cell evaluation topology converting 2D bit patterns to pitch (Row Binary DAC, Cross-Sum, Tap Neighborhoods, Diagonal Slices)." },
+      { name: "TRIGGER", desc: "Gate firing logic (Bit Active 1 Only, Always on Clock, or Bit Flip 0 to 1 Transition)." },
+      { name: "MUTATION", desc: "Stochastic bit-flip probability introducing subtle organic drift or continuous aleatoric mutation." },
+      { name: "CANVAS", desc: "Interactive 8x8 matrix display. Click or drag to toggle bits, or drag tap badges T1..T4 to reposition feedback probes." }
+    ]
+  },
   mene311: {
     title: "Mene311 Stochastic S&H",
     kicker: "Stochastic S&H · Quantizer · Echo Loop",

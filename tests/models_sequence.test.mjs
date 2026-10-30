@@ -139,6 +139,7 @@ import * as tracy_ribbon from "../js/tracy_ribbon.js";
 import * as self_avoiding_walk from "../js/self_avoiding_walk.js";
 import * as billiards from "../js/billiards.js";
 import * as nodal_graph from "../js/nodal_graph.js";
+import * as shift_register_2d from "../js/shift_register_2d.js";
 
 const MODEL_MODULE_MAP = {
   mene311,
@@ -171,11 +172,12 @@ const MODEL_MODULE_MAP = {
   tracy_ribbon,
   self_avoiding_walk,
   billiards,
-  nodal_graph
+  nodal_graph,
+  shift_register_2d
 };
 
-test("MODELS array contains all 31 models with required metadata", () => {
-  assert.equal(MODELS.length, 31, "Expected exactly 31 models in MODELS registry");
+test("MODELS array contains all 32 models with required metadata", () => {
+  assert.equal(MODELS.length, 32, "Expected exactly 32 models in MODELS registry");
   for (const m of MODELS) {
     assert.ok(typeof m.id === "string" && m.id.length > 0, `Model ${m.id} has valid id`);
     assert.ok(typeof m.name === "string" && m.name.length > 0, `Model ${m.id} has name`);
@@ -188,7 +190,8 @@ test("MODELS array contains all 31 models with required metadata", () => {
 });
 
 test("POLYPHONIC_MODELS set contains expected models", () => {
-  assert.equal(POLYPHONIC_MODELS.size, 27, "Expected 27 polyphonic models");
+  assert.equal(POLYPHONIC_MODELS.size, 28, "Expected 28 polyphonic models");
+  assert.ok(POLYPHONIC_MODELS.has("shift_register_2d"), "shift_register_2d is polyphonic");
   assert.ok(!POLYPHONIC_MODELS.has("mene311"), "mene311 is monophonic");
   assert.ok(!POLYPHONIC_MODELS.has("turing"), "turing is monophonic");
   assert.ok(!POLYPHONIC_MODELS.has("cellular"), "cellular is monophonic");
@@ -311,7 +314,7 @@ test("Snapshot capture and restore round-trip across each registered model in se
   }
 });
 
-test("Workbench showModel switches active view through all 31 models sequentially", async () => {
+test("Workbench showModel switches active view through all 32 models sequentially", async () => {
   const { showModel, getActiveModel } = await import("../js/modes.js");
   for (const m of MODELS) {
     showModel(m.id, false);

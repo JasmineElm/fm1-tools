@@ -77,6 +77,7 @@ const PREFIX = {
   self_avoiding_walk: /^saw[A-Z]/,
   billiards: /^billiards[A-Z]/,
   nodal_graph: /^nodalGraph[A-Z]/,
+  shift_register_2d: /^sr2d[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

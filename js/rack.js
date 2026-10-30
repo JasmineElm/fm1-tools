@@ -49,6 +49,7 @@ import { initTracyRibbon, activateTracyRibbonModel, deactivateTracyRibbonModel, 
 import { initSelfAvoidingWalk, activateSelfAvoidingWalkModel, deactivateSelfAvoidingWalkModel } from "./self_avoiding_walk.js";
 import { initBilliards, activateBilliardsModel, deactivateBilliardsModel } from "./billiards.js";
 import { initNodalGraph, activateNodalGraphModel, deactivateNodalGraphModel } from "./nodal_graph.js";
+import { initShiftRegister2d, activateShiftRegister2dModel, deactivateShiftRegister2dModel } from "./shift_register_2d.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -614,6 +615,7 @@ initTracyRibbon();
 initSelfAvoidingWalk();
 initBilliards();
 initNodalGraph();
+initShiftRegister2d();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -1307,7 +1309,45 @@ initModes({
       deactivateDxPatch();
       deactivateLibrarian();
       deactivateNodalGraphModel();
+      deactivateShiftRegister2dModel();
       activateBilliardsModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
+    } else if (modelId === "shift_register_2d") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateRippleTankModel();
+      deactivateConvectionModel();
+      deactivateMarkovMatrixModel();
+      deactivateGeneticBreederModel();
+      deactivateChladniModel();
+      deactivateBrownianRatchetModel();
+      deactivateTracyRibbonModel();
+      deactivateSelfAvoidingWalkModel();
+      deactivateBilliardsModel();
+      deactivateNodalGraphModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateShiftRegister2dModel();
       fitSteps();
       renderScope();
       syncRhythmGrid();
@@ -1343,6 +1383,7 @@ initModes({
       deactivateBilliardsModel();
       deactivateDxPatch();
       deactivateLibrarian();
+      deactivateShiftRegister2dModel();
       activateNodalGraphModel();
       fitSteps();
       renderScope();
@@ -1387,6 +1428,7 @@ initModes({
     try { deactivateSelfAvoidingWalkModel(); } catch (e) { console.warn("Error deactivating self_avoiding_walk model:", e); }
     try { deactivateBilliardsModel(); } catch (e) { console.warn("Error deactivating billiards model:", e); }
     try { deactivateNodalGraphModel(); } catch (e) { console.warn("Error deactivating nodal_graph model:", e); }
+    try { deactivateShiftRegister2dModel(); } catch (e) { console.warn("Error deactivating shift_register_2d model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }
