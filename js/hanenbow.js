@@ -19,7 +19,7 @@ import {
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
 import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
-import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift, createNotesSection } from "./scale.js?v=1";
+import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals, computeOctaveShift } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { quantize, midiName, SCALES } from "./generator.js";
@@ -1128,20 +1128,7 @@ export function initHanenbow() {
   paramGrid.append(kLeaves, kGrav, kElast, kTrigSpeed, kLaunchSpeed, kPeriod, kGate);
   paramCard.appendChild(paramGrid);
 
-  // Card 3: Notes & Scale Controls
-  notesSection = createNotesSection({
-    pitchSpanKey: "hanenbowSpan",
-    defaultPitchSpan: 2,
-    onChange: () => {
-      state.pitchSpan = state.hanenbowSpan;
-      renderPondCanvas();
-    }
-  });
-  notesSection.sectEl.classList.add("card");
-  notesSection.sectEl.style.padding = "8px 12px";
-  notesSection.sectEl.style.marginTop = "8px";
-
-  module.append(headerCard, paramCard, notesSection.sectEl);
+  module.append(headerCard, paramCard);
 
   // --- Right Column: Interactive Pond Canvas ---
   const display = document.createElement("div");

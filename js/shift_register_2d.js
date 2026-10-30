@@ -11,6 +11,7 @@ import { knob, dropdown, toggleBtn, actionBtn } from "./controls.js";
 import { getRootMidi, getActiveScaleIntervals, quantize, midiName } from "./scale.js";
 import { playVoice, releasePolyVoices, selectPolyVoices } from "./poly.js";
 import { registerModel } from "./snapshot.js";
+import { getThemePalette } from "./themes.js";
 import * as audio from "./audio.js";
 
 export const GRID_SIZE = 8;
@@ -867,15 +868,7 @@ export function renderCanvas() {
   const h = canvasEl.height;
 
   // Resolve dynamic tokens
-  const style = getComputedStyle(document.documentElement);
-  const colBg = style.getPropertyValue("--panel").trim() || "#18191f";
-  const colPanel2 = style.getPropertyValue("--panel2").trim() || "#22252e";
-  const colLine = style.getPropertyValue("--line").trim() || "#333846";
-  const colLineFocus = style.getPropertyValue("--line-focus").trim() || "#4b5264";
-  const colFg = style.getPropertyValue("--fg").trim() || "#f3f4f6";
-  const colDim = style.getPropertyValue("--dim").trim() || "#9ca3af";
-  const colAccent = style.getPropertyValue("--accent").trim() || "#3b82f6";
-  const colAccent2 = style.getPropertyValue("--accent2").trim() || "#60a5fa";
+  const { panel: colBg, panel2: colPanel2, line: colLine, lineFocus: colLineFocus, fg: colFg, dim: colDim, accent: colAccent, accent2: colAccent2 } = getThemePalette();
 
   // Solid background (strictly zero gradients)
   ctx.fillStyle = colBg;

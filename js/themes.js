@@ -39,3 +39,27 @@ export function buildTheme() {
   const saved = localStorage.getItem("fm1p.theme");
   applyTheme(saved === "light" ? "light" : "dark");
 }
+
+/**
+ * Resolve semantic CSS theme tokens dynamically from the document root,
+ * with safe dark-workbench fallbacks for headless / Node test environments.
+ */
+export function getThemePalette() {
+  const style = (typeof getComputedStyle === "function" && typeof document !== "undefined" && document.documentElement)
+    ? getComputedStyle(document.documentElement)
+    : null;
+  const get = (prop, fallback) => (style ? style.getPropertyValue(prop).trim() : "") || fallback;
+  return {
+    bg: get("--bg", "#111215"),
+    panel: get("--panel", "#18191f"),
+    panel2: get("--panel2", "#22252e"),
+    line: get("--line", "#333846"),
+    lineFocus: get("--line-focus", "#4b5264"),
+    fg: get("--fg", "#f3f4f6"),
+    dim: get("--dim", "#9ca3af"),
+    accent: get("--accent", "#3b82f6"),
+    accent2: get("--accent2", "#60a5fa"),
+    ok: get("--ok", "#22c55e"),
+    err: get("--err", "#ef4444"),
+  };
+}

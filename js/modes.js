@@ -915,6 +915,97 @@ export function renderToolsGrid(container) {
   }
 }
 
+export const STEP_MODELS = new Set([
+  "mene311",
+  "cellular",
+  "turing",
+  "particles",
+  "rungler",
+  "lsystem",
+  "lotka_volterra"
+]);
+
+const HASH_ALIAS_MAP = {
+  "#lotka-volterra": "lotka_volterra",
+  "#lv": "lotka_volterra",
+  "#btw": "sandpile",
+  "#soc": "sandpile",
+  "#porosity": "percolation",
+  "#cluster": "percolation",
+  "#fractal": "dla",
+  "#sir": "epidemic",
+  "#bells": "changes",
+  "#campanology": "changes",
+  "#slime": "physarum",
+  "#mould": "physarum",
+  "#rd": "reaction_diffusion",
+  "#reaction-diffusion": "reaction_diffusion",
+  "#turing-patterns": "reaction_diffusion",
+  "#sync-oscillators": "kuramoto",
+  "#phase-sync": "kuramoto",
+  "#fitzhugh-nagumo": "fitzhugh_nagumo",
+  "#fhn": "fitzhugh_nagumo",
+  "#spiking-network": "fitzhugh_nagumo",
+  "#neuromorphic": "fitzhugh_nagumo",
+  "#ripple-tank": "ripple_tank",
+  "#waves": "ripple_tank",
+  "#acoustic-tank": "ripple_tank",
+  "#thermal-convection": "convection",
+  "#clouds": "convection",
+  "#rayleigh-benard": "convection",
+  "#markov": "markov_matrix",
+  "#markov-matrix": "markov_matrix",
+  "#melodic-memory": "markov_matrix",
+  "#stochastic-melody": "markov_matrix",
+  "#breeder": "genetic_breeder",
+  "#genetic": "genetic_breeder",
+  "#genome": "genetic_breeder",
+  "#genetic-algorithm": "genetic_breeder",
+  "#cymatics": "chladni",
+  "#standing-waves": "chladni",
+  "#nodal-plate": "chladni",
+  "#ratchet": "brownian_ratchet",
+  "#feynman-diode": "brownian_ratchet",
+  "#thermal-ratchet": "brownian_ratchet",
+  "#tracy": "tracy_ribbon",
+  "#ribbon": "tracy_ribbon",
+  "#electroplankton": "tracy_ribbon",
+  "#saw": "self_avoiding_walk",
+  "#polymer": "self_avoiding_walk",
+  "#polymer-walk": "self_avoiding_walk",
+  "#billiard": "billiards",
+  "#bunimovich": "billiards",
+  "#sinai": "billiards",
+  "#boolean-euclidean": "boolean_euclidean",
+  "#beuclid": "boolean_euclidean",
+  "#logic-euclid": "boolean_euclidean",
+  "#cellular-bug": "cellular_bug",
+  "#cbug": "cellular_bug",
+  "#turmite": "cellular_bug",
+  "#langton": "cellular_bug",
+  "#shift-register-2d": "shift_register_2d",
+  "#sr2d": "shift_register_2d",
+  "#shift2d": "shift_register_2d",
+  "#nodal-graph": "nodal_graph",
+  "#nodal": "nodal_graph",
+  "#graph": "nodal_graph",
+  "#dxpatchgen": "dxpatch",
+  "#patch-generator": "dxpatch",
+  "#sync": "librarian",
+  "#export": "librarian"
+};
+
+export function resolveHashToModel(rawHash) {
+  const h = (rawHash || "").toLowerCase().split("?")[0];
+  if (!h || h === "#" || h === "#models") return null;
+  if (HASH_ALIAS_MAP[h]) return HASH_ALIAS_MAP[h];
+  const bare = h.slice(1);
+  if (MODELS.some((m) => m.id === bare) || TOOLS.some((t) => t.id === bare) || bare === "librarian") {
+    return bare;
+  }
+  return null;
+}
+
 export function showLanding(updateHash = true) {
   if (callbacks.onLeaveModel && activeModelId) {
     try {
@@ -929,22 +1020,6 @@ export function showLanding(updateHash = true) {
   const viewWorkspace = document.getElementById("view-workspace") || document.getElementById("view-mene311");
   const viewDxpatch = document.getElementById("view-dxpatch");
   const viewLibrarian = document.getElementById("view-librarian");
-  const modelMene311 = document.getElementById("model-mene311");
-  const modelCellular = document.getElementById("model-cellular");
-  const modelTuring = document.getElementById("model-turing");
-  const modelParticles = document.getElementById("model-particles");
-  const modelPendulum = document.getElementById("model-pendulum");
-  const modelFlock = document.getElementById("model-flock");
-  const modelRungler = document.getElementById("model-rungler");
-  const modelKrell = document.getElementById("model-krell");
-  const modelLsystem = document.getElementById("model-lsystem");
-  const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
-  const modelOrbital = document.getElementById("model-orbital");
-  const modelHanenbow = document.getElementById("model-hanenbow");
-  const modelSandpile = document.getElementById("model-sandpile");
-  const modelPercolation = document.getElementById("model-percolation");
-  const modelDla = document.getElementById("model-dla");
-  const modelEpidemic = document.getElementById("model-epidemic");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -965,58 +1040,12 @@ export function showLanding(updateHash = true) {
   if (viewWorkspace) viewWorkspace.style.display = "none";
   if (viewDxpatch) viewDxpatch.style.display = "none";
   if (viewLibrarian) viewLibrarian.style.display = "none";
-  if (modelMene311) modelMene311.style.display = "none";
-  if (modelCellular) modelCellular.style.display = "none";
-  if (modelTuring) modelTuring.style.display = "none";
-  if (modelParticles) modelParticles.style.display = "none";
-  if (modelPendulum) modelPendulum.style.display = "none";
-  if (modelFlock) modelFlock.style.display = "none";
-  if (modelRungler) modelRungler.style.display = "none";
-  if (modelKrell) modelKrell.style.display = "none";
-  if (modelLsystem) modelLsystem.style.display = "none";
-  if (modelLotkaVolterra) modelLotkaVolterra.style.display = "none";
-  if (modelOrbital) modelOrbital.style.display = "none";
-  if (modelHanenbow) modelHanenbow.style.display = "none";
-  if (modelSandpile) modelSandpile.style.display = "none";
-  if (modelPercolation) modelPercolation.style.display = "none";
-  if (modelDla) modelDla.style.display = "none";
-  if (modelEpidemic) modelEpidemic.style.display = "none";
-  const modelChanges = document.getElementById("model-changes");
-  if (modelChanges) modelChanges.style.display = "none";
-  const modelPhysarum = document.getElementById("model-physarum");
-  if (modelPhysarum) modelPhysarum.style.display = "none";
-  const modelReactionDiffusion = document.getElementById("model-reaction_diffusion");
-  if (modelReactionDiffusion) modelReactionDiffusion.style.display = "none";
-  const modelKuramoto = document.getElementById("model-kuramoto");
-  if (modelKuramoto) modelKuramoto.style.display = "none";
-  const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
-  if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = "none";
-  const modelRippleTank = document.getElementById("model-ripple_tank");
-  if (modelRippleTank) modelRippleTank.style.display = "none";
-  const modelConvection = document.getElementById("model-convection");
-  if (modelConvection) modelConvection.style.display = "none";
-  const modelMarkovMatrix = document.getElementById("model-markov_matrix");
-  if (modelMarkovMatrix) modelMarkovMatrix.style.display = "none";
-  const modelGeneticBreeder = document.getElementById("model-genetic_breeder");
-  if (modelGeneticBreeder) modelGeneticBreeder.style.display = "none";
-  const modelChladni = document.getElementById("model-chladni");
-  if (modelChladni) modelChladni.style.display = "none";
-  const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
-  if (modelBrownianRatchet) modelBrownianRatchet.style.display = "none";
-  const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
-  if (modelTracyRibbon) modelTracyRibbon.style.display = "none";
-  const modelSelfAvoidingWalk = document.getElementById("model-self_avoiding_walk");
-  if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = "none";
-  const modelBilliards = document.getElementById("model-billiards");
-  if (modelBilliards) modelBilliards.style.display = "none";
-  const modelNodalGraph = document.getElementById("model-nodal_graph");
-  if (modelNodalGraph) modelNodalGraph.style.display = "none";
-  const modelSr2d = document.getElementById("model-shift_register_2d");
-  if (modelSr2d) modelSr2d.style.display = "none";
-  const modelCbug = document.getElementById("model-cellular_bug");
-  if (modelCbug) modelCbug.style.display = "none";
-  const modelBeuclid = document.getElementById("model-boolean_euclidean");
-  if (modelBeuclid) modelBeuclid.style.display = "none";
+
+  for (const m of MODELS) {
+    const el = document.getElementById(`model-${m.id}`);
+    if (el) el.style.display = "none";
+  }
+
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -1027,47 +1056,13 @@ export function showLanding(updateHash = true) {
 }
 
 export function showModel(id, updateHash = true) {
-  const isKnown = MODELS.some(m => m.id === id) || TOOLS.some(t => t.id === id) || id === "librarian";
+  const isKnown = MODELS.some((m) => m.id === id) || TOOLS.some((t) => t.id === id) || id === "librarian";
   if (!isKnown) return;
 
   const viewLanding = document.getElementById("view-landing");
   const viewWorkspace = document.getElementById("view-workspace") || document.getElementById("view-mene311");
   const viewDxpatch = document.getElementById("view-dxpatch");
   const viewLibrarian = document.getElementById("view-librarian");
-  const modelMene311 = document.getElementById("model-mene311");
-  const modelCellular = document.getElementById("model-cellular");
-  const modelTuring = document.getElementById("model-turing");
-  const modelParticles = document.getElementById("model-particles");
-  const modelPendulum = document.getElementById("model-pendulum");
-  const modelFlock = document.getElementById("model-flock");
-  const modelRungler = document.getElementById("model-rungler");
-  const modelKrell = document.getElementById("model-krell");
-  const modelLsystem = document.getElementById("model-lsystem");
-  const modelLotkaVolterra = document.getElementById("model-lotka_volterra");
-  const modelOrbital = document.getElementById("model-orbital");
-  const modelHanenbow = document.getElementById("model-hanenbow");
-  const modelSandpile = document.getElementById("model-sandpile");
-  const modelPercolation = document.getElementById("model-percolation");
-  const modelDla = document.getElementById("model-dla");
-  const modelEpidemic = document.getElementById("model-epidemic");
-  const modelChanges = document.getElementById("model-changes");
-  const modelPhysarum = document.getElementById("model-physarum");
-  const modelReactionDiffusion = document.getElementById("model-reaction_diffusion");
-  const modelKuramoto = document.getElementById("model-kuramoto");
-  const modelFitzhughNagumo = document.getElementById("model-fitzhugh_nagumo");
-  const modelRippleTank = document.getElementById("model-ripple_tank");
-  const modelConvection = document.getElementById("model-convection");
-  const modelMarkovMatrix = document.getElementById("model-markov_matrix");
-  const modelGeneticBreeder = document.getElementById("model-genetic_breeder");
-  const modelChladni = document.getElementById("model-chladni");
-  const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
-  const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
-  const modelSelfAvoidingWalk = document.getElementById("model-self_avoiding_walk");
-  const modelBilliards = document.getElementById("model-billiards");
-  const modelNodalGraph = document.getElementById("model-nodal_graph");
-  const modelSr2d = document.getElementById("model-shift_register_2d");
-  const modelCbug = document.getElementById("model-cellular_bug");
-  const modelBeuclid = document.getElementById("model-boolean_euclidean");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -1081,120 +1076,48 @@ export function showModel(id, updateHash = true) {
   // Polyphony controls visibility in Notes bar: visible on polyphonic models, hidden on monophonic models
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
-  // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, Brownian Ratchet, Tracy Ribbon, and Self-Avoiding Walk are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "billiards" && id !== "nodal_graph" && id !== "shift_register_2d" && id !== "cellular_bug" && id !== "boolean_euclidean" && id !== "dxpatch" && id !== "librarian");
+  // Unlinked free models hide discrete step sequencer bars
+  const isStepModel = STEP_MODELS.has(id);
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
 
-  // Option A: Swap Tempo/Rate/Length/Gate with generic Speed knob in global bar
+  // Swap Tempo/Rate/Length/Gate with generic Speed knob in global bar
   if (refs.tempo) refs.tempo.style.display = isStepModel ? "" : "none";
   if (refs.speed) refs.speed.style.display = isStepModel ? "none" : "";
   if (refs.rate) refs.rate.style.display = isStepModel ? "" : "none";
   if (refs.length) refs.length.style.display = isStepModel ? "" : "none";
   if (refs.gate) refs.gate.style.display = isStepModel ? "" : "none";
 
-  if (id === "dxpatch") {
+  if (id === "dxpatch" || id === "librarian") {
     if (viewWorkspace) viewWorkspace.style.display = "none";
-    if (viewLibrarian) viewLibrarian.style.display = "none";
-    if (viewDxpatch) viewDxpatch.style.display = "block";
+    if (viewDxpatch) viewDxpatch.style.display = id === "dxpatch" ? "block" : "none";
+    if (viewLibrarian) viewLibrarian.style.display = id === "librarian" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Tools";
       btnBack.title = "Return to Tools & Models";
       btnBack.style.display = "inline-flex";
     }
     if (modeTag) {
-      modeTag.textContent = "DX Patch Generator";
-      modeTag.style.display = "inline-block";
-    }
-  } else if (id === "librarian") {
-    if (viewWorkspace) viewWorkspace.style.display = "none";
-    if (viewDxpatch) viewDxpatch.style.display = "none";
-    if (viewLibrarian) viewLibrarian.style.display = "block";
-    if (btnBack) {
-      btnBack.textContent = "‹ Tools";
-      btnBack.title = "Return to Tools & Models";
-      btnBack.style.display = "inline-flex";
-    }
-    if (modeTag) {
-      modeTag.textContent = "Librarian";
+      modeTag.textContent = id === "dxpatch" ? "DX Patch Generator" : "Librarian";
       modeTag.style.display = "inline-block";
     }
   } else {
     if (viewDxpatch) viewDxpatch.style.display = "none";
     if (viewLibrarian) viewLibrarian.style.display = "none";
     if (viewWorkspace) viewWorkspace.style.display = "block";
-    if (modelMene311) modelMene311.style.display = id === "mene311" ? "block" : "none";
-    if (modelCellular) modelCellular.style.display = id === "cellular" ? "block" : "none";
-    if (modelTuring) modelTuring.style.display = id === "turing" ? "block" : "none";
-    if (modelParticles) modelParticles.style.display = id === "particles" ? "block" : "none";
-    if (modelPendulum) modelPendulum.style.display = id === "pendulum" ? "block" : "none";
-    if (modelFlock) modelFlock.style.display = id === "flock" ? "block" : "none";
-    if (modelRungler) modelRungler.style.display = id === "rungler" ? "block" : "none";
-    if (modelKrell) modelKrell.style.display = id === "krell" ? "block" : "none";
-    if (modelLsystem) modelLsystem.style.display = id === "lsystem" ? "block" : "none";
-    if (modelLotkaVolterra) modelLotkaVolterra.style.display = id === "lotka_volterra" ? "block" : "none";
-    if (modelOrbital) modelOrbital.style.display = id === "orbital" ? "block" : "none";
-    if (modelHanenbow) modelHanenbow.style.display = id === "hanenbow" ? "block" : "none";
-    if (modelSandpile) modelSandpile.style.display = id === "sandpile" ? "block" : "none";
-    if (modelPercolation) modelPercolation.style.display = id === "percolation" ? "block" : "none";
-    if (modelDla) modelDla.style.display = id === "dla" ? "block" : "none";
-    if (modelEpidemic) modelEpidemic.style.display = id === "epidemic" ? "block" : "none";
-    if (modelChanges) modelChanges.style.display = id === "changes" ? "block" : "none";
-    if (modelPhysarum) modelPhysarum.style.display = id === "physarum" ? "block" : "none";
-    if (modelReactionDiffusion) modelReactionDiffusion.style.display = id === "reaction_diffusion" ? "block" : "none";
-    if (modelKuramoto) modelKuramoto.style.display = id === "kuramoto" ? "block" : "none";
-    if (modelFitzhughNagumo) modelFitzhughNagumo.style.display = id === "fitzhugh_nagumo" ? "block" : "none";
-    if (modelRippleTank) modelRippleTank.style.display = id === "ripple_tank" ? "block" : "none";
-    if (modelConvection) modelConvection.style.display = id === "convection" ? "block" : "none";
-    if (modelMarkovMatrix) modelMarkovMatrix.style.display = id === "markov_matrix" ? "block" : "none";
-    if (modelGeneticBreeder) modelGeneticBreeder.style.display = id === "genetic_breeder" ? "block" : "none";
-    if (modelChladni) modelChladni.style.display = id === "chladni" ? "block" : "none";
-    if (modelBrownianRatchet) modelBrownianRatchet.style.display = id === "brownian_ratchet" ? "block" : "none";
-    if (modelTracyRibbon) modelTracyRibbon.style.display = id === "tracy_ribbon" ? "block" : "none";
-    if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = id === "self_avoiding_walk" ? "block" : "none";
-    if (modelBilliards) modelBilliards.style.display = id === "billiards" ? "block" : "none";
-    if (modelNodalGraph) modelNodalGraph.style.display = id === "nodal_graph" ? "block" : "none";
+    for (const m of MODELS) {
+      const el = document.getElementById(`model-${m.id}`);
+      if (el) el.style.display = m.id === id ? "block" : "none";
+    }
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
       btnBack.style.display = "inline-flex";
     }
     if (modeTag) {
-      if (id === "mene311") modeTag.textContent = "Mene311";
-      else if (id === "cellular") modeTag.textContent = "Cellular Automata";
-      else if (id === "turing") modeTag.textContent = "Turing Machine";
-      else if (id === "particles") modeTag.textContent = "Particles";
-      else if (id === "pendulum") modeTag.textContent = "Double Pendulum";
-      else if (id === "flock") modeTag.textContent = "Flocking Swarm";
-      else if (id === "rungler") modeTag.textContent = "Rob Hordijk Rungler";
-      else if (id === "krell") modeTag.textContent = "Buchla Krell Patch";
-      else if (id === "lsystem") modeTag.textContent = "L-System Grammar";
-      else if (id === "lotka_volterra") modeTag.textContent = "Lotka-Volterra Attractor";
-      else if (id === "orbital") modeTag.textContent = "Orbital Resonance";
-      else if (id === "hanenbow") modeTag.textContent = "Hanenbow Ballistics";
-      else if (id === "sandpile") modeTag.textContent = "Abelian Sandpile";
-      else if (id === "percolation") modeTag.textContent = "Percolation Clusters";
-      else if (id === "dla") modeTag.textContent = "DLA Dendritic Crystal";
-      else if (id === "epidemic") modeTag.textContent = "SIR Epidemic Network";
-      else if (id === "changes") modeTag.textContent = "Change Ringing";
-      else if (id === "physarum") modeTag.textContent = "Physarum Slime Mould";
-      else if (id === "reaction_diffusion") modeTag.textContent = "Reaction-Diffusion";
-      else if (id === "kuramoto") modeTag.textContent = "Kuramoto Oscillators";
-      else if (id === "fitzhugh_nagumo") modeTag.textContent = "FitzHugh-Nagumo";
-      else if (id === "ripple_tank") modeTag.textContent = "Acoustic Ripple Tank";
-      else if (id === "convection") modeTag.textContent = "Atmospheric Convection";
-      else if (id === "markov_matrix") modeTag.textContent = "Markov Melodic Memory";
-      else if (id === "genetic_breeder") modeTag.textContent = "Melodic Genome Breeder";
-      else if (id === "chladni") modeTag.textContent = "Chladni Cymatics";
-      else if (id === "brownian_ratchet") modeTag.textContent = "Brownian Ratchet";
-      else if (id === "tracy_ribbon") modeTag.textContent = "Tracy Ribbon";
-      else if (id === "self_avoiding_walk") modeTag.textContent = "Self-Avoiding Walk";
-      else if (id === "billiards") modeTag.textContent = "Ballistic Billiards";
-      else if (id === "nodal_graph") modeTag.textContent = "Nodal Directed Graph";
-      else if (id === "shift_register_2d") modeTag.textContent = "2D Shift Register";
-      else if (id === "cellular_bug") modeTag.textContent = "2D Cellular + Bug";
-      else if (id === "boolean_euclidean") modeTag.textContent = "Boolean Euclidean Logic";
+      const found = MODELS.find((m) => m.id === id);
+      if (found) modeTag.textContent = found.name;
       modeTag.style.display = "inline-block";
     }
   }
@@ -1272,160 +1195,18 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
 
   // Handle URL hash changes
   window.addEventListener("hashchange", () => {
-    const rawHash = (window.location.hash || "").toLowerCase();
-    const h = rawHash.split("?")[0];
-    if (h === "#mene311") {
-      if (activeModelId !== "mene311") showModel("mene311", false);
-    } else if (h === "#cellular") {
-      if (activeModelId !== "cellular") showModel("cellular", false);
-    } else if (h === "#turing") {
-      if (activeModelId !== "turing") showModel("turing", false);
-    } else if (h === "#particles") {
-      if (activeModelId !== "particles") showModel("particles", false);
-    } else if (h === "#pendulum") {
-      if (activeModelId !== "pendulum") showModel("pendulum", false);
-    } else if (h === "#flock") {
-      if (activeModelId !== "flock") showModel("flock", false);
-    } else if (h === "#rungler") {
-      if (activeModelId !== "rungler") showModel("rungler", false);
-    } else if (h === "#krell") {
-      if (activeModelId !== "krell") showModel("krell", false);
-    } else if (h === "#lsystem") {
-      if (activeModelId !== "lsystem") showModel("lsystem", false);
-    } else if (h === "#lotka_volterra" || h === "#lotka-volterra" || h === "#lv") {
-      if (activeModelId !== "lotka_volterra") showModel("lotka_volterra", false);
-    } else if (h === "#orbital") {
-      if (activeModelId !== "orbital") showModel("orbital", false);
-    } else if (h === "#hanenbow") {
-      if (activeModelId !== "hanenbow") showModel("hanenbow", false);
-    } else if (h === "#sandpile" || h === "#btw" || h === "#soc") {
-      if (activeModelId !== "sandpile") showModel("sandpile", false);
-    } else if (h === "#percolation" || h === "#porosity" || h === "#cluster") {
-      if (activeModelId !== "percolation") showModel("percolation", false);
-    } else if (h === "#dla" || h === "#fractal") {
-      if (activeModelId !== "dla") showModel("dla", false);
-    } else if (h === "#epidemic" || h === "#sir") {
-      if (activeModelId !== "epidemic") showModel("epidemic", false);
-    } else if (h === "#changes" || h === "#bells" || h === "#campanology") {
-      if (activeModelId !== "changes") showModel("changes", false);
-    } else if (h === "#physarum" || h === "#slime" || h === "#mould") {
-      if (activeModelId !== "physarum") showModel("physarum", false);
-    } else if (h === "#reaction_diffusion" || h === "#rd" || h === "#reaction-diffusion" || h === "#turing-patterns") {
-      if (activeModelId !== "reaction_diffusion") showModel("reaction_diffusion", false);
-    } else if (h === "#kuramoto" || h === "#sync-oscillators" || h === "#phase-sync") {
-      if (activeModelId !== "kuramoto") showModel("kuramoto", false);
-    } else if (h === "#fitzhugh_nagumo" || h === "#fitzhugh-nagumo" || h === "#fhn" || h === "#spiking-network" || h === "#neuromorphic") {
-      if (activeModelId !== "fitzhugh_nagumo") showModel("fitzhugh_nagumo", false);
-    } else if (h === "#ripple_tank" || h === "#ripple-tank" || h === "#waves" || h === "#acoustic-tank") {
-      if (activeModelId !== "ripple_tank") showModel("ripple_tank", false);
-    } else if (h === "#convection" || h === "#thermal-convection" || h === "#clouds" || h === "#rayleigh-benard") {
-      if (activeModelId !== "convection") showModel("convection", false);
-    } else if (h === "#markov_matrix" || h === "#markov" || h === "#markov-matrix" || h === "#melodic-memory" || h === "#stochastic-melody") {
-      if (activeModelId !== "markov_matrix") showModel("markov_matrix", false);
-    } else if (h === "#genetic_breeder" || h === "#breeder" || h === "#genetic" || h === "#genome" || h === "#genetic-algorithm") {
-      if (activeModelId !== "genetic_breeder") showModel("genetic_breeder", false);
-    } else if (h === "#chladni" || h === "#cymatics" || h === "#standing-waves" || h === "#nodal-plate") {
-      if (activeModelId !== "chladni") showModel("chladni", false);
-    } else if (h === "#brownian_ratchet" || h === "#ratchet" || h === "#feynman-diode" || h === "#thermal-ratchet") {
-      if (activeModelId !== "brownian_ratchet") showModel("brownian_ratchet", false);
-    } else if (h === "#tracy_ribbon" || h === "#tracy" || h === "#ribbon" || h === "#electroplankton") {
-      if (activeModelId !== "tracy_ribbon") showModel("tracy_ribbon", false);
-    } else if (h === "#self_avoiding_walk" || h === "#saw" || h === "#polymer" || h === "#polymer-walk") {
-      if (activeModelId !== "self_avoiding_walk") showModel("self_avoiding_walk", false);
-    } else if (h === "#billiards" || h === "#billiard" || h === "#bunimovich" || h === "#sinai") {
-      if (activeModelId !== "billiards") showModel("billiards", false);
-    } else if (h === "#boolean_euclidean" || h === "#boolean-euclidean" || h === "#beuclid" || h === "#logic-euclid") {
-      showModel("boolean_euclidean", false);
-    } else if (h === "#cellular_bug" || h === "#cellular-bug" || h === "#cbug" || h === "#turmite" || h === "#langton") {
-      showModel("cellular_bug", false);
-    } else if (h === "#shift_register_2d" || h === "#shift-register-2d" || h === "#sr2d" || h === "#shift2d") {
-      showModel("shift_register_2d", false);
-    } else if (h === "#nodal_graph" || h === "#nodal-graph" || h === "#nodal" || h === "#graph") {
-      if (activeModelId !== "nodal_graph") showModel("nodal_graph", false);
-    } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
-      if (activeModelId !== "dxpatch") showModel("dxpatch", false);
-    } else if (h === "#librarian" || h === "#sync" || h === "#export") {
-      if (activeModelId !== "librarian") showModel("librarian", false);
-    } else {
-      if (activeModelId !== null) showLanding(false);
+    const targetId = resolveHashToModel(window.location.hash);
+    if (targetId) {
+      if (activeModelId !== targetId) showModel(targetId, false);
+    } else if (activeModelId !== null) {
+      showLanding(false);
     }
   });
 
   // Initial view selection
-  const rawInitial = (window.location.hash || "").toLowerCase();
-  const initialHash = rawInitial.split("?")[0];
-  if (initialHash === "#mene311") {
-    showModel("mene311", false);
-  } else if (initialHash === "#cellular") {
-    showModel("cellular", false);
-  } else if (initialHash === "#turing") {
-    showModel("turing", false);
-  } else if (initialHash === "#particles") {
-    showModel("particles", false);
-  } else if (initialHash === "#pendulum") {
-    showModel("pendulum", false);
-  } else if (initialHash === "#flock") {
-    showModel("flock", false);
-  } else if (initialHash === "#rungler") {
-    showModel("rungler", false);
-  } else if (initialHash === "#krell") {
-    showModel("krell", false);
-  } else if (initialHash === "#lsystem") {
-    showModel("lsystem", false);
-  } else if (initialHash === "#lotka_volterra" || initialHash === "#lotka-volterra" || initialHash === "#lv") {
-    showModel("lotka_volterra", false);
-  } else if (initialHash === "#orbital") {
-    showModel("orbital", false);
-  } else if (initialHash === "#hanenbow") {
-    showModel("hanenbow", false);
-  } else if (initialHash === "#sandpile" || initialHash === "#btw" || initialHash === "#soc") {
-    showModel("sandpile", false);
-  } else if (initialHash === "#percolation" || initialHash === "#porosity" || initialHash === "#cluster") {
-    showModel("percolation", false);
-  } else if (initialHash === "#dla" || initialHash === "#fractal") {
-    showModel("dla", false);
-  } else if (initialHash === "#epidemic" || initialHash === "#sir") {
-    showModel("epidemic", false);
-  } else if (initialHash === "#changes" || initialHash === "#bells" || initialHash === "#campanology") {
-    showModel("changes", false);
-  } else if (initialHash === "#physarum" || initialHash === "#slime" || initialHash === "#mould") {
-    showModel("physarum", false);
-  } else if (initialHash === "#reaction_diffusion" || initialHash === "#rd" || initialHash === "#reaction-diffusion" || initialHash === "#turing-patterns") {
-    showModel("reaction_diffusion", false);
-  } else if (initialHash === "#kuramoto" || initialHash === "#sync-oscillators" || initialHash === "#phase-sync") {
-    showModel("kuramoto", false);
-  } else if (initialHash === "#fitzhugh_nagumo" || initialHash === "#fitzhugh-nagumo" || initialHash === "#fhn" || initialHash === "#spiking-network" || initialHash === "#neuromorphic") {
-    showModel("fitzhugh_nagumo", false);
-  } else if (initialHash === "#ripple_tank" || initialHash === "#ripple-tank" || initialHash === "#waves" || initialHash === "#acoustic-tank") {
-    showModel("ripple_tank", false);
-  } else if (initialHash === "#convection" || initialHash === "#thermal-convection" || initialHash === "#clouds" || initialHash === "#rayleigh-benard") {
-    showModel("convection", false);
-  } else if (initialHash === "#markov_matrix" || initialHash === "#markov" || initialHash === "#markov-matrix" || initialHash === "#melodic-memory" || initialHash === "#stochastic-melody") {
-    showModel("markov_matrix", false);
-  } else if (initialHash === "#genetic_breeder" || initialHash === "#breeder" || initialHash === "#genetic" || initialHash === "#genome" || initialHash === "#genetic-algorithm") {
-    showModel("genetic_breeder", false);
-  } else if (initialHash === "#chladni" || initialHash === "#cymatics" || initialHash === "#standing-waves" || initialHash === "#nodal-plate") {
-    showModel("chladni", false);
-  } else if (initialHash === "#brownian_ratchet" || initialHash === "#ratchet" || initialHash === "#feynman-diode" || initialHash === "#thermal-ratchet") {
-    showModel("brownian_ratchet", false);
-  } else if (initialHash === "#tracy_ribbon" || initialHash === "#tracy" || initialHash === "#ribbon" || initialHash === "#electroplankton") {
-    showModel("tracy_ribbon", false);
-  } else if (initialHash === "#self_avoiding_walk" || initialHash === "#saw" || initialHash === "#polymer" || initialHash === "#polymer-walk") {
-    showModel("self_avoiding_walk", false);
-  } else if (initialHash === "#billiards" || initialHash === "#billiard" || initialHash === "#bunimovich" || initialHash === "#sinai") {
-    showModel("billiards", false);
-  } else if (initialHash === "#boolean_euclidean" || initialHash === "#boolean-euclidean" || initialHash === "#beuclid" || initialHash === "#logic-euclid") {
-    showModel("boolean_euclidean", false);
-  } else if (initialHash === "#cellular_bug" || initialHash === "#cellular-bug" || initialHash === "#cbug" || initialHash === "#turmite" || initialHash === "#langton") {
-    showModel("cellular_bug", false);
-  } else if (initialHash === "#shift_register_2d" || initialHash === "#shift-register-2d" || initialHash === "#sr2d" || initialHash === "#shift2d") {
-    showModel("shift_register_2d", false);
-  } else if (initialHash === "#nodal_graph" || initialHash === "#nodal-graph" || initialHash === "#nodal" || initialHash === "#graph") {
-    showModel("nodal_graph", false);
-  } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
-    showModel("dxpatch", false);
-  } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {
-    showModel("librarian", false);
+  const initialTarget = resolveHashToModel(window.location.hash);
+  if (initialTarget) {
+    showModel(initialTarget, false);
   } else {
     showLanding(false);
   }

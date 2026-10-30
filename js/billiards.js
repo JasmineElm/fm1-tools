@@ -26,6 +26,7 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
+import { getThemePalette } from "./themes.js";
 import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
@@ -612,16 +613,7 @@ export function renderBilliardsCanvas() {
   if (w <= 0 || h <= 0) return;
 
   // Resolve dynamic semantic theme tokens (Zero Gradient Rule)
-  const rootStyle = typeof getComputedStyle === "function"
-    ? getComputedStyle(document.documentElement)
-    : { getPropertyValue: () => "" };
-  const colBg = rootStyle.getPropertyValue("--panel2").trim() || "#18191f";
-  const colLine = rootStyle.getPropertyValue("--line").trim() || "#333846";
-  const colLineFocus = rootStyle.getPropertyValue("--line-focus").trim() || "#4b5264";
-  const colFg = rootStyle.getPropertyValue("--fg").trim() || "#f3f4f6";
-  const colDim = rootStyle.getPropertyValue("--dim").trim() || "#9ca3af";
-  const colAccent = rootStyle.getPropertyValue("--accent").trim() || "#3b82f6";
-  const colAccent2 = rootStyle.getPropertyValue("--accent2").trim() || "#60a5fa";
+  const { panel2: colBg, line: colLine, lineFocus: colLineFocus, fg: colFg, dim: colDim, accent: colAccent, accent2: colAccent2 } = getThemePalette();
 
   // Solid background fill
   ctx.fillStyle = colBg;

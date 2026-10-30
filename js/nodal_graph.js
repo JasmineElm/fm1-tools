@@ -10,6 +10,7 @@ import { knob, dropdown, toggleBtn, actionBtn } from "./controls.js";
 import { getRootMidi, getActiveScaleIntervals, quantize, midiName } from "./scale.js";
 import { playVoice, releasePolyVoices } from "./poly.js";
 import { registerModel } from "./snapshot.js";
+import { getThemePalette } from "./themes.js";
 import * as audio from "./audio.js";
 
 export const MAX_NODES = 24;
@@ -561,13 +562,7 @@ export function renderNodalGraphCanvas() {
   const height = canvasEl.height;
 
   // Dynamic semantic color tokens
-  const style = getComputedStyle(document.documentElement);
-  const bg = style.getPropertyValue("--panel").trim() || "#18191f";
-  const panel2 = style.getPropertyValue("--panel2").trim() || "#22252e";
-  const line = style.getPropertyValue("--line").trim() || "#333846";
-  const fg = style.getPropertyValue("--fg").trim() || "#f3f4f6";
-  const dim = style.getPropertyValue("--dim").trim() || "#9ca3af";
-  const accent = style.getPropertyValue("--accent").trim() || "#3b82f6";
+  const { panel: bg, panel2, line, fg, dim, accent } = getThemePalette();
 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
