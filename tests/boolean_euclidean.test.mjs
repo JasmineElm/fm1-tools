@@ -250,3 +250,4 @@ test("randomizeBooleanEuclidean updates parameters and registers as model random
 
   deactivateBooleanEuclideanModel();
 });
+

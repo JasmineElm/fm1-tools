@@ -927,3 +927,4 @@ export function deactivateBooleanEuclideanModel() {
   setModelGenerator(null);
   setModelRandomizer(null);
 }
+
