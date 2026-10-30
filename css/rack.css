@@ -1667,6 +1667,19 @@ kbd {
   min-width: 80px;
 }
 
+
+.notes-grid-fullwidth .ctrl-safe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+.notes-grid .ctrl-safe .toggle {
+  width: calc(100% - 4px);
+  padding: 5px 3px;
+  min-height: 23px;
+}
+
 .notes-grid-fullwidth .ctrl-polyphony {
   display: flex;
   flex-direction: column;

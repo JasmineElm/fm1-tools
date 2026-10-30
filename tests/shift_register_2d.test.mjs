@@ -295,3 +295,4 @@ test("randomizeShiftRegister2d updates parameters and registers as model randomi
 
   deactivateShiftRegister2dModel();
 });
+

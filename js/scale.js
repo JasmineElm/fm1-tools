@@ -2,7 +2,7 @@
 import { SCALES, NOTE_NAMES, midiName, quantize } from "./generator.js";
 export { quantize, midiName, NOTE_NAMES, SCALES };
 import { state, refs, R, status } from "./state.js";
-import { knob, dropdown, fader } from "./controls.js";
+import { knob, dropdown, fader, toggleBtn } from "./controls.js";
 import { POLY_STRATEGIES } from "./poly.js";
 
 export const SCALE_LABELS = {
@@ -384,6 +384,7 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
     octaveModeKey = "octaveMode",
     polyphonyKey = "polyphony",
     polyStrategyKey = "polyStrategy",
+    safeModeKey = "safeMode",
     defaultOctave = 4,
     defaultPitchSpan = 3,
     scaleLabel = "Scale",
@@ -499,6 +500,29 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
     tip: "Voice selection strategy when note count exceeds polyphony limit."
   }));
 
+  // Safe Mode Toggle (limits note triggers to at most 8 per 500ms for FM-1 hardware buffer safety)
+  const safeCtrl = toggleBtn(
+    "SAFE",
+    !!state[safeModeKey],
+    (on) => {
+      state[safeModeKey] = on;
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("fm1p.safeMode", on ? "1" : "0");
+        }
+      } catch (_) {}
+      const topSafe = typeof document !== "undefined" ? document.getElementById("safe-mode") : null;
+      if (topSafe) {
+        topSafe.classList.toggle("active", on);
+        topSafe.textContent = on ? "Safe: On" : "Safe: Off";
+      }
+      syncAllNotesSections();
+      status(on ? "Safe mode: ON (max 8 notes per 500ms)" : "Safe mode: OFF (unlimited notes)");
+      onChange();
+    },
+    "Safe Mode: Limits notes to at most 8 per 500ms to protect the FM-1 sound engine from buffer overflow"
+  );
+
   // Container Div titled 'Notes'
   const sectEl = container || document.createElement("div");
   if (!container) sectEl.className = "sect notes-sect";
@@ -529,6 +553,7 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
   octaveCtrl.classList.add("ctrl-oct-spread");
   polyCtrl.classList.add("ctrl-polyphony", "ctrl-poly-group");
   polyStratCtrl.classList.add("ctrl-poly-strategy", "ctrl-poly-group");
+  safeCtrl.classList.add("ctrl-safe", "ctrl-poly-group");
 
   if (!isFullWidth) {
     // Row 1: Root Note (2), Root Octave (2), Octave Spread (2)
@@ -547,9 +572,10 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
     quantCtrl.style.gridColumn = "span 3";
     octaveCtrl.style.gridColumn = "span 3";
 
-    // Row 5: Polyphony (3), Voice Strategy (3)
-    polyCtrl.style.gridColumn = "span 3";
-    polyStratCtrl.style.gridColumn = "span 3";
+    // Row 5: Polyphony Row — Voice Strategy (2), Polyphony (2), Safe (2)
+    polyStratCtrl.style.gridColumn = "span 2";
+    polyCtrl.style.gridColumn = "span 2";
+    safeCtrl.style.gridColumn = "span 2";
 
     grid.append(
       picker.rootNoteCtrl,
@@ -560,8 +586,9 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
       picker.scaleBox,
       quantCtrl,
       octaveCtrl,
+      polyStratCtrl,
       polyCtrl,
-      polyStratCtrl
+      safeCtrl
     );
   } else {
     grid.append(
@@ -572,8 +599,9 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
       picker.scaleCtrl,
       quantCtrl,
       octaveCtrl,
-      polyCtrl,
       polyStratCtrl,
+      polyCtrl,
+      safeCtrl,
       picker.scaleBox
     );
   }
@@ -588,6 +616,7 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
     if (refs[octaveModeKey]?.setValue) refs[octaveModeKey].setValue(state[octaveModeKey] || "up", false);
     if (refs[polyphonyKey]?.setValue) refs[polyphonyKey].setValue(state[polyphonyKey] ?? 4, false);
     if (refs[polyStrategyKey]?.setValue) refs[polyStrategyKey].setValue(state[polyStrategyKey] || "extrema", false);
+    if (safeCtrl?.setValue) safeCtrl.setValue(!!state[safeModeKey]);
   }
 
   const sectionObj = {
@@ -602,6 +631,7 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
     octaveModeCtrl,
     polyCtrl,
     polyStratCtrl,
+    safeCtrl,
     sync,
     onChange
   };

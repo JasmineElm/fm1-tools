@@ -2,6 +2,7 @@
 import { state, getBank, getSelected, RATE_NAMES, RATE_QUARTERS, status, sleep } from "./state.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
+import { syncAllNotesSections } from "./scale.js";
 import { setScopeNow, renderScope } from "./scope.js";
 import { knob, sw } from "./knob.js";
 
@@ -448,6 +449,7 @@ export function buildAudioControls() {
         }
       } catch (_) {}
       updateSafeBtn();
+      try { syncAllNotesSections(); } catch (_) {}
       status(state.safeMode ? "Safe mode: ON (max 8 notes per 500ms)" : "Safe mode: OFF (unlimited notes)");
     });
     try {
