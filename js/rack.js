@@ -51,6 +51,7 @@ import { initBilliards, activateBilliardsModel, deactivateBilliardsModel } from 
 import { initNodalGraph, activateNodalGraphModel, deactivateNodalGraphModel } from "./nodal_graph.js";
 import { initShiftRegister2d, activateShiftRegister2dModel, deactivateShiftRegister2dModel } from "./shift_register_2d.js";
 import { initCellularBug, activateCellularBugModel, deactivateCellularBugModel } from "./cellular_bug.js";
+import { initBooleanEuclidean, activateBooleanEuclideanModel, deactivateBooleanEuclideanModel } from "./boolean_euclidean.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
@@ -618,6 +619,7 @@ initBilliards();
 initNodalGraph();
 initShiftRegister2d();
 initCellularBug();
+initBooleanEuclidean();
 initDxPatch();
 initLibrarian();
 doGenerate(true);
@@ -1316,6 +1318,45 @@ initModes({
       fitSteps();
       renderScope();
       syncRhythmGrid();
+    } else if (modelId === "boolean_euclidean") {
+      deactivateCellularModel();
+      deactivateTuringModel();
+      deactivateParticlesModel();
+      deactivatePendulumModel();
+      deactivateFlockModel();
+      deactivateRunglerModel();
+      deactivateKrellModel();
+      deactivateLsystemModel();
+      deactivateLotkaVolterraModel();
+      deactivateOrbitalModel();
+      deactivateHanenbowModel();
+      deactivateSandpileModel();
+      deactivatePercolationModel();
+      deactivateDlaModel();
+      deactivateEpidemicModel();
+      deactivateChangesModel();
+      deactivatePhysarumModel();
+      deactivateReactionDiffusionModel();
+      deactivateKuramotoModel();
+      deactivateFitzhughNagumoModel();
+      deactivateRippleTankModel();
+      deactivateConvectionModel();
+      deactivateMarkovMatrixModel();
+      deactivateGeneticBreederModel();
+      deactivateChladniModel();
+      deactivateBrownianRatchetModel();
+      deactivateTracyRibbonModel();
+      deactivateSelfAvoidingWalkModel();
+      deactivateBilliardsModel();
+      deactivateNodalGraphModel();
+      deactivateShiftRegister2dModel();
+      deactivateCellularBugModel();
+      deactivateDxPatch();
+      deactivateLibrarian();
+      activateBooleanEuclideanModel();
+      fitSteps();
+      renderScope();
+      syncRhythmGrid();
     } else if (modelId === "cellular_bug") {
       deactivateCellularModel();
       deactivateTuringModel();
@@ -1425,6 +1466,7 @@ initModes({
       deactivateLibrarian();
       deactivateShiftRegister2dModel();
       deactivateCellularBugModel();
+      deactivateBooleanEuclideanModel();
       activateNodalGraphModel();
       fitSteps();
       renderScope();
@@ -1471,6 +1513,7 @@ initModes({
     try { deactivateNodalGraphModel(); } catch (e) { console.warn("Error deactivating nodal_graph model:", e); }
     try { deactivateShiftRegister2dModel(); } catch (e) { console.warn("Error deactivating shift_register_2d model:", e); }
     try { deactivateCellularBugModel(); } catch (e) { console.warn("Error deactivating cellular_bug model:", e); }
+    try { deactivateBooleanEuclideanModel(); } catch (e) { console.warn("Error deactivating boolean_euclidean model:", e); }
     try { deactivateDxPatch(); } catch (e) { console.warn("Error deactivating dxpatch model:", e); }
     try { deactivateLibrarian(); } catch (e) { console.warn("Error deactivating librarian model:", e); }
   }

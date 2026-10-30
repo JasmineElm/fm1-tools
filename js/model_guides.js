@@ -1,6 +1,22 @@
 // js/model_guides.js — In-app guide descriptions and control specifications for all 29 sequencer models.
 
 export const MODEL_GUIDES = {
+  boolean_euclidean: {
+    title: "Boolean Euclidean Logic",
+    kicker: "Polyrhythmic Algebra · Combinatorial Logic · Coincidence Accents",
+    paragraphs: [
+      "Generates interlocking polyrhythms by synthesizing multiple independent Euclidean rhythm streams (E(k1, n1), E(k2, n2), E(k3, n3), E(k4, n4)) through fundamental Boolean logic operators including XOR (syncopated cross-rhythms), AND (coincidence strikes), OR (union grooves), NAND, XNOR, and Majority voting.",
+      "When Euclidean pulses coincide across streams, the intersection triggers dynamic velocity accents and probabilistic harmonic octave leaps (+12st / +24st), transforming simple polyrhythmic meters into dynamic Afro-Cuban, Balkan, and Pygmy cross-rhythms strictly bounded within the 8-voice hardware polyphony manager."
+    ],
+    controls: [
+      { name: "PRESET", desc: "Selects curated Boolean Euclidean configurations (Tresillo Coincidence, Bossa Interlock, Afro-Cuban 12/8 Bell, Pygmy Polyrhythm, Euclidean Acid XOR)." },
+      { name: "LOGIC OP", desc: "Boolean operator combining Euclidean pulse streams (XOR, AND, OR, NAND, XNOR, DIFF, MAJORITY, PARITY)." },
+      { name: "VOICES", desc: "Number of polyphonic output channels (1 to 8), dynamically managed by the 8-voice FIFO stealing ceiling." },
+      { name: "BOOST", desc: "Coincidence velocity accent multiplier boosting fortissimo strikes when pulses intersect." },
+      { name: "LEAP", desc: "Probability of triggering harmonic octave leaps (+12st / +24st) upon multi-stream coincidence." },
+      { name: "CANVAS", desc: "Concentric circular Euclidean rings visualizer with rotating radial playhead and real-time coincidence flash meter. Click to advance stream phase rotations." }
+    ]
+  },
   cellular_bug: {
     title: "2D Cellular + Bug",
     kicker: "Artificial Life · Turmites & Langton's Ants · Glider Collisions",

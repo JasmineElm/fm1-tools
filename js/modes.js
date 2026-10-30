@@ -32,10 +32,24 @@ export const POLYPHONIC_MODELS = new Set([
   "billiards",
   "nodal_graph",
   "shift_register_2d",
-  "cellular_bug"
+  "cellular_bug",
+  "boolean_euclidean"
 ]);
 
 export const MODELS = [
+  {
+    id: "boolean_euclidean",
+    name: "Boolean Euclidean Logic",
+    kicker: "Polyrhythmic Algebra · Combinatorial Logic · Coincidence Accents",
+    available: true,
+    desc: "Multi-stream Euclidean rhythm generators (E(k1, n1), E(k2, n2), etc.) combined via Boolean logic operators (XOR, AND, OR, NAND, XNOR, MAJORITY). Hit coincidences trigger velocity accents and harmonic octave leaps across up to 8 polyphonic voice channels.",
+    tags: ["Euclidean Rhythm", "Boolean Logic", "Polyrhythms", "Combinatorics", "Coincidence Accents", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="12" r="6" />
+      <circle cx="15" cy="12" r="6" />
+      <path d="M12 7.5v9" />
+    </svg>`
+  },
   {
     id: "cellular_bug",
     name: "2D Cellular + Bug",
@@ -600,7 +614,8 @@ export const MODEL_TAG_MAP = {
   billiards: ["polyphonic", "physics", "autonomous"],
   nodal_graph: ["polyphonic", "algorithmic", "autonomous", "stochastic"],
   shift_register_2d: ["polyphonic", "grid-based", "algorithmic"],
-  cellular_bug: ["polyphonic", "grid-based", "biological", "algorithmic"]
+  cellular_bug: ["polyphonic", "grid-based", "biological", "algorithmic"],
+  boolean_euclidean: ["polyphonic", "algorithmic", "stochastic"]
 };
 
 // Bind filter tags to each model definition
@@ -1000,6 +1015,8 @@ export function showLanding(updateHash = true) {
   if (modelSr2d) modelSr2d.style.display = "none";
   const modelCbug = document.getElementById("model-cellular_bug");
   if (modelCbug) modelCbug.style.display = "none";
+  const modelBeuclid = document.getElementById("model-boolean_euclidean");
+  if (modelBeuclid) modelBeuclid.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -1050,6 +1067,7 @@ export function showModel(id, updateHash = true) {
   const modelNodalGraph = document.getElementById("model-nodal_graph");
   const modelSr2d = document.getElementById("model-shift_register_2d");
   const modelCbug = document.getElementById("model-cellular_bug");
+  const modelBeuclid = document.getElementById("model-boolean_euclidean");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -1064,7 +1082,7 @@ export function showModel(id, updateHash = true) {
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
   // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, Brownian Ratchet, Tracy Ribbon, and Self-Avoiding Walk are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "billiards" && id !== "nodal_graph" && id !== "shift_register_2d" && id !== "cellular_bug" && id !== "dxpatch" && id !== "librarian");
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "billiards" && id !== "nodal_graph" && id !== "shift_register_2d" && id !== "cellular_bug" && id !== "boolean_euclidean" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -1176,6 +1194,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "nodal_graph") modeTag.textContent = "Nodal Directed Graph";
       else if (id === "shift_register_2d") modeTag.textContent = "2D Shift Register";
       else if (id === "cellular_bug") modeTag.textContent = "2D Cellular + Bug";
+      else if (id === "boolean_euclidean") modeTag.textContent = "Boolean Euclidean Logic";
       modeTag.style.display = "inline-block";
     }
   }
@@ -1315,6 +1334,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "self_avoiding_walk") showModel("self_avoiding_walk", false);
     } else if (h === "#billiards" || h === "#billiard" || h === "#bunimovich" || h === "#sinai") {
       if (activeModelId !== "billiards") showModel("billiards", false);
+    } else if (h === "#boolean_euclidean" || h === "#boolean-euclidean" || h === "#beuclid" || h === "#logic-euclid") {
+      showModel("boolean_euclidean", false);
     } else if (h === "#cellular_bug" || h === "#cellular-bug" || h === "#cbug" || h === "#turmite" || h === "#langton") {
       showModel("cellular_bug", false);
     } else if (h === "#shift_register_2d" || h === "#shift-register-2d" || h === "#sr2d" || h === "#shift2d") {
@@ -1393,6 +1414,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("self_avoiding_walk", false);
   } else if (initialHash === "#billiards" || initialHash === "#billiard" || initialHash === "#bunimovich" || initialHash === "#sinai") {
     showModel("billiards", false);
+  } else if (initialHash === "#boolean_euclidean" || initialHash === "#boolean-euclidean" || initialHash === "#beuclid" || initialHash === "#logic-euclid") {
+    showModel("boolean_euclidean", false);
   } else if (initialHash === "#cellular_bug" || initialHash === "#cellular-bug" || initialHash === "#cbug" || initialHash === "#turmite" || initialHash === "#langton") {
     showModel("cellular_bug", false);
   } else if (initialHash === "#shift_register_2d" || initialHash === "#shift-register-2d" || initialHash === "#sr2d" || initialHash === "#shift2d") {

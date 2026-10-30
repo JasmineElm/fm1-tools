@@ -1159,3 +1159,4 @@ export function deactivateCellularBugModel() {
   setModelGenerator(null);
   setModelRandomizer(null);
 }
+

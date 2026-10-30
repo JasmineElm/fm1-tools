@@ -10,9 +10,9 @@ Browser-based generative MIDI workstation for the **M-VAVE FM-1** (6-operator FM
 
 FM-1 Pulses generates evolving musical phrases, continuous physical simulations, and polyphonic generative textures in real time for the M-VAVE FM-1 over MIDI, paired with a built-in browser FM synthesizer for cable-free auditioning. Sessions can be saved and restored deterministically (see **Session files** below).
 
-### Sequencer Models (33 Engines)
+### Sequencer Models (34 Engines)
 
-FM-1 Pulses includes **33 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
+FM-1 Pulses includes **34 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
 
 #### Classic Modular & Shift-Register Generators
 - **Mene311 (Stochastic)**: An analog-inspired generative signal chain combining Sample & Hold, continuous LFO waveshaping, Gaussian distribution weighting, scale quantization, and a looping Deja-Vu buffer.
@@ -51,6 +51,7 @@ FM-1 Pulses includes **33 algorithmic, physical, biological, and stochastic sequ
 #### Formal Grammars, Combinatorics & Evolutionary Engines
 - **L-System Grammar**: Aristid Lindenmayer recursive string-rewriting engine with a bracketed state stack (`[`, `]`), translating fractal turtle geometries into self-similar motifs.
 - **Change Ringing**: English full-circle church bell campanology engine (stages 4–8, Plain Hunt, Plain Bob, Grandsire, Stedman, and interactive Call Changes) with real-time Blue Line trajectory plotting.
+- **Boolean Euclidean Logic**: Multi-stream Euclidean rhythm generators combined via Boolean operators (XOR, AND, OR, NAND, XNOR, Majority), mapping hit coincidences to fortissimo velocity accents and harmonic octave leaps.
 - **Markov Melodic Memory**: Conditional state-transition probability matrix with Boltzmann temperature scaling, N-gram memory, and multi-walker polyphony.
 - **Melodic Genome Breeder**: Interactive genetic algorithm maintaining 8 musical chromosomes evolving via roulette selection, single-point crossover, allele mutation, and user fitness ratings.
 - **Nodal Directed Graph**: Probabilistic directed state graph where autonomous walker tokens traverse topological network structures (Chordal Cycles, Binary Trees, Scale-Free Hubs, De Bruijn Shifts, Forward DAGs).
@@ -125,7 +126,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 - Unknown parameters are preserved through an import/export round trip.
 - Models register hidden state (shift registers, cellular/lattice grids, particle/agent coordinates, and seeds) from their own module.
 - Files from before this format load as Mene311 v1.
-- Run `node --test tests/` for the unit test suite across all 33 models and core modules.
+- Run `node --test tests/` for the unit test suite across all 34 models and core modules.
 
 ---
 
@@ -149,7 +150,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 │   ├── modes.js              # Sequencer model & tools switcher, tag filters & modal guide
 │   ├── billiards.js          # Ballistic dynamical billiards Hamiltonian collision model
 │   ├── nodal_graph.js        # Nodal Directed Graph topological automata model
-│   ├── model_guides.js       # Contextual in-app guide content for all 33 models
+│   ├── model_guides.js       # Contextual in-app guide content for all 34 models
 │   ├── state.js              # Shared reactive application state & parameter defaults
 │   ├── poly.js               # 8-voice polyphony ceiling & voice allocation strategies
 │   ├── player.js             # Dual-clock lookahead scheduler & live note dispatch

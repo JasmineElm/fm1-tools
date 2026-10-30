@@ -6,12 +6,12 @@ This master plan tracks the implementation of generative, physical, non-step, ev
 
 ## 1. Roadmap & Backlog
 
-### 1.1 Implemented Models (33)
+### 1.1 Implemented Models (34)
 
 All 30 generative and non-step sequencer models across the FM-1 Pulses roadmap are fully implemented, verified, and unit-tested:
 - `mene311`, `turing`, `cellular`, `particles`, `pendulum`, `flock`, `rungler`, `krell`, `lsystem`, `lotka_volterra`, `orbital`, `hanenbow`, `sandpile`, `percolation`, `dla`, `epidemic`, `changes`, `physarum`, `reaction_diffusion`, `kuramoto`, `fitzhugh_nagumo`, `ripple_tank`, `convection`, `markov_matrix`, `genetic_breeder`, `chladni`, `brownian_ratchet`, `tracy_ribbon`, `self_avoiding_walk`, `billiards`, `nodal_graph`.
 
-### 1.2 Backlog: New Proposed Models (1)
+### 1.2 Backlog: New Proposed Models (0 - All Complete)
 
 Each of the following 5 proposed models has been assessed against the existing 29 models. Having no direct analogues in the current workstation, all 5 have been admitted to the backlog:
 
@@ -24,7 +24,7 @@ Each of the following 5 proposed models has been assessed against the existing 2
 | `nodal_graph` | **Nodal Directed Graph** | Low–Med | Graph Theory / Topological Automata | Structured aleatoric song structures, jazz lines | Probabilistic directed state graph with weighted branching edges and variable traversal step lengths. Node depth / degree → velocity; edge duration → note gate. | Complete |
 | `shift_register_2d` | **2D Shift Register** | Low | Digital Logic / Toroidal Bit Matrices | Melodic techno riffs, hypnotic bass ostinatos | 2D toroidal bit matrix with orthogonal X/Y shift clocks, feedback polynomial taps (Triadex Muse heritage). Register cross-sums → scale pitch & velocity accents. | Complete |
 | `cellular_bug` | **2D Cellular + Bug** | Med | 2D Cellular Automata / Artificial Life (Turmites) | Generative micro-montage, generative acid | 2D Cellular Automaton grid (Conway Life / Brian's Brain) traversed by mobile Turmites / Langton's Ants. Cluster density & glider collisions → staccato note bursts & velocity accents. | Complete |
-| `boolean_euclidean` | **Boolean Euclidean Logic** | Very Low | Polyrhythmic Algebra / Combinatorial Logic | Driving percussive grooves, polyrhythmic leads | Multi-stream Euclidean generators ($E(k_1, n_1)$, $E(k_2, n_2)$) combined via Boolean logic operators (AND, OR, XOR, NAND). Hit coincidence → velocity accents & harmonic octave leaps. | Backlog |
+| `boolean_euclidean` | **Boolean Euclidean Logic** | Very Low | Polyrhythmic Algebra / Combinatorial Logic | Driving percussive grooves, polyrhythmic leads | Multi-stream Euclidean generators ($E(k_1, n_1)$, $E(k_2, n_2)$) combined via Boolean logic operators (AND, OR, XOR, NAND). Hit coincidence → velocity accents & harmonic octave leaps. | Complete |
 
 ---
 

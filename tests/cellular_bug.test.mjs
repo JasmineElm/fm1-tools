@@ -281,3 +281,4 @@ test("randomizeCellularBug updates parameters and registers as model randomizer"
 
   deactivateCellularBugModel();
 });
+

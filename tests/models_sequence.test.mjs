@@ -141,6 +141,7 @@ import * as billiards from "../js/billiards.js";
 import * as nodal_graph from "../js/nodal_graph.js";
 import * as shift_register_2d from "../js/shift_register_2d.js";
 import * as cellular_bug from "../js/cellular_bug.js";
+import * as boolean_euclidean from "../js/boolean_euclidean.js";
 
 const MODEL_MODULE_MAP = {
   mene311,
@@ -175,11 +176,12 @@ const MODEL_MODULE_MAP = {
   billiards,
   nodal_graph,
   shift_register_2d,
-  cellular_bug
+  cellular_bug,
+  boolean_euclidean
 };
 
-test("MODELS array contains all 33 models with required metadata", () => {
-  assert.equal(MODELS.length, 33, "Expected exactly 33 models in MODELS registry");
+test("MODELS array contains all 34 models with required metadata", () => {
+  assert.equal(MODELS.length, 34, "Expected exactly 34 models in MODELS registry");
   for (const m of MODELS) {
     assert.ok(typeof m.id === "string" && m.id.length > 0, `Model ${m.id} has valid id`);
     assert.ok(typeof m.name === "string" && m.name.length > 0, `Model ${m.id} has name`);
@@ -192,7 +194,8 @@ test("MODELS array contains all 33 models with required metadata", () => {
 });
 
 test("POLYPHONIC_MODELS set contains expected models", () => {
-  assert.equal(POLYPHONIC_MODELS.size, 29, "Expected 29 polyphonic models");
+  assert.equal(POLYPHONIC_MODELS.size, 30, "Expected 30 polyphonic models");
+  assert.ok(POLYPHONIC_MODELS.has("boolean_euclidean"), "boolean_euclidean is polyphonic");
   assert.ok(POLYPHONIC_MODELS.has("cellular_bug"), "cellular_bug is polyphonic");
   assert.ok(POLYPHONIC_MODELS.has("shift_register_2d"), "shift_register_2d is polyphonic");
   assert.ok(!POLYPHONIC_MODELS.has("mene311"), "mene311 is monophonic");
@@ -317,7 +320,7 @@ test("Snapshot capture and restore round-trip across each registered model in se
   }
 });
 
-test("Workbench showModel switches active view through all 33 models sequentially", async () => {
+test("Workbench showModel switches active view through all 34 models sequentially", async () => {
   const { showModel, getActiveModel } = await import("../js/modes.js");
   for (const m of MODELS) {
     showModel(m.id, false);
