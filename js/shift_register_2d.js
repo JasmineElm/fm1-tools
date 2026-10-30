@@ -1063,20 +1063,17 @@ let ctrlGate = null;
 let notesSection = null;
 
 function syncControlsFromState() {
-  if (ctrlVoices) ctrlVoices.value = state.sr2dVoices ?? 4;
-  if (ctrlClockRatio) ctrlClockRatio.value = state.sr2dClockRatio ?? "1:1";
-  if (ctrlShiftDirX) ctrlShiftDirX.value = state.sr2dShiftDirX ?? "alternate";
-  if (ctrlShiftDirY) ctrlShiftDirY.value = state.sr2dShiftDirY ?? "down";
-  if (ctrlFeedbackLogic) ctrlFeedbackLogic.value = state.sr2dFeedbackLogic ?? "xor";
-  if (ctrlFeedbackTarget) ctrlFeedbackTarget.value = state.sr2dFeedbackTarget ?? "origin";
-  if (ctrlReadMode) ctrlReadMode.value = state.sr2dReadMode ?? "row_scan";
-  if (ctrlTriggerCond) ctrlTriggerCond.value = state.sr2dTriggerCond ?? "on_one";
-  if (ctrlMutation) ctrlMutation.value = state.sr2dMutation ?? 0;
-  if (ctrlSpeed) ctrlSpeed.value = state.sr2dSpeed ?? 1.0;
-  if (ctrlGate) ctrlGate.value = state.sr2dGate ?? 70;
-  if (notesSection && typeof notesSection.sync === "function") {
-    notesSection.sync();
-  }
+  if (ctrlVoices?.setValue) ctrlVoices.setValue(state.sr2dVoices ?? 4, false);
+  if (ctrlClockRatio?.setValue) ctrlClockRatio.setValue(state.sr2dClockRatio ?? "1:1", false);
+  if (ctrlShiftDirX?.setValue) ctrlShiftDirX.setValue(state.sr2dShiftDirX ?? "alternate", false);
+  if (ctrlShiftDirY?.setValue) ctrlShiftDirY.setValue(state.sr2dShiftDirY ?? "down", false);
+  if (ctrlFeedbackLogic?.setValue) ctrlFeedbackLogic.setValue(state.sr2dFeedbackLogic ?? "xor", false);
+  if (ctrlFeedbackTarget?.setValue) ctrlFeedbackTarget.setValue(state.sr2dFeedbackTarget ?? "origin", false);
+  if (ctrlReadMode?.setValue) ctrlReadMode.setValue(state.sr2dReadMode ?? "row_scan", false);
+  if (ctrlTriggerCond?.setValue) ctrlTriggerCond.setValue(state.sr2dTriggerCond ?? "on_one", false);
+  if (ctrlMutation?.setValue) ctrlMutation.setValue(state.sr2dMutation ?? 0, false);
+  if (ctrlSpeed?.setValue) ctrlSpeed.setValue(state.sr2dSpeed ?? 1.0, false);
+  if (ctrlGate?.setValue) ctrlGate.setValue(state.sr2dGate ?? 70, false);
 }
 
 /**
@@ -1110,10 +1107,7 @@ export function initShiftRegister2d() {
   topBar.style.justifyContent = "space-between";
   topBar.style.alignItems = "center";
 
-  const btnRun = actionBtn("Run", toggleShiftRegister2d, {
-    tip: "Start/Stop autonomous toroidal bit matrix simulation",
-    accent: true
-  });
+  const btnRun = actionBtn("Run", toggleShiftRegister2d, "Start/Stop autonomous toroidal bit matrix simulation");
 
   hudElement = document.createElement("div");
   hudElement.className = "hud-readout";
@@ -1168,7 +1162,7 @@ export function initShiftRegister2d() {
     gridBits.fill(0);
     prevBits.fill(0);
     doGenerate(true);
-  }, { tip: "Clear all matrix bits to 0" }));
+  }, "Clear all matrix bits to 0"));
 
   actionRow.appendChild(actionBtn("Invert", () => {
     for (let i = 0; i < TOTAL_CELLS; i++) {
@@ -1176,17 +1170,17 @@ export function initShiftRegister2d() {
       prevBits[i] = gridBits[i];
     }
     doGenerate(true);
-  }, { tip: "Invert all matrix bits (0 ↔ 1)" }));
+  }, "Invert all matrix bits (0 ↔ 1)"));
 
   actionRow.appendChild(actionBtn("Shift X", () => {
     shiftMatrix(true, false, state.sr2dShiftDirX || "alternate", state.sr2dShiftDirY || "down");
     doGenerate(true);
-  }, { tip: "Manually advance horizontal X clock by 1" }));
+  }, "Manually advance horizontal X clock by 1"));
 
   actionRow.appendChild(actionBtn("Shift Y", () => {
     shiftMatrix(false, true, state.sr2dShiftDirX || "alternate", state.sr2dShiftDirY || "down");
     doGenerate(true);
-  }, { tip: "Manually advance vertical Y clock by 1" }));
+  }, "Manually advance vertical Y clock by 1"));
 
   actionRow.appendChild(actionBtn("Rand Bits", () => {
     for (let i = 0; i < TOTAL_CELLS; i++) {
@@ -1194,7 +1188,7 @@ export function initShiftRegister2d() {
       prevBits[i] = gridBits[i];
     }
     doGenerate(true);
-  }, { tip: "Randomize matrix bits" }));
+  }, "Randomize matrix bits"));
 
   visualizerCard.appendChild(actionRow);
   layout.appendChild(visualizerCard);
@@ -1208,13 +1202,14 @@ export function initShiftRegister2d() {
   controlsCard.style.gap = "12px";
 
   // Preset Selector
-  ctrlPreset = dropdown(
-    "Preset",
-    SR2D_PRESETS.map((p) => ({ value: p.id, label: p.name })),
-    (val) => applyShiftRegister2dPreset(val),
-    { value: "techno_ostinato", tip: "Curated 2D Shift Register musical configurations" }
-  );
-  controlsCard.appendChild(ctrlPreset.el);
+  ctrlPreset = dropdown({
+    label: "Preset",
+    options: SR2D_PRESETS.map((p) => ({ value: p.id, label: p.name })),
+    value: "techno_ostinato",
+    onInput: (val) => applyShiftRegister2dPreset(val),
+    tip: "Curated 2D Shift Register musical configurations"
+  });
+  controlsCard.appendChild(ctrlPreset);
 
   // Clocks & Direction Section
   const clockGrid = document.createElement("div");
@@ -1222,37 +1217,41 @@ export function initShiftRegister2d() {
   clockGrid.style.gridTemplateColumns = "1fr 1fr";
   clockGrid.style.gap = "8px";
 
-  ctrlClockRatio = dropdown(
-    "Clock X:Y",
-    CLOCK_RATIOS.map((r) => ({ value: r.id, label: r.name })),
-    (val) => { state.sr2dClockRatio = val; doGenerate(true); },
-    { value: state.sr2dClockRatio || "1:1", tip: "Orthogonal X/Y shift clock ratio" }
-  );
-  clockGrid.appendChild(ctrlClockRatio.el);
+  ctrlClockRatio = dropdown({
+    label: "Clock X:Y",
+    options: CLOCK_RATIOS.map((r) => ({ value: r.id, label: r.name })),
+    value: state.sr2dClockRatio || "1:1",
+    onInput: (val) => { state.sr2dClockRatio = val; doGenerate(true); },
+    tip: "Orthogonal X/Y shift clock ratio"
+  });
+  clockGrid.appendChild(ctrlClockRatio);
 
-  ctrlVoices = dropdown(
-    "Voices",
-    [1, 2, 3, 4, 5, 6, 7, 8].map((v) => ({ value: v, label: `${v} Voice${v > 1 ? "s" : ""}` })),
-    (val) => { state.sr2dVoices = Number(val); doGenerate(true); },
-    { value: state.sr2dVoices || 4, tip: "Simultaneous read probes (up to 8 voices)" }
-  );
-  clockGrid.appendChild(ctrlVoices.el);
+  ctrlVoices = dropdown({
+    label: "Voices",
+    options: [1, 2, 3, 4, 5, 6, 7, 8].map((v) => ({ value: v, label: `${v} Voice${v > 1 ? "s" : ""}` })),
+    value: state.sr2dVoices || 4,
+    onInput: (val) => { state.sr2dVoices = Number(val); doGenerate(true); },
+    tip: "Simultaneous read probes (up to 8 voices)"
+  });
+  clockGrid.appendChild(ctrlVoices);
 
-  ctrlShiftDirX = dropdown(
-    "Shift X",
-    SHIFT_DIRS_X.map((d) => ({ value: d.id, label: d.name })),
-    (val) => { state.sr2dShiftDirX = val; doGenerate(true); },
-    { value: state.sr2dShiftDirX || "alternate", tip: "Horizontal row shift flow" }
-  );
-  clockGrid.appendChild(ctrlShiftDirX.el);
+  ctrlShiftDirX = dropdown({
+    label: "Shift X",
+    options: SHIFT_DIRS_X.map((d) => ({ value: d.id, label: d.name })),
+    value: state.sr2dShiftDirX || "alternate",
+    onInput: (val) => { state.sr2dShiftDirX = val; doGenerate(true); },
+    tip: "Horizontal row shift flow"
+  });
+  clockGrid.appendChild(ctrlShiftDirX);
 
-  ctrlShiftDirY = dropdown(
-    "Shift Y",
-    SHIFT_DIRS_Y.map((d) => ({ value: d.id, label: d.name })),
-    (val) => { state.sr2dShiftDirY = val; doGenerate(true); },
-    { value: state.sr2dShiftDirY || "down", tip: "Vertical column shift flow" }
-  );
-  clockGrid.appendChild(ctrlShiftDirY.el);
+  ctrlShiftDirY = dropdown({
+    label: "Shift Y",
+    options: SHIFT_DIRS_Y.map((d) => ({ value: d.id, label: d.name })),
+    value: state.sr2dShiftDirY || "down",
+    onInput: (val) => { state.sr2dShiftDirY = val; doGenerate(true); },
+    tip: "Vertical column shift flow"
+  });
+  clockGrid.appendChild(ctrlShiftDirY);
   controlsCard.appendChild(clockGrid);
 
   // Feedback & Logic Section
@@ -1261,37 +1260,41 @@ export function initShiftRegister2d() {
   logicGrid.style.gridTemplateColumns = "1fr 1fr";
   logicGrid.style.gap = "8px";
 
-  ctrlFeedbackLogic = dropdown(
-    "Feedback",
-    FEEDBACK_LOGICS.map((l) => ({ value: l.id, label: l.name })),
-    (val) => { state.sr2dFeedbackLogic = val; doGenerate(true); },
-    { value: state.sr2dFeedbackLogic || "xor", tip: "Boolean logic polynomial over taps T1..T4" }
-  );
-  logicGrid.appendChild(ctrlFeedbackLogic.el);
+  ctrlFeedbackLogic = dropdown({
+    label: "Feedback",
+    options: FEEDBACK_LOGICS.map((l) => ({ value: l.id, label: l.name })),
+    value: state.sr2dFeedbackLogic || "xor",
+    onInput: (val) => { state.sr2dFeedbackLogic = val; doGenerate(true); },
+    tip: "Boolean logic polynomial over taps T1..T4"
+  });
+  logicGrid.appendChild(ctrlFeedbackLogic);
 
-  ctrlFeedbackTarget = dropdown(
-    "Inject To",
-    FEEDBACK_TARGETS.map((t) => ({ value: t.id, label: t.name })),
-    (val) => { state.sr2dFeedbackTarget = val; doGenerate(true); },
-    { value: state.sr2dFeedbackTarget || "origin", tip: "Target cells where feedback bit is injected" }
-  );
-  logicGrid.appendChild(ctrlFeedbackTarget.el);
+  ctrlFeedbackTarget = dropdown({
+    label: "Inject To",
+    options: FEEDBACK_TARGETS.map((t) => ({ value: t.id, label: t.name })),
+    value: state.sr2dFeedbackTarget || "origin",
+    onInput: (val) => { state.sr2dFeedbackTarget = val; doGenerate(true); },
+    tip: "Target cells where feedback bit is injected"
+  });
+  logicGrid.appendChild(ctrlFeedbackTarget);
 
-  ctrlReadMode = dropdown(
-    "Read Mode",
-    READ_MODES.map((m) => ({ value: m.id, label: m.name })),
-    (val) => { state.sr2dReadMode = val; doGenerate(true); },
-    { value: state.sr2dReadMode || "row_scan", tip: "How voices convert matrix cells into pitch" }
-  );
-  logicGrid.appendChild(ctrlReadMode.el);
+  ctrlReadMode = dropdown({
+    label: "Read Mode",
+    options: READ_MODES.map((m) => ({ value: m.id, label: m.name })),
+    value: state.sr2dReadMode || "row_scan",
+    onInput: (val) => { state.sr2dReadMode = val; doGenerate(true); },
+    tip: "How voices convert matrix cells into pitch"
+  });
+  logicGrid.appendChild(ctrlReadMode);
 
-  ctrlTriggerCond = dropdown(
-    "Trigger",
-    TRIGGER_CONDS.map((c) => ({ value: c.id, label: c.name })),
-    (val) => { state.sr2dTriggerCond = val; doGenerate(true); },
-    { value: state.sr2dTriggerCond || "on_one", tip: "Gate trigger condition for voice probes" }
-  );
-  logicGrid.appendChild(ctrlTriggerCond.el);
+  ctrlTriggerCond = dropdown({
+    label: "Trigger",
+    options: TRIGGER_CONDS.map((c) => ({ value: c.id, label: c.name })),
+    value: state.sr2dTriggerCond || "on_one",
+    onInput: (val) => { state.sr2dTriggerCond = val; doGenerate(true); },
+    tip: "Gate trigger condition for voice probes"
+  });
+  logicGrid.appendChild(ctrlTriggerCond);
   controlsCard.appendChild(logicGrid);
 
   // Knobs & Sliders
@@ -1300,30 +1303,42 @@ export function initShiftRegister2d() {
   knobRow.style.gridTemplateColumns = "1fr 1fr 1fr";
   knobRow.style.gap = "8px";
 
-  ctrlMutation = knob("MUT", 0, 100, 1, state.sr2dMutation || 0, (val) => {
-    state.sr2dMutation = val;
-  }, { tip: "Stochastic bit mutation probability (%)" });
-  knobRow.appendChild(ctrlMutation.el);
-
-  ctrlSpeed = knob("SPD", 0.25, 4.0, 0.05, state.sr2dSpeed || 1.0, (val) => {
-    state.sr2dSpeed = val;
-  }, { tip: "Clock multiplier speed factor" });
-  knobRow.appendChild(ctrlSpeed.el);
-
-  ctrlGate = knob("GATE", 10, 100, 5, state.sr2dGate || 70, (val) => {
-    state.sr2dGate = val;
-  }, { tip: "Note gate duration (% of step interval)" });
-  knobRow.appendChild(ctrlGate.el);
-  controlsCard.appendChild(knobRow);
-
-  // Scale & Notes Section
-  import("./scale.js").then(({ createNotesSection }) => {
-    notesSection = createNotesSection();
-    if (notesSection && notesSection.sectEl) {
-      notesSection.sectEl.style.marginTop = "8px";
-      controlsCard.appendChild(notesSection.sectEl);
-    }
+  ctrlMutation = knob({
+    label: "MUT",
+    min: 0,
+    max: 100,
+    step: 1,
+    value: state.sr2dMutation || 0,
+    def: 0,
+    onInput: (val) => { state.sr2dMutation = val; },
+    tip: "Stochastic bit mutation probability (%)"
   });
+  knobRow.appendChild(ctrlMutation);
+
+  ctrlSpeed = knob({
+    label: "SPD",
+    min: 0.25,
+    max: 4.0,
+    step: 0.05,
+    value: state.sr2dSpeed || 1.0,
+    def: 1.0,
+    onInput: (val) => { state.sr2dSpeed = val; },
+    tip: "Clock multiplier speed factor"
+  });
+  knobRow.appendChild(ctrlSpeed);
+
+  ctrlGate = knob({
+    label: "GATE",
+    min: 10,
+    max: 100,
+    step: 5,
+    value: state.sr2dGate || 70,
+    def: 70,
+    onInput: (val) => { state.sr2dGate = val; },
+    tip: "Note gate duration (% of step interval)"
+  });
+  knobRow.appendChild(ctrlGate);
+  controlsCard.appendChild(knobRow);
 
   layout.appendChild(controlsCard);
   container.appendChild(layout);

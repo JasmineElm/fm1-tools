@@ -536,6 +536,7 @@ export function randomizeNodalGraph() {
 }
 
 function syncControlsFromState() {
+  if (presetSelectEl?.setValue) presetSelectEl.setValue(state.nodalGraphPreset || "cycle_chords");
   if (refs.nodalGraphWalkers?.setValue) refs.nodalGraphWalkers.setValue(state.nodalGraphWalkers, false);
   if (refs.nodalGraphSpeed?.setValue) refs.nodalGraphSpeed.setValue(state.nodalGraphSpeed, false);
   if (refs.nodalGraphEntropy?.setValue) refs.nodalGraphEntropy.setValue(state.nodalGraphEntropy, false);
@@ -887,14 +888,10 @@ export function initNodalGraph() {
   });
 
   // Transport & Action Buttons
-  const runBtn = toggleBtn({
-    label: "RUN",
-    active: isGraphPlaying,
-    onClick: () => {
-      const running = toggleNodalGraphRunning();
-      runBtn.setActive(running);
-    }
-  });
+  const runBtn = toggleBtn("RUN", isGraphPlaying, (on) => {
+    if (on) startNodalGraph();
+    else stopNodalGraph();
+  }, "Start/Stop autonomous graph walkers");
 
   const randBtn = actionBtn({
     label: "RND",

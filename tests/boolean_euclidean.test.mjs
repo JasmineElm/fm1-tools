@@ -13,30 +13,45 @@ if (typeof globalThis.requestAnimationFrame === "undefined") {
   globalThis.requestAnimationFrame = () => 0;
   globalThis.cancelAnimationFrame = () => {};
 }
+function makeMockEl(tag = "div") {
+  const children = [];
+  return {
+    tagName: tag.toUpperCase(),
+    className: "",
+    style: {},
+    dataset: {},
+    children,
+    classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false },
+    setAttribute: () => {},
+    getAttribute: () => null,
+    appendChild: (c) => { children.push(c); return c; },
+    append: (...cs) => { children.push(...cs); },
+    addEventListener: () => {},
+    getBoundingClientRect: () => ({ width: 440, height: 440, left: 0, top: 0 }),
+    getContext: () => ({
+      fillRect: () => {},
+      beginPath: () => {},
+      arc: () => {},
+      fill: () => {},
+      stroke: () => {},
+      fillText: () => {},
+      save: () => {},
+      restore: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      strokeRect: () => {},
+      setLineDash: () => {},
+      ellipse: () => {},
+      closePath: () => {}
+    })
+  };
+}
+const mockContainers = new Map();
 if (typeof document === "undefined") {
   globalThis.document = {
-    getElementById: () => null,
-    createElement: () => ({
-      getContext: () => ({
-        fillRect: () => {},
-        beginPath: () => {},
-        arc: () => {},
-        fill: () => {},
-        stroke: () => {},
-        fillText: () => {},
-        save: () => {},
-        restore: () => {},
-        moveTo: () => {},
-        lineTo: () => {},
-        strokeRect: () => {},
-        setLineDash: () => {},
-        ellipse: () => {},
-        closePath: () => {}
-      }),
-      style: {},
-      appendChild: () => {},
-      addEventListener: () => {}
-    }),
+    getElementById: (id) => mockContainers.get(id) || null,
+    createElement: (tag) => makeMockEl(tag),
+    createElementNS: (_ns, tag) => makeMockEl(tag),
     documentElement: {
       style: {},
       getAttribute: () => null
@@ -65,6 +80,7 @@ import {
   toggleBooleanEuclidean,
   applyBooleanEuclideanPreset,
   randomizeBooleanEuclidean,
+  initBooleanEuclidean,
   activateBooleanEuclideanModel,
   deactivateBooleanEuclideanModel
 } from "../js/boolean_euclidean.js";
@@ -249,5 +265,12 @@ test("randomizeBooleanEuclidean updates parameters and registers as model random
   assert.ok(BOOLEAN_OPERATORS.some((o) => o.id === state.beuclidOp));
 
   deactivateBooleanEuclideanModel();
+});
+
+test("initBooleanEuclidean mounts DOM controls and dropdowns without error", () => {
+  const container = makeMockEl("div");
+  mockContainers.set("model-boolean_euclidean", container);
+  initBooleanEuclidean();
+  assert.ok(container.children.length > 0, "initBooleanEuclidean should populate model container");
 });
 

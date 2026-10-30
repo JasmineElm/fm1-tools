@@ -13,30 +13,45 @@ if (typeof globalThis.requestAnimationFrame === "undefined") {
   globalThis.requestAnimationFrame = () => 0;
   globalThis.cancelAnimationFrame = () => {};
 }
+function makeMockEl(tag = "div") {
+  const children = [];
+  return {
+    tagName: tag.toUpperCase(),
+    className: "",
+    style: {},
+    dataset: {},
+    children,
+    classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false },
+    setAttribute: () => {},
+    getAttribute: () => null,
+    appendChild: (c) => { children.push(c); return c; },
+    append: (...cs) => { children.push(...cs); },
+    addEventListener: () => {},
+    getBoundingClientRect: () => ({ width: 440, height: 440, left: 0, top: 0 }),
+    getContext: () => ({
+      fillRect: () => {},
+      beginPath: () => {},
+      arc: () => {},
+      fill: () => {},
+      stroke: () => {},
+      fillText: () => {},
+      save: () => {},
+      restore: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      strokeRect: () => {},
+      setLineDash: () => {},
+      ellipse: () => {},
+      closePath: () => {}
+    })
+  };
+}
+const mockContainers = new Map();
 if (typeof document === "undefined") {
   globalThis.document = {
-    getElementById: () => null,
-    createElement: () => ({
-      getContext: () => ({
-        fillRect: () => {},
-        beginPath: () => {},
-        arc: () => {},
-        fill: () => {},
-        stroke: () => {},
-        fillText: () => {},
-        save: () => {},
-        restore: () => {},
-        moveTo: () => {},
-        lineTo: () => {},
-        strokeRect: () => {},
-        setLineDash: () => {},
-        ellipse: () => {},
-        closePath: () => {}
-      }),
-      style: {},
-      appendChild: () => {},
-      addEventListener: () => {}
-    }),
+    getElementById: (id) => mockContainers.get(id) || null,
+    createElement: (tag) => makeMockEl(tag),
+    createElementNS: (_ns, tag) => makeMockEl(tag),
     documentElement: {
       style: {},
       getAttribute: () => null
@@ -72,6 +87,7 @@ import {
   toggleShiftRegister2d,
   applyShiftRegister2dPreset,
   randomizeShiftRegister2d,
+  initShiftRegister2d,
   activateShiftRegister2dModel,
   deactivateShiftRegister2dModel
 } from "../js/shift_register_2d.js";
@@ -294,5 +310,12 @@ test("randomizeShiftRegister2d updates parameters and registers as model randomi
   assert.ok(FEEDBACK_LOGICS.some((l) => l.id === state.sr2dFeedbackLogic));
 
   deactivateShiftRegister2dModel();
+});
+
+test("initShiftRegister2d mounts DOM controls and dropdowns without error", () => {
+  const container = makeMockEl("div");
+  mockContainers.set("model-shift_register_2d", container);
+  initShiftRegister2d();
+  assert.ok(container.children.length > 0, "initShiftRegister2d should populate model container");
 });
 

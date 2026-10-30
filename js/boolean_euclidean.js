@@ -700,15 +700,12 @@ let ctrlGate = null;
 let notesSection = null;
 
 function syncControlsFromState() {
-  if (ctrlOp) ctrlOp.value = state.beuclidOp ?? "xor";
-  if (ctrlVoices) ctrlVoices.value = state.beuclidVoices ?? 4;
-  if (ctrlBoost) ctrlBoost.value = state.beuclidBoost ?? 80;
-  if (ctrlOctLeap) ctrlOctLeap.value = state.beuclidOctLeap ?? 50;
-  if (ctrlSpeed) ctrlSpeed.value = state.beuclidSpeed ?? 1.0;
-  if (ctrlGate) ctrlGate.value = state.beuclidGate ?? 70;
-  if (notesSection && typeof notesSection.sync === "function") {
-    notesSection.sync();
-  }
+  if (ctrlOp?.setValue) ctrlOp.setValue(state.beuclidOp ?? "xor", false);
+  if (ctrlVoices?.setValue) ctrlVoices.setValue(state.beuclidVoices ?? 4, false);
+  if (ctrlBoost?.setValue) ctrlBoost.setValue(state.beuclidBoost ?? 80, false);
+  if (ctrlOctLeap?.setValue) ctrlOctLeap.setValue(state.beuclidOctLeap ?? 50, false);
+  if (ctrlSpeed?.setValue) ctrlSpeed.setValue(state.beuclidSpeed ?? 1.0, false);
+  if (ctrlGate?.setValue) ctrlGate.setValue(state.beuclidGate ?? 70, false);
 }
 
 /**
@@ -742,10 +739,7 @@ export function initBooleanEuclidean() {
   topBar.style.justifyContent = "space-between";
   topBar.style.alignItems = "center";
 
-  const btnRun = actionBtn("Run", toggleBooleanEuclidean, {
-    tip: "Start/Stop autonomous Boolean Euclidean logic clock",
-    accent: true
-  });
+  const btnRun = actionBtn("Run", toggleBooleanEuclidean, "Start/Stop autonomous Boolean Euclidean logic clock");
 
   hudElement = document.createElement("div");
   hudElement.className = "hud-readout";
@@ -791,24 +785,24 @@ export function initBooleanEuclidean() {
   actionRow.appendChild(actionBtn("Rot A +1", () => {
     streamRot[0] = (streamRot[0] + 1) % streamN[0];
     doGenerate(true);
-  }, { tip: "Rotate Stream A phase offset by +1" }));
+  }, "Rotate Stream A phase offset by +1"));
 
   actionRow.appendChild(actionBtn("Rot B +1", () => {
     streamRot[1] = (streamRot[1] + 1) % streamN[1];
     doGenerate(true);
-  }, { tip: "Rotate Stream B phase offset by +1" }));
+  }, "Rotate Stream B phase offset by +1"));
 
   actionRow.appendChild(actionBtn("Swap A↔B", () => {
     const kTmp = streamK[0]; streamK[0] = streamK[1]; streamK[1] = kTmp;
     const nTmp = streamN[0]; streamN[0] = streamN[1]; streamN[1] = nTmp;
     doGenerate(true);
-  }, { tip: "Swap parameters of Stream A and Stream B" }));
+  }, "Swap parameters of Stream A and Stream B"));
 
   actionRow.appendChild(actionBtn("Mute C/D", () => {
     streamMute[2] ^= 1;
     streamMute[3] ^= 1;
     doGenerate(true);
-  }, { tip: "Toggle mute states for auxiliary Streams C & D" }));
+  }, "Toggle mute states for auxiliary Streams C & D"));
 
   visualizerCard.appendChild(actionRow);
   layout.appendChild(visualizerCard);
@@ -822,13 +816,14 @@ export function initBooleanEuclidean() {
   controlsCard.style.gap = "12px";
 
   // Preset Selector
-  ctrlPreset = dropdown(
-    "Preset",
-    BEUCLID_PRESETS.map((p) => ({ value: p.id, label: p.name })),
-    (val) => applyBooleanEuclideanPreset(val),
-    { value: "tresillo_coincidence", tip: "Curated Boolean Euclidean rhythm regimes" }
-  );
-  controlsCard.appendChild(ctrlPreset.el);
+  ctrlPreset = dropdown({
+    label: "Preset",
+    options: BEUCLID_PRESETS.map((p) => ({ value: p.id, label: p.name })),
+    value: "tresillo_coincidence",
+    onInput: (val) => applyBooleanEuclideanPreset(val),
+    tip: "Curated Boolean Euclidean rhythm regimes"
+  });
+  controlsCard.appendChild(ctrlPreset);
 
   // Boolean Operator & Voices
   const opGrid = document.createElement("div");
@@ -836,21 +831,23 @@ export function initBooleanEuclidean() {
   opGrid.style.gridTemplateColumns = "1fr 1fr";
   opGrid.style.gap = "8px";
 
-  ctrlOp = dropdown(
-    "Logic Op",
-    BOOLEAN_OPERATORS.map((o) => ({ value: o.id, label: o.name })),
-    (val) => { state.beuclidOp = val; doGenerate(true); },
-    { value: state.beuclidOp || "xor", tip: "Boolean logic operator combining Euclidean pulse streams" }
-  );
-  opGrid.appendChild(ctrlOp.el);
+  ctrlOp = dropdown({
+    label: "Logic Op",
+    options: BOOLEAN_OPERATORS.map((o) => ({ value: o.id, label: o.name })),
+    value: state.beuclidOp || "xor",
+    onInput: (val) => { state.beuclidOp = val; doGenerate(true); },
+    tip: "Boolean logic operator combining Euclidean pulse streams"
+  });
+  opGrid.appendChild(ctrlOp);
 
-  ctrlVoices = dropdown(
-    "Voices",
-    [1, 2, 3, 4, 5, 6, 7, 8].map((v) => ({ value: v, label: `${v} Voice${v > 1 ? "s" : ""}` })),
-    (val) => { state.beuclidVoices = Number(val); doGenerate(true); },
-    { value: state.beuclidVoices || 4, tip: "Number of polyphonic outputs (up to 8 voices)" }
-  );
-  opGrid.appendChild(ctrlVoices.el);
+  ctrlVoices = dropdown({
+    label: "Voices",
+    options: [1, 2, 3, 4, 5, 6, 7, 8].map((v) => ({ value: v, label: `${v} Voice${v > 1 ? "s" : ""}` })),
+    value: state.beuclidVoices || 4,
+    onInput: (val) => { state.beuclidVoices = Number(val); doGenerate(true); },
+    tip: "Number of polyphonic outputs (up to 8 voices)"
+  });
+  opGrid.appendChild(ctrlVoices);
   controlsCard.appendChild(opGrid);
 
   // Knobs & Sliders
@@ -859,35 +856,54 @@ export function initBooleanEuclidean() {
   knobRow.style.gridTemplateColumns = "1fr 1fr 1fr 1fr";
   knobRow.style.gap = "8px";
 
-  ctrlBoost = knob("BOOST", 0, 100, 1, state.beuclidBoost || 80, (val) => {
-    state.beuclidBoost = val;
-  }, { tip: "Coincidence velocity accent boost (%)" });
-  knobRow.appendChild(ctrlBoost.el);
-
-  ctrlOctLeap = knob("LEAP", 0, 100, 5, state.beuclidOctLeap || 50, (val) => {
-    state.beuclidOctLeap = val;
-  }, { tip: "Coincidence harmonic octave leap probability (%)" });
-  knobRow.appendChild(ctrlOctLeap.el);
-
-  ctrlSpeed = knob("SPD", 0.25, 4.0, 0.05, state.beuclidSpeed || 1.0, (val) => {
-    state.beuclidSpeed = val;
-  }, { tip: "Clock speed multiplier factor" });
-  knobRow.appendChild(ctrlSpeed.el);
-
-  ctrlGate = knob("GATE", 10, 100, 5, state.beuclidGate || 70, (val) => {
-    state.beuclidGate = val;
-  }, { tip: "Note gate duration (% of step interval)" });
-  knobRow.appendChild(ctrlGate.el);
-  controlsCard.appendChild(knobRow);
-
-  // Scale & Polyphony Notes Section
-  import("./scale.js").then(({ createNotesSection }) => {
-    notesSection = createNotesSection();
-    if (notesSection && notesSection.sectEl) {
-      notesSection.sectEl.style.marginTop = "8px";
-      controlsCard.appendChild(notesSection.sectEl);
-    }
+  ctrlBoost = knob({
+    label: "BOOST",
+    min: 0,
+    max: 100,
+    step: 1,
+    value: state.beuclidBoost || 80,
+    def: 80,
+    onInput: (val) => { state.beuclidBoost = val; },
+    tip: "Coincidence velocity accent boost (%)"
   });
+  knobRow.appendChild(ctrlBoost);
+
+  ctrlOctLeap = knob({
+    label: "LEAP",
+    min: 0,
+    max: 100,
+    step: 5,
+    value: state.beuclidOctLeap || 50,
+    def: 50,
+    onInput: (val) => { state.beuclidOctLeap = val; },
+    tip: "Coincidence harmonic octave leap probability (%)"
+  });
+  knobRow.appendChild(ctrlOctLeap);
+
+  ctrlSpeed = knob({
+    label: "SPD",
+    min: 0.25,
+    max: 4.0,
+    step: 0.05,
+    value: state.beuclidSpeed || 1.0,
+    def: 1.0,
+    onInput: (val) => { state.beuclidSpeed = val; },
+    tip: "Clock speed multiplier factor"
+  });
+  knobRow.appendChild(ctrlSpeed);
+
+  ctrlGate = knob({
+    label: "GATE",
+    min: 10,
+    max: 100,
+    step: 5,
+    value: state.beuclidGate || 70,
+    def: 70,
+    onInput: (val) => { state.beuclidGate = val; },
+    tip: "Note gate duration (% of step interval)"
+  });
+  knobRow.appendChild(ctrlGate);
+  controlsCard.appendChild(knobRow);
 
   layout.appendChild(controlsCard);
   container.appendChild(layout);

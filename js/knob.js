@@ -143,7 +143,7 @@ export function knob({ label, min, max, step = 1, value = 0, def, size = "md", f
     min = lo; max = hi;
     if (cur > max) set(max); else if (cur < min) set(min); else paint();
   };
-  Object.defineProperty(el, "value", { get: () => cur });
+  Object.defineProperty(el, "value", { get: () => cur, set: (v) => set(v, false) });
   return el;
 }
 
@@ -253,7 +253,7 @@ export function dropdown({ label, options, value, onInput, onChange, tip = "", t
   el.setValue = (v) => {
     select.value = String(v);
   };
-  Object.defineProperty(el, "value", { get: () => select.value });
+  Object.defineProperty(el, "value", { get: () => select.value, set: (v) => { select.value = String(v); } });
   return el;
 }
 
@@ -402,7 +402,7 @@ export function fader({ label, min, max, step = 1, value = 0, def, format, onInp
     min = lo; max = hi;
     if (cur > max) set(max); else if (cur < min) set(min); else paint();
   };
-  Object.defineProperty(el, "value", { get: () => cur });
+  Object.defineProperty(el, "value", { get: () => cur, set: (v) => set(v, false) });
   return el;
 }
 

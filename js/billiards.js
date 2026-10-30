@@ -612,7 +612,9 @@ export function renderBilliardsCanvas() {
   if (w <= 0 || h <= 0) return;
 
   // Resolve dynamic semantic theme tokens (Zero Gradient Rule)
-  const rootStyle = getComputedStyle(document.documentElement);
+  const rootStyle = typeof getComputedStyle === "function"
+    ? getComputedStyle(document.documentElement)
+    : { getPropertyValue: () => "" };
   const colBg = rootStyle.getPropertyValue("--panel2").trim() || "#18191f";
   const colLine = rootStyle.getPropertyValue("--line").trim() || "#333846";
   const colLineFocus = rootStyle.getPropertyValue("--line-focus").trim() || "#4b5264";
@@ -916,7 +918,8 @@ export function initBilliards() {
     id: "billiardsBalls",
     label: "BALLS",
     min: 1, max: 8, step: 1,
-    def: state.billiardsBalls ?? 3,
+    value: state.billiardsBalls ?? 3,
+    def: 3,
     title: "Number of concurrent billiard balls (1 to 8 hardware polyphony limit)",
     onChange: (v) => {
       state.billiardsBalls = Math.round(v);
@@ -924,40 +927,47 @@ export function initBilliards() {
       renderBilliardsCanvas();
     }
   });
+  refs.billiardsBalls = kBalls;
 
   const kSpeed = knob({
     id: "billiardsSpeed",
     label: "SPEED",
     min: 0.2, max: 3.0, step: 0.05,
-    def: state.billiardsSpeed ?? 1.0,
+    value: state.billiardsSpeed ?? 1.0,
+    def: 1.0,
     title: "Ballistic ray traversal speed multiplier",
     onChange: (v) => {
       state.billiardsSpeed = v;
       updateHud();
     }
   });
+  refs.billiardsSpeed = kSpeed;
 
   const kSpin = knob({
     id: "billiardsSpin",
     label: "SPIN",
     min: -1.0, max: 1.0, step: 0.05,
-    def: state.billiardsSpin ?? 0.0,
+    value: state.billiardsSpin ?? 0.0,
+    def: 0.0,
     title: "Magnetic Lorentz force / spin curvature bending trajectory into Larmor arcs",
     onChange: (v) => {
       state.billiardsSpin = v;
     }
   });
+  refs.billiardsSpin = kSpin;
 
   const kDamp = knob({
     id: "billiardsDamping",
     label: "DAMP",
     min: 0.0, max: 0.05, step: 0.005,
-    def: state.billiardsDamping ?? 0.0,
+    value: state.billiardsDamping ?? 0.0,
+    def: 0.0,
     title: "Boundary collision restitution damping (energy dissipation)",
     onChange: (v) => {
       state.billiardsDamping = v;
     }
   });
+  refs.billiardsDamping = kDamp;
 
   paramGrid.append(kBalls, kSpeed, kSpin, kDamp);
 
@@ -994,30 +1004,7 @@ export function initBilliards() {
   btnRow.append(btnColl, btnReRack);
   paramCard.append(paramGrid, btnRow);
 
-  // Notes div: Shared pitch quantizer and 8-voice polyphony controls
-  notesSection = createNotesSection({
-    id: "billiards-notes",
-    title: "Harmonics & Pitch",
-    showSpan: true,
-    showOctave: true,
-    showPolyphony: true,
-    octaveKey: "billiardsOctave",
-    octaveModeKey: "billiardsOctaveMode",
-    onScaleChange: () => {
-      renderBilliardsCanvas();
-    }
-  });
-  if (notesSection?.sectEl) {
-    notesSection.sectEl.classList.add("card");
-    notesSection.sectEl.style.padding = "8px 12px";
-    notesSection.sectEl.style.marginTop = "8px";
-    module.append(headerCard, paramCard, notesSection.sectEl);
-  } else if (notesSection && typeof notesSection === "object" && notesSection.style) {
-    notesSection.style.marginTop = "8px";
-    module.append(headerCard, paramCard, notesSection);
-  } else {
-    module.append(headerCard, paramCard);
-  }
+  module.append(headerCard, paramCard);
 
   // --- Right Column: Interactive Billiards Canvas ---
   const canvasPanel = document.createElement("div");
@@ -1131,7 +1118,7 @@ export function initBilliards() {
   }
 
   window.addEventListener("resize", resizeCanvas);
-  setTimeout(resizeCanvas, 50);
+  resizeCanvas();
 
   canvasPanel.append(canvasEl, hudElement, tipText);
   layout.append(module, canvasPanel);
@@ -1139,52 +1126,6 @@ export function initBilliards() {
 
   initBilliardsSystem(state.billiardsPreset || "stadium");
   updateHud();
-
-  // Snapshot Registration
-  registerModel({
-    id: "billiards",
-    version: 1,
-    migrations: {},
-    capture: () => ({
-      preset: state.billiardsPreset || "stadium",
-      balls: state.billiardsBalls || 3,
-      speed: state.billiardsSpeed || 1.0,
-      spin: state.billiardsSpin || 0.0,
-      damp: state.billiardsDamping || 0.0,
-      ballCollision: !!state.billiardsBallCollision,
-      octave: state.billiardsOctave || 0,
-      posX: Array.from(posX.slice(0, state.billiardsBalls || 3)),
-      posY: Array.from(posY.slice(0, state.billiardsBalls || 3)),
-      velX: Array.from(velX.slice(0, state.billiardsBalls || 3)),
-      velY: Array.from(velY.slice(0, state.billiardsBalls || 3))
-    }),
-    restore: (snap) => {
-      if (!snap) return;
-      if (snap.preset) state.billiardsPreset = snap.preset;
-      if (snap.balls) state.billiardsBalls = snap.balls;
-      if (snap.speed !== undefined) state.billiardsSpeed = snap.speed;
-      if (snap.spin !== undefined) state.billiardsSpin = snap.spin;
-      if (snap.damp !== undefined) state.billiardsDamping = snap.damp;
-      if (snap.ballCollision !== undefined) state.billiardsBallCollision = snap.ballCollision;
-      if (snap.octave !== undefined) state.billiardsOctave = snap.octave;
-
-      initBilliardsSystem(state.billiardsPreset || "stadium");
-
-      if (Array.isArray(snap.posX) && Array.isArray(snap.posY)) {
-        for (let i = 0; i < Math.min(MAX_BODIES, snap.posX.length); i++) {
-          posX[i] = snap.posX[i];
-          posY[i] = snap.posY[i];
-          if (Array.isArray(snap.velX)) velX[i] = snap.velX[i];
-          if (Array.isArray(snap.velY)) velY[i] = snap.velY[i];
-        }
-      }
-
-      if (presetSelectEl) presetSelectEl.value = state.billiardsPreset;
-      syncControlsFromState();
-      renderBilliardsCanvas();
-      updateHud();
-    }
-  });
 }
 
 export function activateBilliardsModel() {

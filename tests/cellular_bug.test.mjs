@@ -13,32 +13,47 @@ if (typeof globalThis.requestAnimationFrame === "undefined") {
   globalThis.requestAnimationFrame = () => 0;
   globalThis.cancelAnimationFrame = () => {};
 }
+function makeMockEl(tag = "div") {
+  const children = [];
+  return {
+    tagName: tag.toUpperCase(),
+    className: "",
+    style: {},
+    dataset: {},
+    children,
+    classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false },
+    setAttribute: () => {},
+    getAttribute: () => null,
+    appendChild: (c) => { children.push(c); return c; },
+    append: (...cs) => { children.push(...cs); },
+    addEventListener: () => {},
+    getBoundingClientRect: () => ({ width: 440, height: 440, left: 0, top: 0 }),
+    getContext: () => ({
+      fillRect: () => {},
+      beginPath: () => {},
+      arc: () => {},
+      fill: () => {},
+      stroke: () => {},
+      fillText: () => {},
+      save: () => {},
+      restore: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      strokeRect: () => {},
+      setLineDash: () => {},
+      ellipse: () => {},
+      closePath: () => {},
+      translate: () => {},
+      rotate: () => {}
+    })
+  };
+}
+const mockContainers = new Map();
 if (typeof document === "undefined") {
   globalThis.document = {
-    getElementById: () => null,
-    createElement: () => ({
-      getContext: () => ({
-        fillRect: () => {},
-        beginPath: () => {},
-        arc: () => {},
-        fill: () => {},
-        stroke: () => {},
-        fillText: () => {},
-        save: () => {},
-        restore: () => {},
-        moveTo: () => {},
-        lineTo: () => {},
-        strokeRect: () => {},
-        setLineDash: () => {},
-        ellipse: () => {},
-        closePath: () => {},
-        translate: () => {},
-        rotate: () => {}
-      }),
-      style: {},
-      appendChild: () => {},
-      addEventListener: () => {}
-    }),
+    getElementById: (id) => mockContainers.get(id) || null,
+    createElement: (tag) => makeMockEl(tag),
+    createElementNS: (_ns, tag) => makeMockEl(tag),
     documentElement: {
       style: {},
       getAttribute: () => null
@@ -74,6 +89,7 @@ import {
   applyCellularBugPreset,
   randomizeCellularBug,
   injectGlider,
+  initCellularBug,
   activateCellularBugModel,
   deactivateCellularBugModel
 } from "../js/cellular_bug.js";
@@ -280,5 +296,12 @@ test("randomizeCellularBug updates parameters and registers as model randomizer"
   assert.ok(BUG_MODES.some((m) => m.id === state.cbugBugMode));
 
   deactivateCellularBugModel();
+});
+
+test("initCellularBug mounts DOM controls and dropdowns without error", () => {
+  const container = makeMockEl("div");
+  mockContainers.set("model-cellular_bug", container);
+  initCellularBug();
+  assert.ok(container.children.length > 0, "initCellularBug should populate model container");
 });
 

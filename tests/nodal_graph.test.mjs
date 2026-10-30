@@ -6,35 +6,51 @@ import assert from "node:assert/strict";
 if (typeof window === "undefined") {
   globalThis.window = {
     AudioContext: class {},
-    webkitAudioContext: class {}
+    webkitAudioContext: class {},
+    addEventListener: () => {}
   };
 }
 if (typeof globalThis.requestAnimationFrame === "undefined") {
   globalThis.requestAnimationFrame = () => 0;
   globalThis.cancelAnimationFrame = () => {};
 }
+function makeMockEl(tag = "div") {
+  const children = [];
+  return {
+    tagName: tag.toUpperCase(),
+    className: "",
+    style: {},
+    dataset: {},
+    children,
+    classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false },
+    setAttribute: () => {},
+    getAttribute: () => null,
+    appendChild: (c) => { children.push(c); return c; },
+    append: (...cs) => { children.push(...cs); },
+    addEventListener: () => {},
+    getBoundingClientRect: () => ({ width: 440, height: 440, left: 0, top: 0 }),
+    getContext: () => ({
+      fillRect: () => {},
+      beginPath: () => {},
+      arc: () => {},
+      fill: () => {},
+      stroke: () => {},
+      fillText: () => {},
+      save: () => {},
+      restore: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      strokeRect: () => {},
+      closePath: () => {}
+    })
+  };
+}
+const mockContainers = new Map();
 if (typeof document === "undefined") {
   globalThis.document = {
-    getElementById: () => null,
-    createElement: () => ({
-      getContext: () => ({
-        fillRect: () => {},
-        beginPath: () => {},
-        arc: () => {},
-        fill: () => {},
-        stroke: () => {},
-        fillText: () => {},
-        save: () => {},
-        restore: () => {},
-        moveTo: () => {},
-        lineTo: () => {},
-        strokeRect: () => {},
-        closePath: () => {}
-      }),
-      style: {},
-      appendChild: () => {},
-      addEventListener: () => {}
-    }),
+    getElementById: (id) => mockContainers.get(id) || null,
+    createElement: (tag) => makeMockEl(tag),
+    createElementNS: (_ns, tag) => makeMockEl(tag),
     documentElement: {
       style: {},
       getAttribute: () => null
@@ -228,5 +244,12 @@ test("randomizeNodalGraph updates parameters and registers as model randomizer",
 
   deactivateNodalGraphModel();
   assert.equal(getCurrentModelRandomizer(), null);
+});
+
+test("initNodalGraph mounts DOM controls without error", () => {
+  const container = makeMockEl("div");
+  mockContainers.set("model-nodal_graph", container);
+  initNodalGraph();
+  assert.ok(container.children.length > 0, "initNodalGraph should populate model container");
 });
 

@@ -884,17 +884,14 @@ let ctrlGate = null;
 let notesSection = null;
 
 function syncControlsFromState() {
-  if (ctrlCaRule) ctrlCaRule.value = state.cbugCaRule ?? "conway";
-  if (ctrlBugMode) ctrlBugMode.value = state.cbugBugMode ?? "langton";
-  if (ctrlTriggerMode) ctrlTriggerMode.value = state.cbugTriggerMode ?? "on_active";
-  if (ctrlBugs) ctrlBugs.value = state.cbugBugs ?? 4;
-  if (ctrlCaRate) ctrlCaRate.value = state.cbugCaRate ?? 2;
-  if (ctrlSpeed) ctrlSpeed.value = state.cbugSpeed ?? 1.0;
-  if (ctrlMutation) ctrlMutation.value = state.cbugMutation ?? 0;
-  if (ctrlGate) ctrlGate.value = state.cbugGate ?? 70;
-  if (notesSection && typeof notesSection.sync === "function") {
-    notesSection.sync();
-  }
+  if (ctrlCaRule?.setValue) ctrlCaRule.setValue(state.cbugCaRule ?? "conway", false);
+  if (ctrlBugMode?.setValue) ctrlBugMode.setValue(state.cbugBugMode ?? "langton", false);
+  if (ctrlTriggerMode?.setValue) ctrlTriggerMode.setValue(state.cbugTriggerMode ?? "on_active", false);
+  if (ctrlBugs?.setValue) ctrlBugs.setValue(state.cbugBugs ?? 4, false);
+  if (ctrlCaRate?.setValue) ctrlCaRate.setValue(state.cbugCaRate ?? 2, false);
+  if (ctrlSpeed?.setValue) ctrlSpeed.setValue(state.cbugSpeed ?? 1.0, false);
+  if (ctrlMutation?.setValue) ctrlMutation.setValue(state.cbugMutation ?? 0, false);
+  if (ctrlGate?.setValue) ctrlGate.setValue(state.cbugGate ?? 70, false);
 }
 
 /**
@@ -948,10 +945,7 @@ export function initCellularBug() {
   topBar.style.justifyContent = "space-between";
   topBar.style.alignItems = "center";
 
-  const btnRun = actionBtn("Run", toggleCellularBug, {
-    tip: "Start/Stop autonomous Cellular + Bug simulation",
-    accent: true
-  });
+  const btnRun = actionBtn("Run", toggleCellularBug, "Start/Stop autonomous Cellular + Bug simulation");
 
   hudElement = document.createElement("div");
   hudElement.className = "hud-readout";
@@ -1009,22 +1003,22 @@ export function initCellularBug() {
   actionRow.appendChild(actionBtn("Clear Grid", () => {
     gridState.fill(0);
     doGenerate(true);
-  }, { tip: "Clear all cellular automata cells" }));
+  }, "Clear all cellular automata cells"));
 
   actionRow.appendChild(actionBtn("Rand Soup", () => {
     initCellularBugGrid(0.16);
     doGenerate(true);
-  }, { tip: "Seed random initial cellular soup" }));
+  }, "Seed random initial cellular soup"));
 
   actionRow.appendChild(actionBtn("Add Glider", () => {
     injectGlider(Math.floor(Math.random() * 26), Math.floor(Math.random() * 26));
     doGenerate(true);
-  }, { tip: "Inject a live Conway/HighLife glider into the grid" }));
+  }, "Inject a live Conway/HighLife glider into the grid"));
 
   actionRow.appendChild(actionBtn("Step CA", () => {
     stepCellularGrid(state.cbugCaRule || "conway");
     doGenerate(true);
-  }, { tip: "Manually advance the cellular automaton by 1 generation" }));
+  }, "Manually advance the cellular automaton by 1 generation"));
 
   visualizerCard.appendChild(actionRow);
   layout.appendChild(visualizerCard);
@@ -1038,13 +1032,14 @@ export function initCellularBug() {
   controlsCard.style.gap = "12px";
 
   // Preset Selector
-  ctrlPreset = dropdown(
-    "Preset",
-    CELLULAR_BUG_PRESETS.map((p) => ({ value: p.id, label: p.name })),
-    (val) => applyCellularBugPreset(val),
-    { value: "langton_highway", tip: "Curated 2D Cellular + Bug musical regimes" }
-  );
-  controlsCard.appendChild(ctrlPreset.el);
+  ctrlPreset = dropdown({
+    label: "Preset",
+    options: CELLULAR_BUG_PRESETS.map((p) => ({ value: p.id, label: p.name })),
+    value: "langton_highway",
+    onInput: (val) => applyCellularBugPreset(val),
+    tip: "Curated 2D Cellular + Bug musical regimes"
+  });
+  controlsCard.appendChild(ctrlPreset);
 
   // Rules & Automata Settings
   const ruleGrid = document.createElement("div");
@@ -1052,37 +1047,41 @@ export function initCellularBug() {
   ruleGrid.style.gridTemplateColumns = "1fr 1fr";
   ruleGrid.style.gap = "8px";
 
-  ctrlCaRule = dropdown(
-    "CA Rule",
-    CA_RULES.map((r) => ({ value: r.id, label: r.name })),
-    (val) => { state.cbugCaRule = val; doGenerate(true); },
-    { value: state.cbugCaRule || "conway", tip: "2D Cellular Automaton evolution rule" }
-  );
-  ruleGrid.appendChild(ctrlCaRule.el);
+  ctrlCaRule = dropdown({
+    label: "CA Rule",
+    options: CA_RULES.map((r) => ({ value: r.id, label: r.name })),
+    value: state.cbugCaRule || "conway",
+    onInput: (val) => { state.cbugCaRule = val; doGenerate(true); },
+    tip: "2D Cellular Automaton evolution rule"
+  });
+  ruleGrid.appendChild(ctrlCaRule);
 
-  ctrlBugMode = dropdown(
-    "Bug Rule",
-    BUG_MODES.map((m) => ({ value: m.id, label: m.name })),
-    (val) => { state.cbugBugMode = val; doGenerate(true); },
-    { value: state.cbugBugMode || "langton", tip: "Turmite / Ant behavioral kinematic rule" }
-  );
-  ruleGrid.appendChild(ctrlBugMode.el);
+  ctrlBugMode = dropdown({
+    label: "Bug Rule",
+    options: BUG_MODES.map((m) => ({ value: m.id, label: m.name })),
+    value: state.cbugBugMode || "langton",
+    onInput: (val) => { state.cbugBugMode = val; doGenerate(true); },
+    tip: "Turmite / Ant behavioral kinematic rule"
+  });
+  ruleGrid.appendChild(ctrlBugMode);
 
-  ctrlTriggerMode = dropdown(
-    "Trigger",
-    TRIGGER_MODES.map((t) => ({ value: t.id, label: t.name })),
-    (val) => { state.cbugTriggerMode = val; doGenerate(true); },
-    { value: state.cbugTriggerMode || "on_active", tip: "Condition for dispatching scale notes" }
-  );
-  ruleGrid.appendChild(ctrlTriggerMode.el);
+  ctrlTriggerMode = dropdown({
+    label: "Trigger",
+    options: TRIGGER_MODES.map((t) => ({ value: t.id, label: t.name })),
+    value: state.cbugTriggerMode || "on_active",
+    onInput: (val) => { state.cbugTriggerMode = val; doGenerate(true); },
+    tip: "Condition for dispatching scale notes"
+  });
+  ruleGrid.appendChild(ctrlTriggerMode);
 
-  ctrlBugs = dropdown(
-    "Bugs",
-    [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: n, label: `${n} Bug${n > 1 ? "s" : ""}` })),
-    (val) => { state.cbugBugs = Number(val); doGenerate(true); },
-    { value: state.cbugBugs || 4, tip: "Number of autonomous Turmite voices (1 to 8)" }
-  );
-  ruleGrid.appendChild(ctrlBugs.el);
+  ctrlBugs = dropdown({
+    label: "Bugs",
+    options: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ value: n, label: `${n} Bug${n > 1 ? "s" : ""}` })),
+    value: state.cbugBugs || 4,
+    onInput: (val) => { state.cbugBugs = Number(val); doGenerate(true); },
+    tip: "Number of autonomous Turmite voices (1 to 8)"
+  });
+  ruleGrid.appendChild(ctrlBugs);
   controlsCard.appendChild(ruleGrid);
 
   // Knobs & Sliders
@@ -1091,35 +1090,54 @@ export function initCellularBug() {
   knobRow.style.gridTemplateColumns = "1fr 1fr 1fr 1fr";
   knobRow.style.gap = "8px";
 
-  ctrlCaRate = knob("RATE", 1, 4, 1, state.cbugCaRate || 2, (val) => {
-    state.cbugCaRate = Math.round(val);
-  }, { tip: "CA grid evolution rate divider (1 = every tick, 4 = every 4th tick)" });
-  knobRow.appendChild(ctrlCaRate.el);
-
-  ctrlSpeed = knob("SPD", 0.25, 4.0, 0.05, state.cbugSpeed || 1.0, (val) => {
-    state.cbugSpeed = val;
-  }, { tip: "Simulation clock speed multiplier" });
-  knobRow.appendChild(ctrlSpeed.el);
-
-  ctrlMutation = knob("MUT", 0, 100, 1, state.cbugMutation || 0, (val) => {
-    state.cbugMutation = val;
-  }, { tip: "Stochastic bug direction flutter / mutation probability (%)" });
-  knobRow.appendChild(ctrlMutation.el);
-
-  ctrlGate = knob("GATE", 10, 100, 5, state.cbugGate || 70, (val) => {
-    state.cbugGate = val;
-  }, { tip: "Note gate duration (% of step interval)" });
-  knobRow.appendChild(ctrlGate.el);
-  controlsCard.appendChild(knobRow);
-
-  // Scale & Polyphony Notes Section
-  import("./scale.js").then(({ createNotesSection }) => {
-    notesSection = createNotesSection();
-    if (notesSection && notesSection.sectEl) {
-      notesSection.sectEl.style.marginTop = "8px";
-      controlsCard.appendChild(notesSection.sectEl);
-    }
+  ctrlCaRate = knob({
+    label: "RATE",
+    min: 1,
+    max: 4,
+    step: 1,
+    value: state.cbugCaRate || 2,
+    def: 2,
+    onInput: (val) => { state.cbugCaRate = Math.round(val); },
+    tip: "CA grid evolution rate divider (1 = every tick, 4 = every 4th tick)"
   });
+  knobRow.appendChild(ctrlCaRate);
+
+  ctrlSpeed = knob({
+    label: "SPD",
+    min: 0.25,
+    max: 4.0,
+    step: 0.05,
+    value: state.cbugSpeed || 1.0,
+    def: 1.0,
+    onInput: (val) => { state.cbugSpeed = val; },
+    tip: "Simulation clock speed multiplier"
+  });
+  knobRow.appendChild(ctrlSpeed);
+
+  ctrlMutation = knob({
+    label: "MUT",
+    min: 0,
+    max: 100,
+    step: 1,
+    value: state.cbugMutation || 0,
+    def: 0,
+    onInput: (val) => { state.cbugMutation = val; },
+    tip: "Stochastic bug direction flutter / mutation probability (%)"
+  });
+  knobRow.appendChild(ctrlMutation);
+
+  ctrlGate = knob({
+    label: "GATE",
+    min: 10,
+    max: 100,
+    step: 5,
+    value: state.cbugGate || 70,
+    def: 70,
+    onInput: (val) => { state.cbugGate = val; },
+    tip: "Note gate duration (% of step interval)"
+  });
+  knobRow.appendChild(ctrlGate);
+  controlsCard.appendChild(knobRow);
 
   layout.appendChild(controlsCard);
   container.appendChild(layout);
