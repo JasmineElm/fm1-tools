@@ -38,12 +38,30 @@ import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { midiName, SCALES } from "./generator.js";
 import { registerModel } from "./snapshot.js";
+import { getThemePalette } from "./themes.js";
 import { selectPolyVoices, playVoice, releasePolyVoices, getActiveVoiceCount } from "./poly.js";
 import * as audio from "./audio.js";
 
 // ---- Constants & Pre-allocated Buffers (Zero GC Churn) ----
 export const MAX_VOICES = 8;          // Strict FM-1 8 hardware voices limit
 export const NUM_GAS_MOLECULES = 48;  // Thermal bath T1 animated particles
+
+export const PAWL_COLORS = [
+  "#00f0ff", // Pawl 1: Cyan
+  "#ff007f", // Pawl 2: Pink
+  "#ffb700", // Pawl 3: Amber
+  "#39ff14", // Pawl 4: Lime
+  "#a855f7", // Pawl 5: Violet
+  "#38bdf8", // Pawl 6: Sky
+  "#f43f5e", // Pawl 7: Rose
+  "#eab308"  // Pawl 8: Gold
+];
+
+// Harmonic scale-degree offsets per pawl (root, 3rd, 5th, 7th, 2nd, 4th, 6th, octave)
+export const PAWL_DEGREE_OFFSETS = new Int8Array([0, 2, 4, 6, 1, 3, 5, 7]);
+
+// Pre-allocated Vernier tooth index tracker per pawl (Zero GC Churn)
+const prevPawlTooth = new Int32Array(MAX_VOICES);
 
 // Pre-allocated gas particle kinematics (bath T1 paddle chamber)
 export const gasX = new Float32Array(NUM_GAS_MOLECULES);
@@ -219,7 +237,11 @@ export function initRatchetPreset(presetId) {
  * Clear polyphonic chime voice states.
  */
 function resetChimes() {
+  const teeth = Math.max(8, Math.min(24, Math.round(state.ratchetTeeth ?? 12)));
+  const oct = state.ratchetOctave ?? 0;
+  prevPawlTooth.fill(0);
   for (let i = 0; i < MAX_VOICES; i++) {
+    pawlChimes[i].note = getToothNote(0, teeth, oct, i);
     pawlChimes[i].active = false;
     pawlChimes[i].velocity = 0;
     pawlChimes[i].pulseAnim = 0;
@@ -280,17 +302,25 @@ export function computePawlTorque(th, omegaVal, teeth, asym, T2, barrier) {
 }
 
 /**
- * Maps a tooth index to an active scale MIDI pitch.
+ * Maps a tooth index and pawl chime index to a scale-quantized MIDI pitch.
+ * Uses direct scale-degree indexing across state.pitchSpan plus harmonic pawl offsets
+ * so adjacent teeth and distinct pawls always trigger musical intervals.
  */
-export function getToothNote(idx, numTeeth, octaveShift = 0) {
+export function getToothNote(idx, numTeeth = 12, octaveShift = 0, pawlId = 0) {
   const root = getRootMidi();
   const intervals = getActiveScaleIntervals();
+  const scaleLen = (intervals && intervals.length) ? intervals.length : 1;
   const octOffset = computeOctaveShift(octaveShift);
+  const spanOctaves = Math.max(1, Math.min(4, Math.round(Number(state.pitchSpan) || 2)));
+  const totalDegrees = Math.max(1, scaleLen * spanOctaves);
 
-  const toothMod = ((idx % numTeeth) + numTeeth) % numTeeth;
-  const normalized = toothMod / numTeeth;
-  const note = mapNormalizedToNote(normalized, intervals, root, 24);
-  return Math.max(12, Math.min(127, note + octOffset));
+  const pIdx = ((pawlId % MAX_VOICES) + MAX_VOICES) % MAX_VOICES;
+  const pawlDegreeOffset = PAWL_DEGREE_OFFSETS[pIdx];
+  const deg = (((Math.round(idx) + pawlDegreeOffset) % totalDegrees) + totalDegrees) % totalDegrees;
+  const oct = Math.floor(deg / scaleLen);
+  const stepInOct = deg % scaleLen;
+  const note = root + oct * 12 + intervals[stepInOct] + octOffset;
+  return Math.max(12, Math.min(127, Math.round(note)));
 }
 
 /**
@@ -328,7 +358,7 @@ export function stepSimulation(dt = 0.016) {
   }
   theta += omega * dt;
 
-  // 6. Tooth crossing detection
+  // 6. Multi-Pawl Vernier Tooth Crossing Detection (8 staggered pawls around the wheel)
   const lambda = (Math.PI * 2) / teeth;
   const currentTooth = Math.floor(theta / lambda);
 
@@ -336,12 +366,10 @@ export function stepSimulation(dt = 0.016) {
   let isReverse = false;
 
   if (currentTooth > prevToothIndex) {
-    // Forward click
     forwardClicksCount++;
     clicked = true;
     isReverse = false;
   } else if (currentTooth < prevToothIndex) {
-    // Reverse slip
     reverseClicksCount++;
     clicked = true;
     isReverse = true;
@@ -350,25 +378,57 @@ export function stepSimulation(dt = 0.016) {
   prevToothIndex = currentTooth;
   toothIndex = currentTooth;
 
-  // 7. Trigger audio note upon tooth click
-  if (clicked) {
-    const rawNote = getToothNote(toothIndex, teeth, state.ratchetOctave ?? 0);
-    const vel = Math.max(45, Math.min(127, Math.round(50 + Math.abs(omega) * 12)));
+  // Evaluate Vernier sub-tooth crossings across all 8 radial pawls
+  const octShift = state.ratchetOctave ?? 0;
+  const baseVel = Math.max(45, Math.min(127, Math.round(52 + Math.abs(omega) * 10)));
+  const candidates = [];
 
-    // Allocate voice in polyphonic pawl chime ring
-    const voiceSlot = Math.abs(currentTooth) % MAX_VOICES;
-    const chime = pawlChimes[voiceSlot];
-    chime.note = rawNote;
-    chime.velocity = vel;
-    chime.active = true;
-    chime.pulseAnim = 1.0;
-    chime.isReverse = isReverse;
+  for (let p = 0; p < MAX_VOICES; p++) {
+    // Vernier phase offset: each pawl p is staggered by p/8 of a tooth wavelength
+    const vernierPhase = theta + (p * lambda) / MAX_VOICES;
+    const pawlTooth = Math.floor(vernierPhase / lambda);
+    const prevP = prevPawlTooth[p];
 
-    // Dispatch through shared polyphonic voice manager
-    const candidates = [{ id: voiceSlot, note: rawNote, velocity: vel }];
-    const chosen = selectPolyVoices(candidates, state.polyphony ?? 8, state.polyStrategy ?? "highest");
+    if (pawlTooth !== prevP) {
+      const pawlRev = pawlTooth < prevP;
+      prevPawlTooth[p] = pawlTooth;
+      clicked = true;
+      isReverse = pawlRev;
+
+      // Reverse thermal slips shimmer in the upper octave (+1 offset)
+      const effOct = pawlRev ? octShift + 1 : octShift;
+      const note = getToothNote(pawlTooth, teeth, effOct, p);
+      const vel = Math.max(40, Math.min(127, baseVel - (p % 3) * 6));
+      candidates.push({ id: p, note, velocity: vel, isReverse: pawlRev });
+    }
+  }
+
+  // 7. Sympathetic harmonic pawl resonance on high-momentum tooth clicks
+  if (candidates.length > 0) {
+    const primary = candidates[0];
+    const maxPoly = Math.max(1, Math.min(MAX_VOICES, Number(state.polyphony) || 4));
+    // High angular velocity excites sympathetic harmonic pawls (3rds/5ths around the gear)
+    const extraVoices = Math.min(maxPoly - candidates.length, Math.floor(Math.abs(omega) / 4.5));
+    for (let k = 1; k <= extraVoices; k++) {
+      const sympPawl = (primary.id + k * 2) % MAX_VOICES;
+      if (!candidates.some((c) => c.id === sympPawl)) {
+        const sympNote = getToothNote(toothIndex + k, teeth, octShift, sympPawl);
+        const sympVel = Math.max(40, Math.min(127, Math.round(primary.velocity * (0.88 - k * 0.08))));
+        candidates.push({ id: sympPawl, note: sympNote, velocity: sympVel, isReverse: primary.isReverse });
+      }
+    }
+
+    // Dispatch through shared polyphonic voice manager (strict <= 8 voices)
+    const chosen = selectPolyVoices(candidates, maxPoly, state.polyStrategy ?? "extrema");
+    const gateMs = Math.max(70, Math.min(280, Math.round(180 / (1 + Math.abs(omega) * 0.08))));
     for (const c of chosen) {
-      playVoice(c.id, c.note, c.velocity, 120);
+      const chime = pawlChimes[c.id];
+      chime.note = c.note;
+      chime.velocity = c.velocity;
+      chime.active = true;
+      chime.pulseAnim = 1.0;
+      chime.isReverse = c.isReverse;
+      playVoice(c.id, c.note, c.velocity, gateMs);
     }
   }
 
@@ -422,6 +482,9 @@ export function generateBrownianRatchetBank(s) {
   const T2 = s?.ratchetT2 ?? 0.5;
   const asym = s?.ratchetAsym ?? 0.25;
 
+  const maxPoly = Math.max(1, Math.min(MAX_VOICES, Number(s?.polyphony ?? state.polyphony) || 4));
+  const polyStrat = s?.polyStrategy ?? state.polyStrategy ?? "extrema";
+
   for (let i = 0; i < seqLen; i++) {
     // Forward ratchet progression probability based on T1 vs T2
     const forwardProb = Math.max(0.2, Math.min(0.95, (T1 / (T1 + T2 + 0.1))));
@@ -431,14 +494,26 @@ export function generateBrownianRatchetBank(s) {
       simTooth++;
     }
 
-    const note = getToothNote(simTooth, teeth, octave);
+    const activePawl = (simTooth + i) % MAX_VOICES;
     const vel = Math.round(60 + ((i % 4 === 0) ? 35 : 15));
     const isGateOn = advance || (i % 2 === 0);
 
+    // Build multi-pawl harmonic candidates on accented/advancing steps
+    const stepCandidates = [];
+    const numChimes = (advance && (i % 4 === 0)) ? Math.min(maxPoly, 3) : (advance ? Math.min(maxPoly, 2) : 1);
+    for (let k = 0; k < numChimes; k++) {
+      const pIdx = (activePawl + k * 2) % MAX_VOICES;
+      const n = getToothNote(simTooth + k, teeth, octave, pIdx);
+      const v = Math.max(40, Math.min(127, vel - k * 10));
+      stepCandidates.push({ note: n, vel: v });
+    }
+    const chosenNotes = selectPolyVoices(stepCandidates, maxPoly, polyStrat);
+    const primaryNote = chosenNotes[0]?.note ?? getToothNote(simTooth, teeth, octave, activePawl);
+
     steps.push({
-      note,
+      note: primaryNote,
       vel,
-      notes: isGateOn ? [{ note, vel }] : [],
+      notes: isGateOn ? chosenNotes : [],
       gate: isGateOn ? 0.75 : 0.0,
       skip: false
     });
@@ -462,17 +537,18 @@ export function renderCanvas() {
   const h = canvas.height;
   if (!w || !h) return;
 
-  const cs = getComputedStyle(document.documentElement);
-  const colorBg = cs.getPropertyValue("--panel").trim() || "#18191f";
-  const colorPanel2 = cs.getPropertyValue("--panel2").trim() || "#22252e";
-  const colorLine = cs.getPropertyValue("--line").trim() || "#333846";
-  const colorLineFocus = cs.getPropertyValue("--line-focus").trim() || "#4b5264";
-  const colorFg = cs.getPropertyValue("--fg").trim() || "#f3f4f6";
-  const colorDim = cs.getPropertyValue("--dim").trim() || "#9ca3af";
-  const colorAccent = cs.getPropertyValue("--accent").trim() || "#3b82f6";
-  const colorAccent2 = cs.getPropertyValue("--accent2").trim() || "#60a5fa";
-  const colorOk = cs.getPropertyValue("--ok").trim() || "#22c55e";
-  const colorErr = cs.getPropertyValue("--err").trim() || "#ef4444";
+  const {
+    panel: colorBg,
+    panel2: colorPanel2,
+    line: colorLine,
+    lineFocus: colorLineFocus,
+    fg: colorFg,
+    dim: colorDim,
+    accent: colorAccent,
+    accent2: colorAccent2,
+    ok: colorOk,
+    err: colorErr
+  } = getThemePalette();
 
   // Flat canvas clear
   ctx.fillStyle = colorBg;
@@ -573,6 +649,28 @@ export function renderCanvas() {
   ctx.fill();
 
   ctx.restore();
+
+  // 2b. Draw 8 Radial Vernier Pawl Chime Sensors Around Cogwheel Rim
+  for (let p = 0; p < MAX_VOICES; p++) {
+    const ch = pawlChimes[p];
+    const isLit = ch.pulseAnim > 0.05;
+    const pCol = PAWL_COLORS[p % PAWL_COLORS.length];
+    const ang = -Math.PI * 0.5 + (p / MAX_VOICES) * Math.PI * 2;
+    const rInner = wheelRadius + 3;
+    const rOuter = wheelRadius + (isLit ? 14 : 9);
+
+    ctx.strokeStyle = isLit ? pCol : colorLineFocus;
+    ctx.lineWidth = isLit ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ang) * rInner, cy + Math.sin(ang) * rInner);
+    ctx.lineTo(cx + Math.cos(ang) * rOuter, cy + Math.sin(ang) * rOuter);
+    ctx.stroke();
+
+    ctx.fillStyle = isLit ? pCol : colorPanel2;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(ang) * (rOuter + 2), cy + Math.sin(ang) * (rOuter + 2), isLit ? 3.5 : 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // 3. Draw Spring-Loaded Pawl & Bath T2 (Top Right)
   const pawlPivotX = cx + wheelRadius * 0.55;
@@ -676,18 +774,19 @@ export function renderCanvas() {
     const ch = pawlChimes[i];
     const bx = 10 + i * chimeSlotW;
     const isLit = ch.pulseAnim > 0.05;
+    const pCol = PAWL_COLORS[i % PAWL_COLORS.length];
 
-    ctx.fillStyle = isLit ? (ch.isReverse ? colorErr : colorOk) : colorPanel2;
+    ctx.fillStyle = isLit ? (ch.isReverse ? colorErr : pCol) : colorPanel2;
     ctx.fillRect(bx + 2, chimeY, chimeSlotW - 4, 16);
 
-    ctx.strokeStyle = isLit ? colorFg : colorLine;
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = isLit ? colorFg : pCol;
+    ctx.lineWidth = isLit ? 1.5 : 1;
     ctx.strokeRect(bx + 2, chimeY, chimeSlotW - 4, 16);
 
-    ctx.fillStyle = isLit ? "#ffffff" : colorDim;
-    ctx.font = "9px monospace";
+    ctx.fillStyle = isLit ? "#111215" : colorFg;
+    ctx.font = "bold 9px monospace";
     ctx.textAlign = "center";
-    const noteTxt = midiName(ch.note);
+    const noteTxt = `P${i + 1}:${midiName(ch.note)}`;
     ctx.fillText(noteTxt, bx + chimeSlotW * 0.5, chimeY + 11);
   }
 

@@ -237,3 +237,29 @@ test("randomizeBrownianRatchet updates parameters and registers as model randomi
   assert.equal(getCurrentModelRandomizer(), null);
 });
 
+test("Multi-pawl Vernier chimes produce varied harmonic pitches across pawls and adjacent teeth", () => {
+  initRatchetPreset("thermal_rectifier");
+
+  // Adjacent teeth must produce distinct pitches (no quantization collision)
+  const n0 = getToothNote(0, 12, 0, 0);
+  const n1 = getToothNote(1, 12, 0, 0);
+  assert.notEqual(n0, n1, "Adjacent teeth should trigger distinct scale pitches");
+
+  // The 8 pawls on the same tooth should span multiple distinct harmonic scale notes
+  const pawlNotes = new Set();
+  for (let p = 0; p < MAX_VOICES; p++) {
+    pawlNotes.add(getToothNote(0, 12, 0, p));
+  }
+  assert.ok(pawlNotes.size >= 4, "8 pawls should map to at least 4 distinct harmonic scale pitches");
+
+  // Running simulation excites multiple pawl chimes with varied notes
+  const triggeredNotes = new Set();
+  for (let i = 0; i < 120; i++) {
+    stepSimulation(0.02);
+    for (const ch of pawlChimes) {
+      if (ch.active) triggeredNotes.add(ch.note);
+    }
+  }
+  assert.ok(triggeredNotes.size > 1, "Simulation should trigger multiple distinct pawl chime pitches");
+});
+
