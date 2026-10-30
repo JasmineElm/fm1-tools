@@ -961,11 +961,6 @@ kbd {
   margin: 0;
   justify-content: flex-start;
 }
-.global-presets .preset-slots {
-  display: flex;
-  gap: 3px;
-  align-items: center;
-}
 .global-controls {
   display: flex;
   align-items: flex-start;
@@ -990,9 +985,8 @@ kbd {
   width: 100%;
 }
 
-/* local preset slots and utility actions row */
+/* utility actions row */
 .presets { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; justify-content: center; margin: 0 0 8px; }
-.presets .preset-slots { display: flex; gap: 4px; align-items: center; }
 .presets button {
   font: inherit; font-size: 9.5px; letter-spacing: .4px; text-transform: uppercase;
   color: var(--fg); background: var(--panel); border: 1px solid var(--line);
@@ -1001,8 +995,6 @@ kbd {
 }
 .presets button:hover { color: var(--fg); border-color: var(--dim); background: var(--line); }
 .presets button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.presets button.armed { color: var(--accent); border-color: var(--accent); outline: 2px solid var(--accent); }
-.presets .pslot.filled { color: var(--accent); border-color: var(--accent); font-weight: 700; }
 .transport button#audition.playing { color: #ffffff; background: var(--accent); border-color: var(--accent); }
 .transport button#safe-mode {
   font-weight: 600;

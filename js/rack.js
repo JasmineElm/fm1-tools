@@ -11,7 +11,7 @@ import { knob, dropdown, fader, seedControl, toggleBtn, actionBtn } from "./cont
 import { renderBuffer, applyLocks, refreshLockCount, fitSteps, buildEditor, onSelectSlot } from "./grid.js?v=1";
 import { buildAudioControls, toggleLive, stopLive, playOnce, isLive, onPlayStartSync } from "./player.js?v=1";
 import { syncDeviceTempo, scheduleTempoProbe, initMidi } from "./device.js";
-import { exportState, importState, renderPresets, onSyncRack } from "./storage.js";
+import { exportState, importState, onSyncRack } from "./storage.js";
 import { buildTheme } from "./themes.js";
 import { initScope, renderScope } from "./scope.js";
 import { initModes, getActiveModel } from "./modes.js";
@@ -522,8 +522,6 @@ function buildTransport() {
       });
     }
   }
-
-  renderPresets();
 }
 
 // Global keyboard shortcuts
@@ -627,7 +625,6 @@ initMidi();
 initModes({
   onEnterModel: (modelId) => {
     try { stopLive(); } catch (_) {}
-    renderPresets();
     if (mene311NotesSection) mene311NotesSection.sync();
     if (mene311HumaniseSection) mene311HumaniseSection.sync();
     if (mene311VelocitySection) mene311VelocitySection.sync();
