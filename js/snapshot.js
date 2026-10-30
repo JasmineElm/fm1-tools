@@ -80,6 +80,7 @@ const PREFIX = {
   shift_register_2d: /^sr2d[A-Z]/,
   cellular_bug: /^cbug[A-Z]/,
   boolean_euclidean: /^beuclid[A-Z]/,
+  counterpoint: /^cp[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

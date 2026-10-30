@@ -97,8 +97,10 @@ import {
   getLeafAssessedPeriod,
   updateLeafPitch,
   getLeafNote,
+  getLeaf,
   getCannon,
   setCannonPosition,
+  randomizeHanenbow,
   generateHanenbowBank
 } from "../js/hanenbow.js";
 import { getModelDef } from "../js/snapshot.js";
@@ -259,5 +261,34 @@ test("pitch increments on leaf hits and drops when hit count falls below 0.5 of 
   updateLeafPitch(1, false, t0 + 25.0);
   assert.equal(getLeafCycleCount(1), 0, "pitch clamped at base pitch");
 });
+
+test("randomizeHanenbow randomizes launcher placement/angle and leaf placements", () => {
+  const cannonPositions = new Set();
+  const cannonAngles = new Set();
+  const leaf0Positions = new Set();
+  const leaf1Positions = new Set();
+
+  for (let run = 0; run < 5; run++) {
+    randomizeHanenbow();
+    const c = getCannon();
+    assert.ok(c.x >= CAN_MIN_X && c.x <= CAN_MAX_X, "cannon x within bounds");
+    assert.ok(c.y >= CAN_MIN_Y && c.y <= CAN_MAX_Y, "cannon y within bounds");
+    cannonPositions.add(`${c.x.toFixed(2)},${c.y.toFixed(2)}`);
+    cannonAngles.add(c.angle.toFixed(3));
+
+    const l0 = getLeaf(0);
+    const l1 = getLeaf(1);
+    assert.ok(l0 && l0.len >= MIN_LEAF_LEN && l0.len <= MAX_LEAF_LEN, "leaf 0 length within bounds");
+    assert.ok(l1 && l1.len >= MIN_LEAF_LEN && l1.len <= MAX_LEAF_LEN, "leaf 1 length within bounds");
+    leaf0Positions.add(`${l0.x.toFixed(2)},${l0.y.toFixed(2)},${l0.angle.toFixed(3)}`);
+    leaf1Positions.add(`${l1.x.toFixed(2)},${l1.y.toFixed(2)},${l1.angle.toFixed(3)}`);
+  }
+
+  assert.ok(cannonPositions.size > 1, "launcher position should vary across randomizations");
+  assert.ok(cannonAngles.size > 1, "launcher angle should vary across randomizations");
+  assert.ok(leaf0Positions.size > 1, "leaf 0 placement should vary across randomizations");
+  assert.ok(leaf1Positions.size > 1, "leaf 1 placement should vary across randomizations");
+});
+
 
 

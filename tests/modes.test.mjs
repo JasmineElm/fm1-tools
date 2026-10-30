@@ -85,8 +85,8 @@ test("Each of the 8 tags is applicable to at least 3 models", () => {
   }
 });
 
-test("All 34 models are classified in MODEL_TAG_MAP with filterTags", () => {
-  assert.equal(MODELS.length, 34);
+test("All 35 models are classified in MODEL_TAG_MAP with filterTags", () => {
+  assert.equal(MODELS.length, 35);
   for (const m of MODELS) {
     const tags = MODEL_TAG_MAP[m.id];
     assert.ok(Array.isArray(tags) && tags.length > 0, `Model ${m.id} must have assigned filter tags`);
@@ -94,12 +94,12 @@ test("All 34 models are classified in MODEL_TAG_MAP with filterTags", () => {
   }
 });
 
-test("filterModelsByTags with no tags returns all 34 models", () => {
+test("filterModelsByTags with no tags returns all 35 models", () => {
   const all1 = filterModelsByTags([]);
-  assert.equal(all1.length, 34);
+  assert.equal(all1.length, 35);
 
   const all2 = filterModelsByTags();
-  assert.equal(all2.length, 34);
+  assert.equal(all2.length, 35);
 });
 
 test("filterModelsByTags with single tag filters accurately", () => {
@@ -109,7 +109,7 @@ test("filterModelsByTags with single tag filters accurately", () => {
   assert.deepEqual(monoIds.sort(), ["cellular", "mene311", "rungler", "turing"].sort());
 
   const poly = filterModelsByTags(["polyphonic"]);
-  assert.equal(poly.length, 30);
+  assert.equal(poly.length, 31);
   for (const m of poly) {
     assert.ok(MODEL_TAG_MAP[m.id].includes("polyphonic"));
   }

@@ -33,10 +33,26 @@ export const POLYPHONIC_MODELS = new Set([
   "nodal_graph",
   "shift_register_2d",
   "cellular_bug",
-  "boolean_euclidean"
+  "boolean_euclidean",
+  "counterpoint"
 ]);
 
 export const MODELS = [
+  {
+    id: "counterpoint",
+    name: "Follower & Counterpoint",
+    kicker: "Koan Follow Voices · Anchor & Follower Threads · Single-Stream Counterpoint",
+    available: true,
+    desc: "Inspired by SSEYO Koan Follow voices. Merges internal virtual threads into a single polyphonic MIDI stream: Thread A (Anchor/Root) plays low-rate, long-duration foundation degrees in octaves 1–3, while Thread B (Follower/Arp) weaves fast subdivisions bounded by an interactive interval offset rule relative to the note currently held by Thread A (e.g. N_B in {N_A + 7, N_A + 12, N_A + 16, N_A + 19}).",
+    tags: ["Koan Follow", "Counterpoint", "Anchor & Follower", "Harmonic Offsets", "Single-Stream Poly", "8-Voice Polyphony"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 18h18" stroke-width="2.2" />
+      <path d="M4 10l4-4 4 4 4-5 4 3" />
+      <path d="M8 6v12M12 10v8M16 5v13" stroke-dasharray="1.5 1.5" />
+      <circle cx="8" cy="6" r="1.5" fill="currentColor" />
+      <circle cx="16" cy="5" r="1.5" fill="currentColor" />
+    </svg>`
+  },
   {
     id: "boolean_euclidean",
     name: "Boolean Euclidean Logic",
@@ -615,7 +631,8 @@ export const MODEL_TAG_MAP = {
   nodal_graph: ["polyphonic", "algorithmic", "autonomous", "stochastic"],
   shift_register_2d: ["polyphonic", "grid-based", "algorithmic"],
   cellular_bug: ["polyphonic", "grid-based", "biological", "algorithmic"],
-  boolean_euclidean: ["polyphonic", "algorithmic", "stochastic"]
+  boolean_euclidean: ["polyphonic", "algorithmic", "stochastic"],
+  counterpoint: ["polyphonic", "algorithmic", "grid-based"]
 };
 
 // Bind filter tags to each model definition
@@ -926,6 +943,9 @@ export const STEP_MODELS = new Set([
 ]);
 
 const HASH_ALIAS_MAP = {
+  "#follow": "counterpoint",
+  "#koan": "counterpoint",
+  "#follower": "counterpoint",
   "#lotka-volterra": "lotka_volterra",
   "#lv": "lotka_volterra",
   "#btw": "sandpile",

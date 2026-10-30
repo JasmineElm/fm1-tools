@@ -361,6 +361,8 @@ export function getPlanetNote(i) {
   return quantize(root + octOffset * 12 + (intervals[deg] || 0));
 }
 
+let orbitAnimTime = 0;
+
 // ---- Free-Running Real-Time Animation Loop ----
 function freeLoop(time) {
   const dt = Math.min(0.05, (time - lastFrameTime) / 1000) || 0.016;
@@ -368,6 +370,7 @@ function freeLoop(time) {
 
   // Run continuous celestial physics and trigger checks when transport is playing
   if (isOrbitalPlaying) {
+    orbitAnimTime += dt * 1000;
     stepVerlet(dt);
     checkOrbitalTriggers(dt);
   }
@@ -390,7 +393,7 @@ function freeLoop(time) {
     starPulse = 0;
   }
 
-  renderOrbitCanvas(time);
+  renderOrbitCanvas(orbitAnimTime);
   updateHud();
 
   animFrameId = requestAnimationFrame(freeLoop);

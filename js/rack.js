@@ -52,6 +52,7 @@ import { initNodalGraph, activateNodalGraphModel, deactivateNodalGraphModel } fr
 import { initShiftRegister2d, activateShiftRegister2dModel, deactivateShiftRegister2dModel } from "./shift_register_2d.js";
 import { initCellularBug, activateCellularBugModel, deactivateCellularBugModel } from "./cellular_bug.js";
 import { initBooleanEuclidean, activateBooleanEuclideanModel, deactivateBooleanEuclideanModel } from "./boolean_euclidean.js";
+import { initCounterpoint, activateCounterpointModel, deactivateCounterpointModel } from "./counterpoint.js";
 import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js";
 import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js";
 import { initRhythm, syncRhythmGrid } from "./rhythm.js";
@@ -560,6 +561,7 @@ const MODEL_LIFECYCLE = {
   shift_register_2d: { init: initShiftRegister2d, activate: activateShiftRegister2dModel, deactivate: deactivateShiftRegister2dModel, syncStepUi: true },
   cellular_bug: { init: initCellularBug, activate: activateCellularBugModel, deactivate: deactivateCellularBugModel, syncStepUi: true },
   boolean_euclidean: { init: initBooleanEuclidean, activate: activateBooleanEuclideanModel, deactivate: deactivateBooleanEuclideanModel, syncStepUi: true },
+  counterpoint: { init: initCounterpoint, activate: activateCounterpointModel, deactivate: deactivateCounterpointModel, syncStepUi: true },
   dxpatch: { init: initDxPatch, activate: activateDxPatch, deactivate: deactivateDxPatch },
   librarian: { init: initLibrarian, activate: activateLibrarian, deactivate: deactivateLibrarian }
 };

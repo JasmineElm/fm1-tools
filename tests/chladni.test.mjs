@@ -58,7 +58,7 @@ import {
   initChladni
 } from "../js/chladni.js";
 import { getModelDef } from "../js/snapshot.js";
-import { getCurrentModelRandomizer } from "../js/state.js";
+import { state, getCurrentModelRandomizer } from "../js/state.js";
 
 test("CHLADNI_PRESETS contains required 2D standing wave modal figures", () => {
   assert.equal(CHLADNI_PRESETS.length, 5);
@@ -209,8 +209,26 @@ test("initChladni creates workbench with randomize button and no redundant local
     initChladni();
     assert.ok(innerHtml.includes("chladni-rnd-btn"), "Should have local randomize button");
     assert.ok(!innerHtml.includes("chladni-play-btn"), "Should NOT have local play button replicating global transport");
+    assert.ok(!innerHtml.includes("chladni-span-ctrl"), "Should NOT have local span knob replicating notes div octave spread");
   } finally {
     globalThis.document.getElementById = origGetById;
   }
+});
+
+test("chladni getProbeNote adheres to global pitchSpan and octaveMode from notes div", () => {
+  initChladniPreset("concentric_cross");
+  state.octaveMode = "up";
+
+  state.pitchSpan = 1;
+  const notes1 = [];
+  for (let p = 0; p < MAX_PROBES; p++) notes1.push(getProbeNote(p));
+
+  state.pitchSpan = 4;
+  const notes4 = [];
+  for (let p = 0; p < MAX_PROBES; p++) notes4.push(getProbeNote(p));
+
+  const spread1 = Math.max(...notes1) - Math.min(...notes1);
+  const spread4 = Math.max(...notes4) - Math.min(...notes4);
+  assert.ok(spread4 > spread1, `Expected 4-octave spread (${spread4}) > 1-octave spread (${spread1})`);
 });
 

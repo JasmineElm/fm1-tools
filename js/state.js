@@ -244,6 +244,22 @@ export const DEFAULT = {
   sandpileRootOctave: 3,
   sandpileGateLen: 180,
   sandpileVelocity: 90,
+
+  // Follower & Counterpoint Generator parameters
+  cpPreset: "koan_fifth_tenth",
+  cpMelodyLength: 16,
+  cpAnchorDiv: 8,
+  cpChordHold: 85,
+  cpEvolution: 35,
+  cpAnchorMode: "root_fifth",
+  cpFollowMode: "contrary",
+
+  // Coupled Kuramoto Phase Synchronization parameters
+  kuramotoPreset: "near_sync",
+  kuramotoCoupling: 2.2,
+  kuramotoRepulsion: 0.5,
+  kuramotoSigma: 0.15,
+  kuramotoNoise: 0.05,
 };
 
 export const state = { ...DEFAULT };
@@ -296,9 +312,16 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Register a control under its state key; set(..., false) keeps it silent on sync
 export function R(key, el) { refs[key] = el; return el; }
 
-export const setState = (key, fn) => (v) => {
-  state[key] = fn ? fn(v) : v;
-  scheduleRegen();
+export const setState = (key, fn) => {
+  if (typeof key === "object" && key !== null) {
+    Object.assign(state, key);
+    scheduleRegen();
+    return;
+  }
+  return (v) => {
+    state[key] = fn ? fn(v) : v;
+    scheduleRegen();
+  };
 };
 
 // Regeneration hooks
@@ -313,7 +336,8 @@ export function triggerRegenHooks() {
 }
 
 let currentModelGenerator = null;
-export function setModelGenerator(fn) {
+export function setModelGenerator(fnOrId, maybeFn) {
+  const fn = typeof fnOrId === "function" ? fnOrId : maybeFn;
   currentModelGenerator = typeof fn === "function" ? fn : null;
 }
 

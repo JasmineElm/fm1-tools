@@ -1,6 +1,24 @@
 // js/model_guides.js — In-app guide descriptions and control specifications for all 29 sequencer models.
 
 export const MODEL_GUIDES = {
+  counterpoint: {
+    title: "Follower & Counterpoint",
+    kicker: "Koan Follow Voices · Anchor & Follower Threads · Single-Stream Counterpoint",
+    paragraphs: [
+      "Inspired by SSEYO Koan's 'Follow' voices, this model runs two coordinated internal threads that merge into a single polyphonic MIDI output stream: Thread A (Anchor/Root) advances at a slow clock division (/2 to /16) constrained to root/fifth foundation degrees in octaves 1–3, while Thread B (Follower/Arp) plays fast subdivisions strictly bounded by an interval offset set relative to the note currently held by Thread A (e.g. N_B in {N_A + 7, N_A + 12, N_A + 16, N_A + 19}).",
+      "Even on a single MIDI channel, the merged output sounds like a coordinated multi-part arrangement rather than unrelated chord clusters. All global Tempo, Rate, Length, Gate, Scale, Polyphony, and Groove controls directly govern the merged stream."
+    ],
+    controls: [
+      { name: "PRESET", desc: "Selects curated Anchor + Follower counterpoint configurations (Koan Anchor & 10th Follow, Fourth-Species Syncopation, Eno Generative Obligato, Quartal Interlock, Multi-Follower Hocket)." },
+      { name: "MELODY LEN", desc: "Controllable Thread B melody line length in steps (4 to 32 steps)." },
+      { name: "CHORD RATE", desc: "Steps between Thread A chord triggers: no more frequently than every quarter note (4 steps) and no less frequently than once per two bars (32 steps)." },
+      { name: "CHORD LEN", desc: "Sustained chord duration bounded between one quarter note (4 steps) and the next chord trigger." },
+      { name: "EVOLUTION", desc: "Rate at which the melody line evolves over time by replacing notes with fresh interval offsets and adding rhythmic delay echoes." },
+      { name: "THREAD A", desc: "Foundation degree constraint for Thread A chords in octaves 1–3 (Root & Fifth, Plagal I–IV–V, Pedal Root & Octave, Diatonic Bass Walk)." },
+      { name: "THREAD B", desc: "Counterpoint motion rule for Thread B across active interval offsets (Contrary Motion, Ascending Follower, Pendulum Wave, Koan Stochastic Follow)." },
+      { name: "INTERVAL MATRIX (CANVAS)", desc: "Click the top row (+0 to +24) to toggle allowed harmonic interval offsets above Thread A, or click any step column to audition the merged voices." }
+    ]
+  },
   boolean_euclidean: {
     title: "Boolean Euclidean Logic",
     kicker: "Polyrhythmic Algebra · Combinatorial Logic · Coincidence Accents",

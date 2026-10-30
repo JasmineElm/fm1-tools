@@ -245,14 +245,16 @@ export function getProbeNote(probeIdx) {
   const pr = probes[probeIdx];
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
-  const span = Math.min(4, Math.max(1, Number(state.chladniSpan ?? 2)));
+  const span = Math.min(4, Math.max(1, Number(state.pitchSpan ?? state.chladniSpan ?? 2)));
 
   const numDeg = intervals.length || 7;
   // Spatial distance from plate center controls harmonic degree
   const dist = Math.sqrt(pr.x * pr.x + pr.y * pr.y);
   const normDist = Math.min(1.0, dist / 0.5);
   const deg = Math.floor(normDist * numDeg) % numDeg;
-  const oct = Math.min(span, pr.octave);
+  const baseOct = Math.min(span, Math.floor((probeIdx / MAX_PROBES) * (span + 1)));
+  const dir = (state.octaveMode || "up").toLowerCase();
+  const oct = dir === "down" ? -baseOct : (dir === "both" ? (probeIdx % 2 === 0 ? Math.ceil(baseOct / 2) : -Math.floor(baseOct / 2)) : baseOct);
 
   const rawMidi = root + oct * 12 + (intervals[deg] ?? 0);
   return quantize(rawMidi, intervals, root);
@@ -526,7 +528,6 @@ export function syncChladniControls() {
   if (refs.chladniM) refs.chladniM.value = state.chladniM;
   if (refs.chladniN) refs.chladniN.value = state.chladniN;
   if (refs.chladniDrive) refs.chladniDrive.value = state.chladniDrive;
-  if (refs.chladniSpan) refs.chladniSpan.value = state.chladniSpan;
 }
 
 export function randomizeChladni() {
@@ -535,7 +536,6 @@ export function randomizeChladni() {
   state.chladniM = Math.floor(Math.random() * 5) + 1;
   state.chladniN = Math.floor(Math.random() * 5) + 1;
   state.chladniDrive = Math.round((0.5 + Math.random() * 2.5) * 10) / 10;
-  state.chladniSpan = Math.floor(Math.random() * 3) + 1;
   scatterSandGrains();
   syncChladniControls();
   renderCanvas();
@@ -611,7 +611,7 @@ registerModel({
     a: state.chladniA ?? 1.0,
     b: state.chladniB ?? 1.0,
     drive: state.chladniDrive ?? 1.5,
-    span: state.chladniSpan ?? 2,
+    span: state.pitchSpan ?? state.chladniSpan ?? 2,
     probes: probes.map(p => ({ x: p.x, y: p.y, octave: p.octave }))
   }),
   restore: (data) => {
@@ -622,7 +622,11 @@ registerModel({
     if (data.a !== undefined) state.chladniA = data.a;
     if (data.b !== undefined) state.chladniB = data.b;
     if (data.drive !== undefined) state.chladniDrive = data.drive;
-    if (data.span !== undefined) state.chladniSpan = data.span;
+    if (data.span !== undefined) {
+      state.chladniSpan = data.span;
+      state.pitchSpan = data.span;
+      if (refs.pitchSpan?.setValue) refs.pitchSpan.setValue(String(data.span), false);
+    }
 
     if (Array.isArray(data.probes)) {
       for (let i = 0; i < Math.min(MAX_PROBES, data.probes.length); i++) {
@@ -650,7 +654,6 @@ export function initChladni() {
         <div id="chladni-m-ctrl"></div>
         <div id="chladni-n-ctrl"></div>
         <div id="chladni-drive-ctrl"></div>
-        <div id="chladni-span-ctrl"></div>
         <div style="display: flex; gap: 6px; margin-left: auto;">
           <button id="chladni-bow-btn" class="btn btn-accent" title="Acoustic bow impulse excitation">Violin Bow</button>
           <button id="chladni-scatter-btn" class="btn" title="Scatter sand grains uniformly over plate">Scatter Sand</button>
@@ -746,26 +749,6 @@ export function initChladni() {
     );
   }
 
-  // Pitch Span Knob
-  const spanCtrl = document.getElementById("chladni-span-ctrl");
-  if (spanCtrl) {
-    spanCtrl.appendChild(
-      R("chladniSpan", knob({
-        label: "Span",
-        tip: "Pitch range across octaves mapped across the nodal pickup probes",
-        min: 1,
-        max: 4,
-        step: 1,
-        value: Number(state.chladniSpan ?? 2),
-        unit: "oct",
-        onChange: (v) => {
-          state.chladniSpan = v;
-          renderCanvas();
-        }
-      }))
-    );
-  }
-
   // Buttons
   const bowBtn = document.getElementById("chladni-bow-btn");
   if (bowBtn) {
@@ -802,6 +785,12 @@ export function initChladni() {
   setupCanvasInteraction();
   initChladniPreset(state.chladniPreset || "concentric_cross");
   renderCanvas();
+
+  onRegen(() => {
+    if (getActiveModel() === "chladni") {
+      renderCanvas();
+    }
+  });
 }
 
 /**

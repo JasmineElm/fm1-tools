@@ -73,6 +73,10 @@ import {
   evaluateStreamHit,
   evaluateBooleanLogic,
   stepBooleanEuclidean,
+  stepBooleanEuclideanSimulation,
+  renderCanvas,
+  simStepCounter,
+  streamPulse,
   generateBooleanEuclideanBank,
   isBooleanEuclideanRunning,
   startBooleanEuclidean,
@@ -272,5 +276,19 @@ test("initBooleanEuclidean mounts DOM controls and dropdowns without error", () 
   mockContainers.set("model-boolean_euclidean", container);
   initBooleanEuclidean();
   assert.ok(container.children.length > 0, "initBooleanEuclidean should populate model container");
+});
+
+test("stepBooleanEuclideanSimulation and renderCanvas animate steps and stream pulses when running", () => {
+  initBooleanEuclideanStreams();
+  startBooleanEuclidean();
+  const initialStep = simStepCounter;
+  for (let i = 0; i < 6; i++) {
+    stepBooleanEuclideanSimulation(0.08);
+    renderCanvas();
+  }
+  assert.ok(simStepCounter > initialStep, "Simulation should advance simStepCounter while running");
+  const anyPulse = Array.from(streamPulse).some((v) => v > 0);
+  assert.ok(anyPulse, "Stream pulses should activate during simulation steps");
+  stopBooleanEuclidean();
 });
 

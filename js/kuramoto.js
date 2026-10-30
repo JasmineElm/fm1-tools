@@ -49,6 +49,7 @@ export const omega = new Float32Array(MAX_OSCILLATORS);
 export const prevTheta = new Float32Array(MAX_OSCILLATORS);
 export const pulseAnim = new Float32Array(MAX_OSCILLATORS);
 export const activeOsc = new Uint8Array(MAX_OSCILLATORS);
+export const bounceVel = new Float32Array(MAX_OSCILLATORS);
 
 // Presets
 export const KURAMOTO_PRESETS = [
@@ -85,6 +86,7 @@ export function initOscillators(presetId = state.kuramotoPreset || "near_sync") 
     pulseAnim[i] = 0;
     // Distribute initial phase uniformly around circle
     theta[i] = (i * Math.PI * 2) / MAX_OSCILLATORS;
+    bounceVel[i] = 0;
     prevTheta[i] = theta[i];
 
     // Assign natural frequency
@@ -161,6 +163,7 @@ export function stepSimulation(dtMs = 16) {
   const currentPreset = KURAMOTO_PRESETS.find(p => p.id === (state.kuramotoPreset || "near_sync")) || KURAMOTO_PRESETS[0];
   const K = Math.max(0.0, Math.min(5.0, Number(state.kuramotoCoupling ?? currentPreset.K)));
   const noiseAmt = Math.max(0.0, Math.min(1.0, Number(state.kuramotoNoise ?? currentPreset.noise)));
+  const repulsion = Math.max(0.0, Math.min(5.0, Number(state.kuramotoRepulsion ?? currentPreset.repulsion ?? 0.5)));
 
   // Compute order parameter
   const { r, psi } = computeOrderParameter();
@@ -173,10 +176,43 @@ export function stepSimulation(dtMs = 16) {
 
     const couplingTerm = K * r * Math.sin(psi - theta[i]);
     const noiseTerm = noiseAmt * (Math.random() - 0.5) * 4.0;
-    const dTheta = (omega[i] + couplingTerm + noiseTerm) * effectiveDt;
+    let repulsionTerm = 0;
+    if (repulsion > 0) {
+      for (let j = 0; j < MAX_OSCILLATORS; j++) {
+        if (i === j || !activeOsc[j]) continue;
+        const diff = Math.atan2(Math.sin(theta[i] - theta[j]), Math.cos(theta[i] - theta[j]));
+        const dist = Math.abs(diff);
+        if (dist < Math.PI * 0.65) {
+          const dir = diff >= 0 ? 1 : -1;
+          const falloff = 1.0 - dist / (Math.PI * 0.65);
+          repulsionTerm += repulsion * dir * falloff * falloff * 1.8;
+        }
+      }
+    }
+    const dTheta = (omega[i] + couplingTerm + repulsionTerm + bounceVel[i] + noiseTerm) * effectiveDt;
+    bounceVel[i] *= Math.max(0, 1.0 - 3.5 * effectiveDt);
 
     theta[i] = (theta[i] + dTheta) % (Math.PI * 2);
     if (theta[i] < 0) theta[i] += Math.PI * 2;
+
+    if (repulsion > 0) {
+      const minSep = 0.18 + Math.min(0.28, repulsion * 0.08);
+      for (let j = 0; j < MAX_OSCILLATORS; j++) {
+        if (i === j || !activeOsc[j]) continue;
+        const diff = Math.atan2(Math.sin(theta[i] - theta[j]), Math.cos(theta[i] - theta[j]));
+        const dist = Math.abs(diff);
+        if (dist < minSep) {
+          const dir = diff >= 0 ? 1 : -1;
+          const overlap = (minSep - dist) * 0.55;
+          theta[i] = ((theta[i] + dir * overlap) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+          theta[j] = ((theta[j] - dir * overlap) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+          const vRel = ((omega[i] + bounceVel[i]) - (omega[j] + bounceVel[j])) * dir;
+          const impulse = Math.max(0.75 * repulsion, vRel < 0 ? -vRel * (0.85 + 0.25 * Math.min(2.0, repulsion)) : 0.5 * repulsion);
+          bounceVel[i] = Math.max(-6.0, Math.min(6.0, bounceVel[i] + dir * impulse));
+          bounceVel[j] = Math.max(-6.0, Math.min(6.0, bounceVel[j] - dir * impulse));
+        }
+      }
+    }
 
     // Pulse animation decay
     if (pulseAnim[i] > 0.01) {
@@ -490,6 +526,8 @@ export function syncKuramotoControls() {
   if (presetEl && state.kuramotoPreset) presetEl.value = state.kuramotoPreset;
   const coupEl = document.getElementById("kuramoto-coupling");
   if (coupEl && state.kuramotoCoupling !== undefined) coupEl.value = state.kuramotoCoupling;
+  const repEl = document.getElementById("kuramoto-repulsion");
+  if (repEl && state.kuramotoRepulsion !== undefined) repEl.value = state.kuramotoRepulsion;
   const sigEl = document.getElementById("kuramoto-sigma");
   if (sigEl && state.kuramotoSigma !== undefined) sigEl.value = state.kuramotoSigma;
   const noiseEl = document.getElementById("kuramoto-noise");
@@ -500,6 +538,7 @@ export function randomizeKuramoto() {
   const p = KURAMOTO_PRESETS[Math.floor(Math.random() * KURAMOTO_PRESETS.length)];
   state.kuramotoPreset = p.id;
   state.kuramotoCoupling = Number((0.2 + Math.random() * 2.8).toFixed(1));
+  state.kuramotoRepulsion = Number((Math.random() * 2.5).toFixed(1));
   state.kuramotoSigma = Number((0.1 + Math.random() * 1.1).toFixed(2));
   state.kuramotoNoise = Number((0.02 + Math.random() * 0.3).toFixed(2));
 
@@ -579,6 +618,11 @@ export function initKuramoto() {
           <input type="range" id="kuramoto-coupling" min="0" max="3.5" step="0.1" value="${state.kuramotoCoupling ?? 2.2}" style="width: 70px;" title="Coupling Strength (K): Inter-oscillator attractive force pulling natural frequencies into collective phase synchronization">
         </label>
 
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Phase Repulsion: Inter-node repulsive force and elastic collision bounce preventing oscillator clustering">
+          Repulsion:
+          <input type="range" id="kuramoto-repulsion" min="0" max="3.0" step="0.1" value="${state.kuramotoRepulsion ?? 0.5}" style="width: 70px;" title="Phase Repulsion: Inter-node repulsive force and elastic collision bounce preventing oscillator clustering">
+        </label>
+
         <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Natural Frequency Dispersion (σ): Intrinsic frequency variance between oscillators (higher = polyrhythmic drift, lower = tight unison)">
           Dispersion:
           <input type="range" id="kuramoto-sigma" min="0.05" max="1.5" step="0.05" value="${state.kuramotoSigma ?? 0.15}" style="width: 70px;" title="Natural Frequency Dispersion (σ): Intrinsic frequency variance between oscillators (higher = polyrhythmic drift, lower = tight unison)">
@@ -654,6 +698,7 @@ export function initKuramoto() {
   };
 
   bindSlider("kuramoto-coupling", "kuramotoCoupling");
+  bindSlider("kuramoto-repulsion", "kuramotoRepulsion");
   bindSlider("kuramoto-sigma", "kuramotoSigma");
   bindSlider("kuramoto-noise", "kuramotoNoise");
 
@@ -671,6 +716,7 @@ registerModel({
     return {
       preset: state.kuramotoPreset || "near_sync",
       coupling: state.kuramotoCoupling ?? 2.2,
+      repulsion: state.kuramotoRepulsion ?? 0.5,
       sigma: state.kuramotoSigma ?? 0.15,
       noise: state.kuramotoNoise ?? 0.05,
       span: state.pitchSpan ?? state.kuramotoSpan ?? 2,
@@ -682,6 +728,7 @@ registerModel({
     if (!data) return;
     if (data.preset) setState({ kuramotoPreset: data.preset });
     if (data.coupling !== undefined) setState({ kuramotoCoupling: data.coupling });
+    if (data.repulsion !== undefined) setState({ kuramotoRepulsion: data.repulsion });
     if (data.sigma !== undefined) setState({ kuramotoSigma: data.sigma });
     if (data.noise !== undefined) setState({ kuramotoNoise: data.noise });
     if (data.span !== undefined) {

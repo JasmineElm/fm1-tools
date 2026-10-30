@@ -6,10 +6,10 @@ This master plan tracks the implementation of generative, physical, non-step, ev
 
 ## 1. Roadmap & Backlog
 
-### 1.1 Implemented Models (34)
+### 1.1 Implemented Models (35)
 
-All 34 generative and non-step sequencer models across the FM-1 Pulses roadmap are fully implemented, verified, and unit-tested:
-- `mene311`, `turing`, `cellular`, `particles`, `pendulum`, `flock`, `rungler`, `krell`, `lsystem`, `lotka_volterra`, `orbital`, `hanenbow`, `sandpile`, `percolation`, `dla`, `epidemic`, `changes`, `physarum`, `reaction_diffusion`, `kuramoto`, `fitzhugh_nagumo`, `ripple_tank`, `convection`, `markov_matrix`, `genetic_breeder`, `chladni`, `brownian_ratchet`, `tracy_ribbon`, `self_avoiding_walk`, `billiards`, `nodal_graph`, `shift_register_2d`, `cellular_bug`, `boolean_euclidean`.
+All 35 generative and non-step sequencer models across the FM-1 Pulses roadmap are fully implemented, verified, and unit-tested:
+- `mene311`, `turing`, `cellular`, `particles`, `pendulum`, `flock`, `rungler`, `krell`, `lsystem`, `lotka_volterra`, `orbital`, `hanenbow`, `sandpile`, `percolation`, `dla`, `epidemic`, `changes`, `physarum`, `reaction_diffusion`, `kuramoto`, `fitzhugh_nagumo`, `ripple_tank`, `convection`, `markov_matrix`, `genetic_breeder`, `chladni`, `brownian_ratchet`, `tracy_ribbon`, `self_avoiding_walk`, `billiards`, `nodal_graph`, `shift_register_2d`, `cellular_bug`, `boolean_euclidean`, `counterpoint`.
 
 ### 1.2 Backlog: New Proposed Models (0 - All Complete)
 

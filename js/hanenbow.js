@@ -152,6 +152,16 @@ export function setLeafLength(i, len) {
   leafLength[i] = Math.max(MIN_LEAF_LEN, Math.min(MAX_LEAF_LEN, len));
 }
 
+export function getLeaf(i) {
+  return {
+    x: leafX[i],
+    y: leafY[i],
+    len: leafLength[i],
+    angle: leafAngle[i],
+    pitch: leafPitchIdx[i]
+  };
+}
+
 // Cannon Launcher State & Bounds (Node is fully visible within canvas at all times)
 export const CAN_PAD = 36;
 export const CAN_MIN_X = CAN_PAD;
@@ -631,19 +641,88 @@ export function generateHanenbowBank(st = state) {
 export function randomizeHanenbow() {
   const p = HANENBOW_PRESETS[Math.floor(Math.random() * HANENBOW_PRESETS.length)];
   state.hanenbowPreset = p.id;
-  state.hanenbowLeaves = p.leaves;
-  state.hanenbowGravity = p.gravity;
-  state.hanenbowElasticity = 0.75 + Math.random() * 0.2;
-  state.hanenbowFireRate = 1.0 + Math.random() * 1.5;
-  state.hanenbowLaunchSpeed = 580 + Math.random() * 200;
+  const numLeaves = 3 + Math.floor(Math.random() * (MAX_LEAVES - 2)); // 3 to 8 leaves
+  state.hanenbowLeaves = numLeaves;
+  state.hanenbowGravity = Math.round(700 + Math.random() * 500);
+  state.hanenbowElasticity = Math.round((0.82 + Math.random() * 0.22) * 100) / 100;
+  state.hanenbowFireRate = Math.round((0.9 + Math.random() * 1.8) * 10) / 10;
+  state.hanenbowLaunchSpeed = Math.round((580 + Math.random() * 260) / 25) * 25;
 
-  initHanenbowSystem(p.id);
+  // 1. Randomize launcher position and upward aim angle toward the pond interior
+  cannonX = Math.round(CAN_MIN_X + 30 + Math.random() * (CAN_MAX_X - CAN_MIN_X - 60));
+  cannonY = Math.round(330 + Math.random() * (CAN_MAX_Y - 340));
+  cannonSpeed = state.hanenbowLaunchSpeed;
+
+  if (cannonX < 320) {
+    // Left side: aim upward-right (-85 deg to -48 deg)
+    cannonAngle = -1.48 + Math.random() * 0.64;
+  } else if (cannonX > 480) {
+    // Right side: aim upward-left (-132 deg to -95 deg)
+    cannonAngle = -2.30 + Math.random() * 0.64;
+  } else {
+    // Center: aim upward with slight left/right tilt
+    cannonAngle = -1.85 + Math.random() * 0.56;
+  }
+
+  // 2. Randomize placement, length, angle, and pitch of all active leaves
+  const vx = Math.cos(cannonAngle) * cannonSpeed;
+  const vy = Math.sin(cannonAngle) * cannonSpeed;
+  const g = state.hanenbowGravity;
+
+  for (let i = 0; i < MAX_LEAVES; i++) {
+    if (i < numLeaves) {
+      if (i === 0) {
+        // Place leaf 0 along the initial launch trajectory so balls reliably intercept and ricochet
+        const tHit = 0.24 + Math.random() * 0.22;
+        const hitX = cannonX + vx * tHit;
+        const hitY = cannonY + vy * tHit + 0.5 * g * tHit * tHit;
+        leafX[0] = Math.round(Math.max(110, Math.min(690, hitX)));
+        leafY[0] = Math.round(Math.max(130, Math.min(440, hitY)));
+        leafLength[0] = Math.round(125 + Math.random() * 65);
+        leafAngle[0] = Math.round((-0.45 + Math.random() * 0.90) * 100) / 100;
+      } else {
+        // Distribute remaining leaves across the pond with minimum spacing from existing leaves & cannon
+        let lx = 400;
+        let ly = 280;
+        for (let attempt = 0; attempt < 16; attempt++) {
+          const candX = Math.round(110 + Math.random() * 580);
+          const candY = Math.round(130 + Math.random() * 320);
+          let tooClose = Math.hypot(candX - cannonX, candY - cannonY) < 85;
+          for (let j = 0; j < i && !tooClose; j++) {
+            if (Math.hypot(candX - leafX[j], candY - leafY[j]) < 75) {
+              tooClose = true;
+            }
+          }
+          lx = candX;
+          ly = candY;
+          if (!tooClose) break;
+        }
+        leafX[i] = lx;
+        leafY[i] = ly;
+        leafLength[i] = Math.round(MIN_LEAF_LEN + 16 + Math.random() * 125);
+        leafAngle[i] = Math.round((-0.65 + Math.random() * 1.30) * 100) / 100;
+      }
+      leafBend[i] = 0;
+      leafBendVel[i] = 0;
+      leafBloom[i] = 0;
+      leafPitchIdx[i] = Math.floor(Math.random() * 8);
+    } else {
+      leafLength[i] = 0;
+    }
+    leafCycleCount[i] = 0;
+    leafLastHitTime[i] = -999;
+    leafLastDecayTime[i] = -999;
+    leafHitTotal[i] = 0;
+    leafHitIndices[i] = 0;
+  }
+
   syncControlsFromState();
+  renderPondCanvas();
   forceRegenRhythm = true;
   doGenerate(true);
   forceRegenRhythm = false;
   syncRhythmGrid();
-  status(`Randomized Hanenbow: ${p.name}`, "ok");
+  status(`Randomized Hanenbow: ${numLeaves} leaves & launcher placement`, "ok");
 }
 
 export function syncHanenbowFromRegen() {
@@ -958,6 +1037,16 @@ export function initHanenbow() {
   actionsGroup.style.display = "flex";
   actionsGroup.style.gap = "4px";
 
+  const btnRnd = document.createElement("button");
+  btnRnd.className = "btn-action primary";
+  btnRnd.style.fontSize = "10px";
+  btnRnd.style.padding = "3px 8px";
+  btnRnd.textContent = "Randomise";
+  btnRnd.title = "Randomise leaves, launcher position/angle, and ballistics (or press R/G)";
+  btnRnd.addEventListener("click", () => {
+    randomizeHanenbow();
+  });
+
   const btnFire = document.createElement("button");
   btnFire.className = "btn-action";
   btnFire.style.fontSize = "10px";
@@ -969,7 +1058,7 @@ export function initHanenbow() {
     renderPondCanvas();
   });
 
-  actionsGroup.append(btnFire);
+  actionsGroup.append(btnRnd, btnFire);
   topRow.append(titleGroup, actionsGroup);
 
   // Preset Selector Dropdown

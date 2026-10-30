@@ -392,6 +392,22 @@ export function randomizePendulum() {
   state.pendulumM1 = Math.round(6 + Math.random() * 20);
   state.pendulumM2 = Math.round(5 + Math.random() * 18);
   state.pendulumGravity = Math.round((4 + Math.random() * 16) * 10) / 10;
+
+  // Randomize radial note sector selection (active/inactive bells around the ring)
+  const density = 0.25 + Math.random() * 0.5;
+  const targetCount = Math.max(6, Math.min(NUM_SECTORS - 6, Math.round(NUM_SECTORS * density)));
+  const indices = Array.from({ length: NUM_SECTORS }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = indices[i];
+    indices[i] = indices[j];
+    indices[j] = tmp;
+  }
+  const nextSectors = new Array(NUM_SECTORS).fill(0);
+  for (let i = 0; i < targetCount; i++) {
+    nextSectors[indices[i]] = 1;
+  }
+  state.pendulumSectors = nextSectors;
   
   // Shuffle note positions around the circle
   shuffleSectorNotes();
@@ -399,7 +415,7 @@ export function randomizePendulum() {
   resetSimulationToInitial();
   syncAllControls();
   renderCanvas();
-  status("Randomized Pendulum parameters and shuffled sector notes", "ok");
+  status("Randomized Pendulum parameters and radial note selection", "ok");
 }
 
 // ---- Main Continuous Physics & Audio Loop ----

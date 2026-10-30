@@ -5,7 +5,7 @@ import {
   state, refs, status, doGenerate, RATE_NAMES, setModelGenerator,
   setModelRandomizer
 } from "./state.js";
-import { panicPreview } from "./player.js";
+import { panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js";
 import { knob, dropdown, toggleBtn, actionBtn } from "./controls.js";
 import { getRootMidi, getActiveScaleIntervals, quantize, midiName } from "./scale.js";
 import { playVoice, releasePolyVoices } from "./poly.js";
@@ -683,7 +683,9 @@ function animLoop(timestamp) {
   const dt = Math.min(0.1, (timestamp - lastTimestamp) / 1000);
   lastTimestamp = timestamp;
 
-  stepNodalGraphSimulation(dt);
+  if (isGraphPlaying) {
+    stepNodalGraphSimulation(dt);
+  }
   renderNodalGraphCanvas();
 
   animFrameId = requestAnimationFrame(animLoop);
@@ -882,12 +884,7 @@ export function initNodalGraph() {
     }
   });
 
-  // Transport & Action Buttons
-  const runBtn = toggleBtn("RUN", isGraphPlaying, (on) => {
-    if (on) startNodalGraph();
-    else stopNodalGraph();
-  }, "Start/Stop autonomous graph walkers");
-
+  // Action Buttons
   const randBtn = actionBtn({
     label: "RND",
     onClick: () => {
@@ -902,7 +899,6 @@ export function initNodalGraph() {
     refs.nodalGraphEntropy,
     refs.nodalGraphDensity,
     refs.nodalGraphOctave,
-    runBtn,
     randBtn
   );
 
@@ -958,8 +954,16 @@ registerModel({
 });
 
 export function activateNodalGraphModel() {
+  stopNodalGraph();
   setModelGenerator(generateNodalGraphBank);
   setModelRandomizer(randomizeNodalGraph);
+  setModelStepHandler(null);
+  setModelTransportHandler({
+    start: startNodalGraph,
+    stop: stopNodalGraph,
+    toggle: toggleNodalGraphRunning,
+    isRunning: isNodalGraphRunning
+  });
 
   if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastTimestamp = performance.now();
@@ -969,6 +973,8 @@ export function activateNodalGraphModel() {
 
 export function deactivateNodalGraphModel() {
   stopNodalGraph();
+  setModelStepHandler(null);
+  setModelTransportHandler(null);
   setModelGenerator(null);
   setModelRandomizer(null);
   if (animFrameId && typeof cancelAnimationFrame === "function") {

@@ -43,6 +43,7 @@ function makeMockEl(tag = "div") {
       strokeRect: () => {},
       setLineDash: () => {},
       ellipse: () => {},
+      rect: () => {},
       closePath: () => {}
     })
   };

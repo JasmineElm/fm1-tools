@@ -213,6 +213,7 @@ test("locally implemented controls with Global or notes div counterparts are rem
     assert.ok(createdHtml.includes('id="kuramoto-reset-btn"'), "Reset button retained");
     assert.ok(createdHtml.includes('id="kuramoto-preset-select"'), "Preset select retained");
     assert.ok(createdHtml.includes('id="kuramoto-coupling"'), "Coupling slider retained");
+    assert.ok(createdHtml.includes('id="kuramoto-repulsion"'), "Repulsion slider present");
     assert.ok(createdHtml.includes('id="kuramoto-sigma"'), "Dispersion slider retained");
     assert.ok(createdHtml.includes('id="kuramoto-noise"'), "Noise slider retained");
   } finally {
@@ -230,12 +231,34 @@ test("randomizeKuramoto randomizes parameters and registers with global randomiz
 
   randomizeKuramoto();
   assert.ok(state.kuramotoCoupling >= 0.2 && state.kuramotoCoupling <= 3.5);
+  assert.ok(state.kuramotoRepulsion >= 0 && state.kuramotoRepulsion <= 3.0);
   assert.ok(state.kuramotoSigma >= 0.05 && state.kuramotoSigma <= 1.5);
   assert.ok(state.kuramotoNoise >= 0.01 && state.kuramotoNoise <= 0.5);
   assert.ok(typeof state.kuramotoPreset === "string");
 
   deactivateKuramotoModel();
   assert.equal(getCurrentModelRandomizer(), null);
+});
+
+test("kuramoto repulsion causes clustered nodes to bounce away from each other", () => {
+  initOscillators("near_sync");
+  state.kuramotoCoupling = 0.0;
+  state.kuramotoNoise = 0.0;
+  state.kuramotoRepulsion = 1.8;
+
+  // Cluster all oscillators tightly near angle 1.0 with identical intrinsic frequency
+  for (let i = 0; i < MAX_OSCILLATORS; i++) {
+    theta[i] = 1.0 + i * 0.02;
+    omega[i] = 1.0;
+  }
+  const { r: rInitial } = computeOrderParameter();
+  assert.ok(rInitial > 0.99, "Initial clustered order parameter should be near 1");
+
+  for (let step = 0; step < 15; step++) {
+    stepSimulation(16);
+  }
+  const { r: rAfter } = computeOrderParameter();
+  assert.ok(rAfter < rInitial - 0.15, `Nodes should bounce apart and reduce clustering (rInitial=${rInitial.toFixed(3)}, rAfter=${rAfter.toFixed(3)})`);
 });
 
 

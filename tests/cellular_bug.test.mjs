@@ -75,12 +75,14 @@ import {
   bugY,
   bugDir,
   bugState,
+  simStepCounter,
   initCellularBugGrid,
   countNeighbors,
   stepCellularGrid,
   stepBug,
   evaluateBugVoice,
   stepCellularBug,
+  stepCellularBugSimulation,
   generateCellularBugBank,
   isCellularBugRunning,
   startCellularBug,
@@ -95,6 +97,7 @@ import {
 } from "../js/cellular_bug.js";
 
 import { state, getCurrentModelRandomizer } from "../js/state.js";
+import { toggleLive, stopLive, isLive } from "../js/player.js";
 import { getModelDef } from "../js/snapshot.js";
 
 test("CELLULAR_BUG_PRESETS contains required musical configurations", () => {
@@ -303,5 +306,27 @@ test("initCellularBug mounts DOM controls and dropdowns without error", () => {
   mockContainers.set("model-cellular_bug", container);
   initCellularBug();
   assert.ok(container.children.length > 0, "initCellularBug should populate model container");
+});
+
+test("Global transport Play/Stop drives cellular_bug simulation and animation", () => {
+  activateCellularBugModel();
+  assert.equal(isCellularBugRunning(), false);
+  assert.equal(isLive(), false);
+
+  // Trigger global transport Play
+  toggleLive();
+  assert.equal(isCellularBugRunning(), true, "Global Play should start cellular_bug simulation");
+  assert.equal(isLive(), true);
+
+  const prevSim = simStepCounter;
+  stepCellularBugSimulation(0.25);
+  assert.ok(simStepCounter > prevSim, "Simulation steps advance when running");
+
+  // Trigger global transport Stop
+  stopLive();
+  assert.equal(isCellularBugRunning(), false, "Global Stop should stop cellular_bug simulation");
+  assert.equal(isLive(), false);
+
+  deactivateCellularBugModel();
 });
 

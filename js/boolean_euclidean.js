@@ -6,7 +6,7 @@ import {
   state, refs, status, doGenerate, RATE_NAMES, setModelGenerator,
   setModelRandomizer
 } from "./state.js";
-import { panicPreview } from "./player.js";
+import { panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js";
 import { knob, dropdown, toggleBtn, actionBtn } from "./controls.js";
 import { getRootMidi, getActiveScaleIntervals, quantize, midiName } from "./scale.js";
 import { playVoice, releasePolyVoices, selectPolyVoices } from "./poly.js";
@@ -130,6 +130,8 @@ let isSimulationRunning = false;
 let animFrameId = null;
 let lastTimestamp = 0;
 let stepTimer = 0;
+let currentStepInterval = 0.125;
+let activeStepIndex = 0;
 
 // Canvas & UI elements
 let canvasEl = null;
@@ -240,6 +242,15 @@ export function stepBooleanEuclidean(st = state, isAudioActive = false) {
     coincidenceFlash = 1.0;
   }
 
+  if (isAudioActive) {
+    activeStepIndex = t;
+    if (hitA) streamPulse[0] = 1.0;
+    if (hitB) streamPulse[1] = 1.0;
+    if (hitC) streamPulse[2] = 1.0;
+    if (hitD) streamPulse[3] = 1.0;
+    if (masterHit) masterPulse[0] = 1.0;
+  }
+
   // 4. Resolve candidate note events for up to 8 polyphonic voice channels
   const root = getRootMidi();
   const intervals = getActiveScaleIntervals();
@@ -345,8 +356,9 @@ export function stepBooleanEuclideanSimulation(dt) {
   if (!isSimulationRunning) return;
 
   const bpm = Number(state.tempo) || 120;
-  const speed = Number(state.beuclidSpeed) || 1.0;
+  const speed = (Number(state.beuclidSpeed) || 1.0) * (Number(state.modelSpeed) || 1.0);
   const stepInterval = (60.0 / (bpm * 4.0)) / Math.max(0.2, speed);
+  currentStepInterval = stepInterval;
 
   stepTimer += dt;
   if (stepTimer >= stepInterval) {
@@ -407,7 +419,11 @@ export function isBooleanEuclideanRunning() {
 export function startBooleanEuclidean() {
   if (isSimulationRunning) return;
   isSimulationRunning = true;
-  lastTimestamp = performance.now();
+  lastTimestamp = typeof performance !== "undefined" ? performance.now() : Date.now();
+  audio.unlock();
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(animationTick);
+  }
   status("Boolean Euclidean: Running", "ok");
 }
 
@@ -424,6 +440,7 @@ export function toggleBooleanEuclidean() {
   } else {
     startBooleanEuclidean();
   }
+  return isSimulationRunning;
 }
 
 /**
@@ -589,17 +606,44 @@ export function renderCanvas() {
     ctx.stroke();
   }
 
-  // Current clock angle: theta = (simStepCounter % 16) / 16 * 2pi
+  // Current clock angle with continuous 60 FPS sub-step interpolation
   const masterSteps = 16;
-  const playheadAngle = ((simStepCounter % masterSteps) / masterSteps) * Math.PI * 2 - Math.PI / 2;
+  const stepFrac = (isSimulationRunning && currentStepInterval > 0)
+    ? Math.max(0, Math.min(1, stepTimer / currentStepInterval))
+    : 0;
+  const continuousStep = activeStepIndex + stepFrac;
+  const playheadAngle = ((continuousStep % masterSteps) / masterSteps) * Math.PI * 2 - Math.PI / 2;
 
-  // 2. Draw Stream Rings and Pulse Beads
+  // 2. Draw Stream Rings, Euclidean Polygons, and Pulse Beads
   for (let s = 0; s < MAX_STREAMS; s++) {
     const n = Math.max(2, streamN[s]);
-    const k = Math.max(1, streamK[s]);
-    const rot = streamRot[s];
     const r = ringRadii[s + 1];
     const streamColor = STREAM_COLORS[s];
+    const pulse = streamPulse[s];
+
+    // Draw inscribed Euclidean polygon connecting active hits on this ring
+    ctx.strokeStyle = streamColor;
+    ctx.lineWidth = 1 + pulse * 1.5;
+    ctx.globalAlpha = 0.25 + pulse * 0.55;
+    ctx.beginPath();
+    let firstX = 0, firstY = 0, hasFirst = false;
+    for (let i = 0; i < n; i++) {
+      if (!evaluateStreamHit(s, i)) continue;
+      const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+      const bx = cx + Math.cos(angle) * r;
+      const by = cy + Math.sin(angle) * r;
+      if (!hasFirst) {
+        firstX = bx; firstY = by; hasFirst = true;
+        ctx.moveTo(bx, by);
+      } else {
+        ctx.lineTo(bx, by);
+      }
+    }
+    if (hasFirst) {
+      ctx.lineTo(firstX, firstY);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
 
     for (let i = 0; i < n; i++) {
       const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
@@ -607,27 +651,45 @@ export function renderCanvas() {
       const by = cy + Math.sin(angle) * r;
 
       const isHit = evaluateStreamHit(s, i);
-      const isCurrentStep = (((simStepCounter - rot + n * 1000) % n) === i);
+      const isCurrentStep = ((activeStepIndex % n) === i);
 
       // Pulse Bead
       if (isHit) {
+        if (isCurrentStep && pulse > 0.05) {
+          ctx.strokeStyle = streamColor;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(bx, by, 6 + (1 - pulse) * 8, 0, Math.PI * 2);
+          ctx.stroke();
+        }
         ctx.fillStyle = isCurrentStep ? "#ffffff" : streamColor;
         ctx.beginPath();
-        ctx.arc(bx, by, isCurrentStep ? 5.5 : 4, 0, Math.PI * 2);
+        ctx.arc(bx, by, isCurrentStep ? 6 + pulse * 2 : 4, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.fillStyle = colPanel2;
+        ctx.fillStyle = isCurrentStep ? colFg : colPanel2;
         ctx.strokeStyle = colLine;
         ctx.beginPath();
-        ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
+        ctx.arc(bx, by, isCurrentStep ? 3.5 : 2.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       }
     }
+
+    // Smooth orbiting playhead cursor for stream s
+    const streamAngle = ((continuousStep % n) / n) * Math.PI * 2 - Math.PI / 2;
+    const sx = cx + Math.cos(streamAngle) * r;
+    const sy = cy + Math.sin(streamAngle) * r;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6.5, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   // 3. Draw Outer Boolean Master Ring (Ring 0)
   const masterRadius = ringRadii[0];
+  const mPulse = masterPulse[0];
   const op = state.beuclidOp || "xor";
   for (let i = 0; i < masterSteps; i++) {
     const angle = (i / masterSteps) * Math.PI * 2 - Math.PI / 2;
@@ -639,18 +701,25 @@ export function renderCanvas() {
     const hitC = evaluateStreamHit(2, i);
     const hitD = evaluateStreamHit(3, i);
     const isMasterHit = evaluateBooleanLogic(op, hitA, hitB, hitC, hitD);
-    const isNow = (simStepCounter % masterSteps === i);
+    const isNow = ((activeStepIndex % masterSteps) === i);
 
     if (isMasterHit) {
+      if (isNow && mPulse > 0.05) {
+        ctx.strokeStyle = colAccent;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(bx, by, 7 + (1 - mPulse) * 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.fillStyle = isNow ? "#ffffff" : colAccent;
       ctx.beginPath();
-      ctx.arc(bx, by, isNow ? 6.5 : 5, 0, Math.PI * 2);
+      ctx.arc(bx, by, isNow ? 7 + mPulse * 2 : 5, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      ctx.fillStyle = colPanel2;
+      ctx.fillStyle = isNow ? colFg : colPanel2;
       ctx.strokeStyle = colLine;
       ctx.beginPath();
-      ctx.arc(bx, by, 3, 0, Math.PI * 2);
+      ctx.arc(bx, by, isNow ? 4 : 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }
@@ -726,13 +795,11 @@ export function initBooleanEuclidean() {
   visualizerCard.style.flexDirection = "column";
   visualizerCard.style.gap = "10px";
 
-  // Top header with transport button and HUD readout
+  // Top header with HUD readout
   const topBar = document.createElement("div");
   topBar.style.display = "flex";
   topBar.style.justifyContent = "space-between";
   topBar.style.alignItems = "center";
-
-  const btnRun = actionBtn("Run", toggleBooleanEuclidean, "Start/Stop autonomous Boolean Euclidean logic clock");
 
   hudElement = document.createElement("div");
   hudElement.className = "hud-readout";
@@ -741,7 +808,6 @@ export function initBooleanEuclidean() {
   hudElement.style.color = "var(--dim)";
   hudElement.textContent = "OP: XOR · STEP: 0 · ACTIVE HITS: 0 · COINC: 0";
 
-  topBar.appendChild(btnRun);
   topBar.appendChild(hudElement);
   visualizerCard.appendChild(topBar);
 
@@ -908,8 +974,21 @@ export function initBooleanEuclidean() {
  * Activates the model when navigated to.
  */
 export function activateBooleanEuclideanModel() {
+  stopBooleanEuclidean();
   setModelGenerator(generateBooleanEuclideanBank);
   setModelRandomizer(randomizeBooleanEuclidean);
+  setModelStepHandler((stepIdx) => {
+    if (stepIdx !== null && stepIdx !== undefined) {
+      stepBooleanEuclidean(state, true);
+      renderCanvas();
+    }
+  });
+  setModelTransportHandler({
+    start: startBooleanEuclidean,
+    stop: stopBooleanEuclidean,
+    toggle: toggleBooleanEuclidean,
+    isRunning: isBooleanEuclideanRunning
+  });
 
   syncControlsFromState();
   if (notesSection && typeof notesSection.sync === "function") {
@@ -917,8 +996,9 @@ export function activateBooleanEuclideanModel() {
   }
 
   doGenerate(true);
+  renderCanvas();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastTimestamp = performance.now();
     animFrameId = requestAnimationFrame(animationTick);
   }
@@ -929,10 +1009,12 @@ export function activateBooleanEuclideanModel() {
  */
 export function deactivateBooleanEuclideanModel() {
   stopBooleanEuclidean();
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
+  setModelStepHandler(null);
+  setModelTransportHandler(null);
   setModelGenerator(null);
   setModelRandomizer(null);
 }

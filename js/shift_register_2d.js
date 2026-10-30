@@ -6,7 +6,7 @@ import {
   state, refs, status, doGenerate, RATE_NAMES, setModelGenerator,
   setModelRandomizer
 } from "./state.js";
-import { panicPreview } from "./player.js";
+import { panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js";
 import { knob, dropdown, toggleBtn, actionBtn } from "./controls.js";
 import { getRootMidi, getActiveScaleIntervals, quantize, midiName } from "./scale.js";
 import { playVoice, releasePolyVoices, selectPolyVoices } from "./poly.js";
@@ -623,7 +623,7 @@ export function stepShiftRegister2dSimulation(dt) {
   if (!isSimulationRunning) return;
 
   const bpm = Number(state.tempo) || 120;
-  const speed = Number(state.sr2dSpeed) || 1.0;
+  const speed = (Number(state.sr2dSpeed) || 1.0) * (Number(state.modelSpeed) || 1.0);
   // Step duration in seconds: 1/16 note = 60 / (bpm * 4)
   const stepInterval = (60.0 / (bpm * 4.0)) / Math.max(0.2, speed);
 
@@ -713,6 +713,7 @@ export function toggleShiftRegister2d() {
   } else {
     startShiftRegister2d();
   }
+  return isSimulationRunning;
 }
 
 /**
@@ -1094,13 +1095,11 @@ export function initShiftRegister2d() {
   visualizerCard.style.flexDirection = "column";
   visualizerCard.style.gap = "10px";
 
-  // Top header with transport button and HUD readout
+  // Top header with HUD readout
   const topBar = document.createElement("div");
   topBar.style.display = "flex";
   topBar.style.justifyContent = "space-between";
   topBar.style.alignItems = "center";
-
-  const btnRun = actionBtn("Run", toggleShiftRegister2d, "Start/Stop autonomous toroidal bit matrix simulation");
 
   hudElement = document.createElement("div");
   hudElement.className = "hud-readout";
@@ -1109,7 +1108,6 @@ export function initShiftRegister2d() {
   hudElement.style.color = "var(--dim)";
   hudElement.textContent = "BITS: 32/64 · FB: 0 · CARRY: 0 · STEP: 0";
 
-  topBar.appendChild(btnRun);
   topBar.appendChild(hudElement);
   visualizerCard.appendChild(topBar);
 
@@ -1343,8 +1341,16 @@ export function initShiftRegister2d() {
  * Activates the model when navigated to.
  */
 export function activateShiftRegister2dModel() {
+  stopShiftRegister2d();
   setModelGenerator(generateShiftRegister2dBank);
   setModelRandomizer(randomizeShiftRegister2d);
+  setModelStepHandler(null);
+  setModelTransportHandler({
+    start: startShiftRegister2d,
+    stop: stopShiftRegister2d,
+    toggle: toggleShiftRegister2d,
+    isRunning: isShiftRegister2dRunning
+  });
 
   syncControlsFromState();
   if (notesSection && typeof notesSection.sync === "function") {
@@ -1352,8 +1358,9 @@ export function activateShiftRegister2dModel() {
   }
 
   doGenerate(true);
+  renderCanvas();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastTimestamp = performance.now();
     animFrameId = requestAnimationFrame(animationTick);
   }
@@ -1364,10 +1371,12 @@ export function activateShiftRegister2dModel() {
  */
 export function deactivateShiftRegister2dModel() {
   stopShiftRegister2d();
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
+  setModelStepHandler(null);
+  setModelTransportHandler(null);
   setModelGenerator(null);
   setModelRandomizer(null);
 }

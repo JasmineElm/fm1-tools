@@ -6,7 +6,7 @@ import {
   state, refs, status, doGenerate, RATE_NAMES, setModelGenerator,
   setModelRandomizer
 } from "./state.js";
-import { panicPreview } from "./player.js";
+import { panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js";
 import { knob, dropdown, toggleBtn, actionBtn } from "./controls.js";
 import { getRootMidi, getActiveScaleIntervals, quantize, midiName } from "./scale.js";
 import { playVoice, releasePolyVoices, selectPolyVoices } from "./poly.js";
@@ -157,6 +157,7 @@ let canvasEl = null;
 let ctx = null;
 let hudElement = null;
 let containerEl = null;
+let runBtnEl = null;
 let hoverCell = -1;
 let isPointerDown = false;
 let paintMode = 1; // 1 = draw live cells, 0 = erase
@@ -465,12 +466,27 @@ export function stepCellularBug(st = state, isAudioActive = false) {
   // 1. Advance CA grid if at subdivision rate
   if (caStepCounter % caRate === 0) {
     stepCellularGrid(caRule);
+    if (isAudioActive) {
+      let liveCount = 0;
+      for (let i = 0; i < TOTAL_CELLS; i++) {
+        if (gridState[i] > 0) liveCount++;
+      }
+      if (liveCount < 24) {
+        const b = simStepCounter % numBugs;
+        injectGlider(bugX[b], bugY[b]);
+      }
+    }
   }
 
   // 2. Step bugs
   const candidates = [];
   for (let b = 0; b < numBugs; b++) {
     const bugRes = stepBug(b, bugMode, mutationRate);
+    if (isAudioActive) {
+      const bIdx = bugRes.y * GRID_DIM + bugRes.x;
+      cellPulse[bIdx] = Math.max(cellPulse[bIdx], 0.4);
+      cellVoice[bIdx] = b;
+    }
     const vRes = evaluateBugVoice(b, triggerMode, bugRes);
     if (vRes.shouldTrigger) {
       candidates.push(vRes);
@@ -503,13 +519,18 @@ export function stepCellularBugSimulation(dt) {
   if (!isSimulationRunning) return;
 
   const bpm = Number(state.tempo) || 120;
-  const speed = Number(state.cbugSpeed) || 1.0;
+  const speed = (Number(state.cbugSpeed) || 1.0) * (Number(state.modelSpeed) || 1.0);
   const stepInterval = (60.0 / (bpm * 4.0)) / Math.max(0.2, speed);
 
   stepTimer += dt;
+  let stepsThisFrame = 0;
+  while (stepTimer >= stepInterval && stepsThisFrame < 4) {
+    stepTimer -= stepInterval;
+    stepCellularBug(state, true);
+    stepsThisFrame++;
+  }
   if (stepTimer >= stepInterval) {
     stepTimer %= stepInterval;
-    stepCellularBug(state, true);
   }
 
   // Smooth visual decay of pulses
@@ -574,6 +595,21 @@ export function generateCellularBugBank(st = state) {
   }];
 }
 
+function syncTransportUi() {
+  if (runBtnEl) {
+    const innerBtn = runBtnEl.querySelector?.("button") || runBtnEl;
+    if (innerBtn) {
+      innerBtn.textContent = isSimulationRunning ? "■ Stop" : "▶ Run";
+      innerBtn.classList?.toggle?.("playing", isSimulationRunning);
+    }
+  }
+  const audBtn = document.getElementById("audition");
+  if (audBtn) {
+    audBtn.textContent = isSimulationRunning ? "■ Stop" : "▶ Play";
+    audBtn.classList?.toggle?.("playing", isSimulationRunning);
+  }
+}
+
 export function isCellularBugRunning() {
   return isSimulationRunning;
 }
@@ -581,7 +617,9 @@ export function isCellularBugRunning() {
 export function startCellularBug() {
   if (isSimulationRunning) return;
   isSimulationRunning = true;
+  audio.unlock();
   lastTimestamp = performance.now();
+  syncTransportUi();
   status("Cellular + Bug: Running", "ok");
 }
 
@@ -589,6 +627,7 @@ export function stopCellularBug() {
   isSimulationRunning = false;
   releasePolyVoices();
   panicPreview();
+  syncTransportUi();
   status("Cellular + Bug: Stopped", "dim");
 }
 
@@ -598,6 +637,7 @@ export function toggleCellularBug() {
   } else {
     startCellularBug();
   }
+  return isSimulationRunning;
 }
 
 /**
@@ -932,13 +972,11 @@ export function initCellularBug() {
   visualizerCard.style.flexDirection = "column";
   visualizerCard.style.gap = "10px";
 
-  // Top header with transport button and HUD readout
+  // Top header with HUD readout
   const topBar = document.createElement("div");
   topBar.style.display = "flex";
   topBar.style.justifyContent = "space-between";
   topBar.style.alignItems = "center";
-
-  const btnRun = actionBtn("Run", toggleCellularBug, "Start/Stop autonomous Cellular + Bug simulation");
 
   hudElement = document.createElement("div");
   hudElement.className = "hud-readout";
@@ -947,7 +985,6 @@ export function initCellularBug() {
   hudElement.style.color = "var(--dim)";
   hudElement.textContent = "CELLS: 0/1024 · BUGS: 4 · CA STEP: 0 · SIM: 0";
 
-  topBar.appendChild(btnRun);
   topBar.appendChild(hudElement);
   visualizerCard.appendChild(topBar);
 
@@ -995,23 +1032,28 @@ export function initCellularBug() {
 
   actionRow.appendChild(actionBtn("Clear Grid", () => {
     gridState.fill(0);
+    cellPulse.fill(0);
     doGenerate(true);
+    renderCanvas();
   }, "Clear all cellular automata cells"));
 
   actionRow.appendChild(actionBtn("Rand Soup", () => {
     initCellularBugGrid(0.16);
     doGenerate(true);
+    renderCanvas();
   }, "Seed random initial cellular soup"));
 
   actionRow.appendChild(actionBtn("Add Glider", () => {
     injectGlider(Math.floor(Math.random() * 26), Math.floor(Math.random() * 26));
     doGenerate(true);
+    renderCanvas();
   }, "Inject a live Conway/HighLife glider into the grid"));
 
   actionRow.appendChild(actionBtn("Step CA", () => {
-    stepCellularGrid(state.cbugCaRule || "conway");
+    stepCellularBug(state, true);
     doGenerate(true);
-  }, "Manually advance the cellular automaton by 1 generation"));
+    renderCanvas();
+  }, "Manually advance the cellular automaton and Turmites by 1 step"));
 
   visualizerCard.appendChild(actionRow);
   layout.appendChild(visualizerCard);
@@ -1142,17 +1184,27 @@ export function initCellularBug() {
  * Activates the model when navigated to.
  */
 export function activateCellularBugModel() {
+  stopCellularBug();
   setModelGenerator(generateCellularBugBank);
   setModelRandomizer(randomizeCellularBug);
+  setModelStepHandler(null);
+  setModelTransportHandler({
+    start: startCellularBug,
+    stop: stopCellularBug,
+    toggle: toggleCellularBug,
+    isRunning: isCellularBugRunning
+  });
 
   syncControlsFromState();
+  syncTransportUi();
   if (notesSection && typeof notesSection.sync === "function") {
     notesSection.sync();
   }
 
   doGenerate(true);
+  renderCanvas();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastTimestamp = performance.now();
     animFrameId = requestAnimationFrame(animationTick);
   }
@@ -1163,10 +1215,12 @@ export function activateCellularBugModel() {
  */
 export function deactivateCellularBugModel() {
   stopCellularBug();
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
+  setModelStepHandler(null);
+  setModelTransportHandler(null);
   setModelGenerator(null);
   setModelRandomizer(null);
 }

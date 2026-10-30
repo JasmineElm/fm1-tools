@@ -804,7 +804,9 @@ function animLoop(timestamp) {
   const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
   lastFrameTime = timestamp;
 
-  stepBilliardsSimulation(dt);
+  if (isBilliardsPlaying) {
+    stepBilliardsSimulation(dt);
+  }
   renderBilliardsCanvas();
 
   animFrameId = requestAnimationFrame(animLoop);
@@ -1121,6 +1123,7 @@ export function initBilliards() {
 }
 
 export function activateBilliardsModel() {
+  stopBilliards();
   setModelGenerator(generateBilliardsBank);
   setModelRandomizer(randomizeBilliards);
   setModelTransportHandler({

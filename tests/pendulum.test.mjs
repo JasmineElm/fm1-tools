@@ -92,7 +92,13 @@ test("randomizePendulum updates parameters and registers as model randomizer", (
   const rnd = getCurrentModelRandomizer();
   assert.equal(typeof rnd, "function");
 
+  state.pendulumSectors = new Array(NUM_SECTORS).fill(1);
   randomizePendulum();
+  const sectors = getSectors();
+  assert.equal(sectors.length, NUM_SECTORS);
+  const activeCount = sectors.reduce((sum, v) => sum + (v ? 1 : 0), 0);
+  assert.ok(activeCount >= 6 && activeCount <= NUM_SECTORS - 6, "randomizePendulum should randomize active radial sectors");
+  assert.ok(Array.isArray(state.pendulumSectorNotes) && state.pendulumSectorNotes.length === NUM_SECTORS);
   deactivatePendulumModel();
   assert.equal(getCurrentModelRandomizer(), null);
 });
