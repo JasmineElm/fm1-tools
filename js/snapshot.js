@@ -78,6 +78,7 @@ const PREFIX = {
   billiards: /^billiards[A-Z]/,
   nodal_graph: /^nodalGraph[A-Z]/,
   shift_register_2d: /^sr2d[A-Z]/,
+  cellular_bug: /^cbug[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

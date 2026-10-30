@@ -10,9 +10,9 @@ Browser-based generative MIDI workstation for the **M-VAVE FM-1** (6-operator FM
 
 FM-1 Pulses generates evolving musical phrases, continuous physical simulations, and polyphonic generative textures in real time for the M-VAVE FM-1 over MIDI, paired with a built-in browser FM synthesizer for cable-free auditioning. Sessions can be saved and restored deterministically (see **Session files** below).
 
-### Sequencer Models (32 Engines)
+### Sequencer Models (33 Engines)
 
-FM-1 Pulses includes **32 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
+FM-1 Pulses includes **33 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
 
 #### Classic Modular & Shift-Register Generators
 - **Mene311 (Stochastic)**: An analog-inspired generative signal chain combining Sample & Hold, continuous LFO waveshaping, Gaussian distribution weighting, scale quantization, and a looping Deja-Vu buffer.
@@ -27,6 +27,7 @@ FM-1 Pulses includes **32 algorithmic, physical, biological, and stochastic sequ
 - **Percolation Clusters**: 2D fluid porosity and electrical conduction lattice using Disjoint Set Union (DSU). As site occupancy crosses the critical phase threshold (`p_c ≈ 0.5927`), conduction pulses sweep through spanning clusters.
 - **DLA Dendritic Crystal**: Witten-Sander Diffusion-Limited Aggregation engine where Brownian walkers adhere to seed clusters, mapping radial growth and polar angles to octave spread and scale degrees.
 - **Polymer Self-Avoiding Walk**: Growing polymer chain on a 2D lattice subject to strict steric self-avoidance, discharging polyphonic folding cascades when encountering jamming traps.
+- **2D Cellular + Bug (Turmites)**: 2D Cellular Automata lattice (Conway Life, Brian's Brain, HighLife) traversed by mobile Turmites and Langton's Ants, mapping cluster density and glider collisions to staccato note bursts.
 
 #### Physics, Acoustics & Celestial Mechanics
 - **Particles**: A 2D kinetic collision engine inspired by Orca and Plinky. Autonomous directional playheads traverse an interactive surface, rebounding off boundaries and deflectors to trigger notes on collision.
@@ -124,7 +125,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 - Unknown parameters are preserved through an import/export round trip.
 - Models register hidden state (shift registers, cellular/lattice grids, particle/agent coordinates, and seeds) from their own module.
 - Files from before this format load as Mene311 v1.
-- Run `node --test tests/` for the unit test suite across all 32 models and core modules.
+- Run `node --test tests/` for the unit test suite across all 33 models and core modules.
 
 ---
 
@@ -148,7 +149,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 │   ├── modes.js              # Sequencer model & tools switcher, tag filters & modal guide
 │   ├── billiards.js          # Ballistic dynamical billiards Hamiltonian collision model
 │   ├── nodal_graph.js        # Nodal Directed Graph topological automata model
-│   ├── model_guides.js       # Contextual in-app guide content for all 32 models
+│   ├── model_guides.js       # Contextual in-app guide content for all 33 models
 │   ├── state.js              # Shared reactive application state & parameter defaults
 │   ├── poly.js               # 8-voice polyphony ceiling & voice allocation strategies
 │   ├── player.js             # Dual-clock lookahead scheduler & live note dispatch

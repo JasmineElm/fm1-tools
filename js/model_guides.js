@@ -1,6 +1,23 @@
 // js/model_guides.js — In-app guide descriptions and control specifications for all 29 sequencer models.
 
 export const MODEL_GUIDES = {
+  cellular_bug: {
+    title: "2D Cellular + Bug",
+    kicker: "Artificial Life · Turmites & Langton's Ants · Glider Collisions",
+    paragraphs: [
+      "Simulates an interactive 2D Cellular Automata substrate (Conway's Game of Life, Brian's Brain 3-state firing/refractory waves, HighLife with replicators, Seeds, and Day & Night) traversed by up to 8 autonomous Turmites and Langton's Ants. As bugs wander, they read and invert local cell states, turning and building complex highways or foraging across living colonies.",
+      "Musical notes are dispatched through scale quantization derived from polar grid radius and coordinates. Local cluster density dictates note velocity, turning quiet empty spaces into soft staccato piano notes and dense glider collisions into energetic fortissimo accents, all strictly capped within the 8-voice hardware polyphony manager."
+    ],
+    controls: [
+      { name: "PRESET", desc: "Selects curated artificial life regimes (Langton Highway, Brian's Acid Brain, Glider Clash, Spiral Turmite, Chaotic Swarm)." },
+      { name: "CA RULE", desc: "2D Cellular Automaton evolution rule (Conway Life, Brian's Brain 3-state, HighLife, Seeds, Day & Night)." },
+      { name: "BUG RULE", desc: "Turmite / Ant kinematic FSM rule (Langton Ant, Highway Builder, Spiral Turmite, Cluster Forager, Chaotic Wanderer)." },
+      { name: "TRIGGER", desc: "Condition for dispatching scale notes (On Live Cell, On Bug Turn/Deflect, On Cluster Hit rho >= 3, or Every Step)." },
+      { name: "BUGS", desc: "Number of concurrent Turmite voices (1 to 8), dynamically managed by the 8-voice FIFO stealing ceiling." },
+      { name: "RATE", desc: "Subdivision rate divider for CA grid generation advances relative to bug movement." },
+      { name: "CANVAS", desc: "Interactive 32x32 cellular canvas. Click/drag to paint living cells, or Shift/right-click to erase cells in real time." }
+    ]
+  },
   shift_register_2d: {
     title: "2D Shift Register",
     kicker: "Toroidal Bit Matrix · Orthogonal Clocks · Galois Feedback Logic",
