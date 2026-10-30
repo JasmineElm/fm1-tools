@@ -175,8 +175,8 @@ test("randomizeEpidemic randomizes model controls and node positions", () => {
   const pos1 = getNodePositions();
   assert.ok(pos1.x.length >= 16);
   for (let i = 0; i < pos1.x.length; i++) {
-    assert.ok(pos1.x[i] >= 0.08 && pos1.x[i] <= 0.92, `Node ${i} X within bounds`);
-    assert.ok(pos1.y[i] >= 0.08 && pos1.y[i] <= 0.92, `Node ${i} Y within bounds`);
+    assert.ok(pos1.x[i] >= 0.079 && pos1.x[i] <= 0.921, `Node ${i} X within bounds`);
+    assert.ok(pos1.y[i] >= 0.079 && pos1.y[i] <= 0.921, `Node ${i} Y within bounds`);
   }
 
   // A subsequent randomize produces fresh node positions

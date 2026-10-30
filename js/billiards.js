@@ -138,6 +138,7 @@ let ctx = null;
 let presetSelectEl = null;
 let ballsCountBadge = null;
 let hudElement = null;
+let notesSection = null;
 
 export function isBilliardsRunning() {
   return isBilliardsPlaying;
@@ -590,6 +591,7 @@ function syncControlsFromState() {
   if (refs.billiardsSpeed?.setValue) refs.billiardsSpeed.setValue(state.billiardsSpeed, false);
   if (refs.billiardsSpin?.setValue) refs.billiardsSpin.setValue(state.billiardsSpin, false);
   if (refs.billiardsOctave?.setValue) refs.billiardsOctave.setValue(state.billiardsOctave, false);
+  if (notesSection?.sync) notesSection.sync();
 }
 
 function updateHud() {
@@ -993,7 +995,7 @@ export function initBilliards() {
   paramCard.append(paramGrid, btnRow);
 
   // Notes div: Shared pitch quantizer and 8-voice polyphony controls
-  const notesSection = createNotesSection({
+  notesSection = createNotesSection({
     id: "billiards-notes",
     title: "Harmonics & Pitch",
     showSpan: true,
@@ -1005,9 +1007,17 @@ export function initBilliards() {
       renderBilliardsCanvas();
     }
   });
-  notesSection.style.marginTop = "8px";
-
-  module.append(headerCard, paramCard, notesSection);
+  if (notesSection?.sectEl) {
+    notesSection.sectEl.classList.add("card");
+    notesSection.sectEl.style.padding = "8px 12px";
+    notesSection.sectEl.style.marginTop = "8px";
+    module.append(headerCard, paramCard, notesSection.sectEl);
+  } else if (notesSection && typeof notesSection === "object" && notesSection.style) {
+    notesSection.style.marginTop = "8px";
+    module.append(headerCard, paramCard, notesSection);
+  } else {
+    module.append(headerCard, paramCard);
+  }
 
   // --- Right Column: Interactive Billiards Canvas ---
   const canvasPanel = document.createElement("div");
