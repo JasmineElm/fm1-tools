@@ -333,11 +333,7 @@ function getGridH() {
 
 // ---- Voice Allocation & Audio Dispatch (Strict <= 8 Voices via js/poly.js) ----
 function playPercolationVoice(voiceKey, note, vel, durMs) {
-  playVoice(voiceKey, note, vel, durMs);
-}
-
-function releaseAllVoices() {
-  releasePolyVoices();
+  playVoice(`perc_${voiceKey}`, note, vel, durMs);
 }
 
 // ---- Pitch Mapping Calculation ----
@@ -632,7 +628,11 @@ function percolationLoop(timestamp) {
   renderPercolationCanvas();
   updateReadoutMetrics();
 
-  animFrameId = requestAnimationFrame(percolationLoop);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(percolationLoop);
+  } else {
+    animFrameId = null;
+  }
 }
 
 export function isPercolationRunning() {
@@ -644,14 +644,12 @@ export function startPercolation() {
   isPercolationPlaying = true;
   audio.unlock();
   scanAccumulator = 1.0;
-  updatePlayBtnUI();
   status("Percolation Clusters: Playing · Fluid Porosity Conduction", "ok");
 }
 
 export function stopPercolation() {
   isPercolationPlaying = false;
-  releaseAllVoices();
-  updatePlayBtnUI();
+  releasePolyVoices();
   status("stopped");
 }
 
@@ -662,18 +660,6 @@ export function togglePercolationRunning() {
   } else {
     startPercolation();
     return true;
-  }
-}
-
-function updatePlayBtnUI() {
-  const headerBtn = document.getElementById("audition");
-  if (headerBtn) {
-    headerBtn.textContent = isPercolationPlaying ? "■ Stop" : "▶ Play";
-    if (isPercolationPlaying) {
-      headerBtn.classList.add("playing");
-    } else {
-      headerBtn.classList.remove("playing");
-    }
   }
 }
 
@@ -1200,7 +1186,12 @@ export function initPercolation() {
 export function activatePercolationModel() {
   setModelGenerator(generatePercolationBank);
   setModelRandomizer(randomizePercolation);
-  setModelStepHandler(null);
+  setModelStepHandler((stepIdx) => {
+    if (stepIdx != null) {
+      triggerConductionStep();
+      renderPercolationCanvas();
+    }
+  });
   setModelTransportHandler({
     toggle: togglePercolationRunning,
     stop: stopPercolation,
@@ -1211,12 +1202,11 @@ export function activatePercolationModel() {
   doGenerate(false);
   renderPercolationCanvas();
 
-  if (!animFrameId) {
-    lastFrameTime = performance.now();
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
+    lastFrameTime = typeof performance !== "undefined" && performance.now ? performance.now() : 0;
     animFrameId = requestAnimationFrame(percolationLoop);
   }
 
-  updatePlayBtnUI();
   status("Percolation Clusters: Ready (Press Play or Spacebar to start conduction)", "ok");
 }
 
@@ -1230,7 +1220,9 @@ export function deactivatePercolationModel() {
   releasePolyVoices();
 
   if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(animFrameId);
+    }
     animFrameId = null;
   }
 }

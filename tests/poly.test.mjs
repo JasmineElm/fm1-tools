@@ -5,7 +5,8 @@ import { state } from "../js/state.js";
 import {
   selectPolyVoices, POLY_STRATEGIES, MAX_HARDWARE_VOICES,
   recordAndCheckSafeNote, resetSafeNoteHistory,
-  SAFE_WINDOW_MS, SAFE_MAX_NOTES
+  SAFE_WINDOW_MS, SAFE_MAX_NOTES,
+  playVoice, releasePolyVoices, getActiveVoiceCount
 } from "../js/poly.js";
 
 test("selectPolyVoices returns all candidates when count <= maxVoices", () => {
@@ -105,5 +106,30 @@ test("Safe Mode rate limiter allows 8 notes per 500ms and drops subsequent notes
   // Reset state
   state.safeMode = false;
   resetSafeNoteHistory();
+});
+
+test("playVoice properly parses numeric voice slots and does not treat duration as timestamp", () => {
+  state.safeMode = false;
+  resetSafeNoteHistory();
+  releasePolyVoices();
+
+  // Call playVoice with numeric slot 0, note 64, vel 100, durMs 180
+  playVoice(0, 64, 100, 180);
+  assert.equal(getActiveVoiceCount(), 1);
+
+  // Calling with numeric slot 1, note 67, vel 90, durMs 180
+  playVoice(1, 67, 90, 180);
+  assert.equal(getActiveVoiceCount(), 2);
+
+  // Calling with prefixed string slot
+  playVoice("perc_2", 72, 85, 200);
+  assert.equal(getActiveVoiceCount(), 3);
+
+  // Re-triggering slot 0 terminates old voice and reuses slot 0 without exceeding polyphony
+  playVoice(0, 65, 105, 180);
+  assert.equal(getActiveVoiceCount(), 3);
+
+  releasePolyVoices();
+  assert.equal(getActiveVoiceCount(), 0);
 });
 

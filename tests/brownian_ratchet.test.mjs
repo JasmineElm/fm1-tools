@@ -65,9 +65,14 @@ import {
   startBrownianRatchet,
   stopBrownianRatchet,
   toggleBrownianRatchetRunning,
-  isBrownianRatchetRunning
+  isBrownianRatchetRunning,
+  randomizeBrownianRatchet,
+  activateBrownianRatchetModel,
+  deactivateBrownianRatchetModel,
+  initBrownianRatchet
 } from "../js/brownian_ratchet.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 
 test("RATCHET_PRESETS contains required thermodynamic operating regimes", () => {
   assert.equal(RATCHET_PRESETS.length, 5);
@@ -219,3 +224,16 @@ test("Transport start/stop/toggle controls", () => {
   assert.equal(isBrownianRatchetRunning(), true);
   stopBrownianRatchet();
 });
+
+test("randomizeBrownianRatchet updates parameters and registers as model randomizer", () => {
+  activateBrownianRatchetModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  randomizeBrownianRatchet();
+  assert.equal(NUM_GAS_MOLECULES, 48);
+
+  deactivateBrownianRatchetModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+

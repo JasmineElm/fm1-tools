@@ -355,7 +355,7 @@ export function startPendulum() {
     btn.textContent = "■ Stop";
     btn.classList.add("playing");
   }
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(stepPendulumLoop);
   }
   status("Pendulum simulation running — gates triggered by angle", "ok");
@@ -539,7 +539,9 @@ function stepPendulumLoop() {
   }
 
   renderCanvas();
-  animFrameId = requestAnimationFrame(stepPendulumLoop);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(stepPendulumLoop);
+  }
 }
 
 // ---- Canvas Rendering & Direct Manipulation ----
@@ -1002,7 +1004,7 @@ export function activatePendulumModel() {
   updateSectorUI();
   setTimeout(resizeCanvas, 20);
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(stepPendulumLoop);
   }
   status("Double Pendulum Engine: Ready (Press Play to swing pendulum)", "ok");
@@ -1010,7 +1012,7 @@ export function activatePendulumModel() {
 
 export function deactivatePendulumModel() {
   stopPendulum();
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

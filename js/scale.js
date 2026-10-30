@@ -590,7 +590,7 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
     if (refs[polyStrategyKey]?.setValue) refs[polyStrategyKey].setValue(state[polyStrategyKey] || "extrema", false);
   }
 
-  return {
+  const sectionObj = {
     sectEl,
     rootNoteCtrl: picker.rootNoteCtrl,
     rootOctCtrl: picker.rootOctCtrl,
@@ -602,6 +602,71 @@ export function createNotesSection(optionsOrPrefix = {}, maybeOnChange) {
     octaveModeCtrl,
     polyCtrl,
     polyStratCtrl,
-    sync
+    sync,
+    onChange
   };
+  activeNotesSections.add(sectionObj);
+  return sectionObj;
+}
+
+const activeNotesSections = new Set();
+
+export function syncAllNotesSections() {
+  for (const s of activeNotesSections) {
+    if (typeof s.sync === "function") s.sync();
+  }
+}
+
+export function randomizeNotes(opts = {}) {
+  const scaleKey = opts.scaleKey || "scale";
+  const customScaleKey = opts.customScaleKey || "customScale";
+  const rootKey = opts.rootKey || "root";
+  const rootNoteKey = opts.rootNoteKey || "rootNote";
+  const rootOctaveKey = opts.rootOctaveKey || "rootOctave";
+  const pitchSpanKey = opts.pitchSpanKey || "pitchSpan";
+  const quantKey = opts.quantKey || "quantSteps";
+  const octaveKey = opts.octaveKey || "octave";
+  const octaveModeKey = opts.octaveModeKey || "octaveMode";
+  const polyphonyKey = opts.polyphonyKey || "polyphony";
+  const polyStrategyKey = opts.polyStrategyKey || "polyStrategy";
+
+  const scaleNames = Object.keys(SCALE_LABELS).filter(k => k !== "custom");
+  const rndScale = scaleNames[Math.floor(Math.random() * scaleNames.length)];
+  const rndRootNote = Math.floor(Math.random() * 12);
+  const rndRootOctave = 2 + Math.floor(Math.random() * 3); // Octaves 2, 3, or 4
+  const rndRoot = (rndRootOctave + 1) * 12 + rndRootNote;
+  const rndPitchSpan = 1 + Math.floor(Math.random() * 4); // 1 to 4 octaves
+  const rndQuant = 50 + Math.floor(Math.random() * 51); // 50% to 100%
+  const rndOctave = Math.floor(Math.random() * 101); // 0% to 100%
+  const rndOctaveMode = ["up", "down", "both"][Math.floor(Math.random() * 3)];
+  const rndPoly = Math.min(8, Math.max(1, 2 + Math.floor(Math.random() * 7))); // 2 to 8
+  const rndStrat = POLY_STRATEGIES[Math.floor(Math.random() * POLY_STRATEGIES.length)]?.id || "extrema";
+
+  state[scaleKey] = rndScale;
+  state[rootNoteKey] = rndRootNote;
+  state[rootOctaveKey] = rndRootOctave;
+  state[rootKey] = rndRoot;
+  state[pitchSpanKey] = rndPitchSpan;
+  state[quantKey] = rndQuant;
+  state[octaveKey] = rndOctave;
+  state[octaveModeKey] = rndOctaveMode;
+  state[polyphonyKey] = rndPoly;
+  state[polyStrategyKey] = rndStrat;
+
+  // Sync active UI sections
+  for (const s of activeNotesSections) {
+    if (typeof s.sync === "function") s.sync();
+    if (typeof s.onChange === "function") s.onChange();
+  }
+
+  // Update registered refs directly for headless/unmounted compatibility
+  if (refs[scaleKey]?.setValue) refs[scaleKey].setValue(rndScale, false);
+  if (refs[rootNoteKey]?.setValue) refs[rootNoteKey].setValue(String(rndRootNote), false);
+  if (refs[rootOctaveKey]?.setValue) refs[rootOctaveKey].setValue(String(rndRootOctave), false);
+  if (refs[pitchSpanKey]?.setValue) refs[pitchSpanKey].setValue(String(rndPitchSpan), false);
+  if (refs[quantKey]?.setValue) refs[quantKey].setValue(rndQuant, false);
+  if (refs[octaveKey]?.setValue) refs[octaveKey].setValue(rndOctave, false);
+  if (refs[octaveModeKey]?.setValue) refs[octaveModeKey].setValue(rndOctaveMode, false);
+  if (refs[polyphonyKey]?.setValue) refs[polyphonyKey].setValue(rndPoly, false);
+  if (refs[polyStrategyKey]?.setValue) refs[polyStrategyKey].setValue(rndStrat, false);
 }

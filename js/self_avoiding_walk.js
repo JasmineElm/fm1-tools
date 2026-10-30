@@ -26,7 +26,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -368,7 +368,7 @@ export function stepMonomer() {
   const normRg = Math.min(1.0, radiusOfGyration / Math.max(1.0, maxRg));
   const targetCc = Math.round(35 + normRg * 85);
   smoothedCcVal = Math.round(smoothedCcVal * 0.88 + targetCc * 0.12);
-  dispatchTimbreCc(smoothedCcVal);
+  // Update radius of gyration telemetry
 
   return { stepped: true, jammed: false, x: nextX, y: nextY, note: rawNote };
 }
@@ -377,7 +377,7 @@ export function stepMonomer() {
  * Numerically advance the simulation over dt seconds.
  */
 export function stepSimulation(dt = 0.016) {
-  const speedHz = Math.max(1, Math.min(24, Math.round(state.sawSpeed ?? 8)));
+  const speedHz = Math.max(1, Math.min(24, Math.round((state.sawSpeed ?? 8) * (state.modelSpeed ?? 1.0))));
   const stepInterval = 1.0 / speedHz;
 
   stepTimerAcc += dt;
@@ -655,7 +655,9 @@ function animLoop(timestamp) {
   }
 
   renderCanvas();
-  animFrameId = requestAnimationFrame(animLoop);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(animLoop);
+  }
 }
 
 export function startSelfAvoidingWalk() {
@@ -850,8 +852,13 @@ export function initSelfAvoidingWalk() {
     status("Lattice cleared and reseeded at center");
   }, "Reset polymer chain to origin");
 
+  const btnRandomize = actionBtn("Randomize", () => {
+    randomizeSelfAvoidingWalk();
+  }, "Randomize polymer conformation parameters");
+
   actionGroup.appendChild(btnFold);
   actionGroup.appendChild(btnClear);
+  actionGroup.appendChild(btnRandomize);
 
   sectPitch.appendChild(rowOctave);
   sectPitch.appendChild(actionGroup);
@@ -877,7 +884,7 @@ export function initSelfAvoidingWalk() {
   });
 
   // Start rendering loop
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animLoop);
   }
 }
@@ -885,7 +892,7 @@ export function initSelfAvoidingWalk() {
 /**
  * Refresh UI control widgets when state values update.
  */
-function syncControls() {
+export function syncControls() {
   if (refs.sawPreset) refs.sawPreset.setValue(state.sawPreset);
   if (refs.sawSpeed) refs.sawSpeed.setValue(state.sawSpeed);
   if (refs.sawMaxLen) refs.sawMaxLen.setValue(state.sawMaxLen);
@@ -895,9 +902,25 @@ function syncControls() {
   if (refs.sawOctave) refs.sawOctave.setValue(state.sawOctave);
 }
 
+export function randomizeSelfAvoidingWalk() {
+  const preset = SAW_PRESETS[Math.floor(Math.random() * SAW_PRESETS.length)];
+  state.sawPreset = preset.id;
+  state.sawSpeed = Math.floor(Math.random() * 16) + 4;
+  state.sawMaxLen = Math.floor(Math.random() * 24) * 4 + 32;
+  state.sawBias = Math.round((Math.random() * 0.8) * 100) / 100;
+  state.sawSubgrid = Math.floor(Math.random() * 8) * 2 + 16;
+  state.sawCascadeVoices = Math.floor(Math.random() * 6) + 3;
+  state.sawOctave = Math.floor(Math.random() * 3) - 1;
+  resetChain();
+  syncControls();
+  renderCanvas();
+  status(`Self-Avoiding Walk randomized: Preset=${preset.name}, MaxLen=${state.sawMaxLen}, Bias=${state.sawBias}`);
+}
+
 export function activateSelfAvoidingWalkModel() {
   if (container) container.style.display = "block";
   stopSelfAvoidingWalk();
+  setModelRandomizer(randomizeSelfAvoidingWalk);
   setModelTransportHandler({
     start: startSelfAvoidingWalk,
     stop: stopSelfAvoidingWalk,
@@ -905,7 +928,7 @@ export function activateSelfAvoidingWalkModel() {
     isRunning: isSelfAvoidingWalkRunning
   });
   renderCanvas();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(animLoop);
   }
@@ -913,9 +936,10 @@ export function activateSelfAvoidingWalkModel() {
 
 export function deactivateSelfAvoidingWalkModel() {
   stopSelfAvoidingWalk();
+  setModelRandomizer(null);
   setModelTransportHandler(null);
   if (container) container.style.display = "none";
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

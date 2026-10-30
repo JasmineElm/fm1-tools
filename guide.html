@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#12101a">
-<title>FM-1 Pulses — guide</title>
+<title>FM-1 Pulses — Architecture &amp; Generic Controls Guide</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css?v=1">
 <link rel="stylesheet" href="css/rack.css?v=1">
 <style>
   body { padding: 12px; }
-  .wrap { max-width: 760px; margin: 0 auto; }
+  .wrap { max-width: 780px; margin: 0 auto; }
   .top {
     display: flex; align-items: baseline; gap: 10px; padding: 0 2px 8px;
     border-bottom: 1px solid var(--line); margin-bottom: 12px;
@@ -18,24 +18,26 @@
   .top h1 { font-size: 18px; margin: 0; letter-spacing: 3.6px; font-weight: 700; color: var(--fg); }
   .top h1 b { color: var(--accent); }
   .top .sub { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); margin-left: auto; }
-  .intro { color: var(--dim); max-width: 62ch; margin: 0 0 6px; font-size: 13px; line-height: 1.45; }
-  h2 { font-size: 9px; letter-spacing: 2.2px; text-transform: uppercase; color: var(--dim); font-weight: 700; margin: 18px 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+  .intro { color: var(--dim); max-width: 66ch; margin: 0 0 10px; font-size: 13px; line-height: 1.45; }
+  h2 { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); font-weight: 700; margin: 20px 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
   .param {
-    border-radius: 3px; background-color: rgba(0,0,0,.07);
-    box-shadow: inset 0 0 0 1px var(--line);
-    padding: 8px 10px; margin: 6px 0;
+    border-radius: 4px; background-color: var(--panel);
+    border: 1px solid var(--line);
+    padding: 10px 12px; margin: 8px 0;
   }
-  .param h3 { margin: 0 0 3px; font-size: 12px; letter-spacing: .4px; color: var(--fg); }
+  .param h3 { margin: 0 0 4px; font-size: 12.5px; letter-spacing: .4px; color: var(--fg); }
   .param h3 .kind { color: var(--accent); font-weight: 700; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; margin-left: 8px; }
-  .param p { margin: 0; font-size: 12.5px; color: var(--fg); opacity: .9; line-height: 1.4; }
+  .param p { margin: 0 0 6px; font-size: 12px; color: var(--fg); opacity: .9; line-height: 1.45; }
+  .param p:last-child { margin-bottom: 0; }
   .note {
-    border-radius: 3px; box-shadow: inset 0 0 0 1px var(--line);
+    border-radius: 4px; border: 1px solid var(--line);
     border-left: 3px solid var(--accent);
-    padding: 9px 12px; margin: 10px 0; font-size: 12.5px; background-color: rgba(0,0,0,.07);
+    padding: 10px 14px; margin: 12px 0; font-size: 12px; background-color: var(--panel);
+    line-height: 1.5;
   }
   .note p { margin: 0 0 4px; }
   .note p:last-child { margin-bottom: 0; }
-  code { color: var(--accent); }
+  code { color: var(--accent); background: var(--panel2); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
   a.back { color: var(--dim); text-decoration: none; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
   a.back:hover { color: var(--accent); }
 </style>
@@ -45,84 +47,90 @@
 
   <div class="top">
     <h1>FM-1 <b>PULSES</b></h1>
-    <span class="sub">guide</span>
+    <span class="sub">workstation guide</span>
   </div>
-  <p class="intro">High-level guide to the FM-1 Pulses generative workstation: select an algorithmic sequencer model, shape musical phrases, and play them live to the M-VAVE FM-1 over MIDI. <a class="back" href="index.html">← back to panel</a></p>
+  <p class="intro">Master architectural guide for the FM-1 Pulses generative workstation: shared sequencer controls, scale quantization, device sound design tools, and MIDI integration. <a class="back" href="index.html">← back to panel</a></p>
 
-  <h2>Workflow</h2>
   <div class="note">
-    <p><b>1. Select Model:</b> Choose an engine from the landing hub (or click <code>‹ models</code> in the status bar).</p>
-    <p><b>2. Connect Device:</b> Plug the FM-1 in via USB. The status LED turns green when Web MIDI connects.</p>
-    <p><b>3. Shape &amp; Audition:</b> Tweak parameters or press <b>Randomise</b> (<code>R</code> / <code>G</code>). Click <b>▶ Play</b> (<code>Space</code>) to audition through the browser synth and FM-1.</p>
-    <p><b>4. Save &amp; Recall:</b> Press <b>export</b> to download a versioned <code>.fm1p.json</code> session (model, parameters, seed and any model buffers such as Turing bits or Cellular grids). <b>import</b> restores it in any browser, switching to the model it was saved from. The five preset slots keep sessions in the browser, separately for each model.</p>
+    <p><b>Model-Specific Guides:</b> Every one of the 29 generative and physical sequencer models includes a dedicated in-app guide. Click the <code>guide</code> button in the <b>Global</b> bar inside any sequencer to open its full mathematical overview, voice behavior description, and control breakdown.</p>
   </div>
 
-  <h2>Sequencer Models</h2>
+  <h2>Generic Sequencer Controls (Shared Architecture)</h2>
+
   <div class="param">
-    <h3>Mene311 <span class="kind">Stochastic S&amp;H</span></h3>
-    <p>Analog-inspired generative signal chain. Gate probability triggers Sample &amp; Hold and continuous LFO waveshaping, shaped through Gaussian distributions, quantized across musical scales, and repeated via a looping Deja-Vu buffer.</p>
-  </div>
-  <div class="param">
-    <h3>Turing Machine <span class="kind">Shift Register</span></h3>
-    <p>Probabilistic melody generator inspired by Music Thing Modular. A circulating loop of bits slips and mutates according to write probability, shifting between locked loops and evolving melodic drift.</p>
-  </div>
-  <div class="param">
-    <h3>Cellular Automata <span class="kind">Wolfram 1D Rules</span></h3>
-    <p>Step matrix driven by 1D elementary cellular automata (Rules 30, 90, 110, 150). Contours evolve across successive generations through local neighbor interactions, yielding organic self-similar patterns.</p>
-  </div>
-  <div class="param">
-    <h3>Particles <span class="kind">Kinetic Collision Grid</span></h3>
-    <p>2D multi-head particle simulator inspired by Orca and Plinky. Autonomous playheads traverse an interactive grid, rebounding off boundaries and deflectors. Note events trigger on collision (deflect, bounce, spawn, or annihilate).</p>
+    <h3>Global Div &amp; Master Transport <span class="kind">Global Bar</span></h3>
+    <p><b>▶ Play / ■ Stop (Spacebar):</b> Loops the sequence for live performance, transmitting real-time MIDI note events to connected hardware and triggering the internal browser audition synthesizer.</p>
+    <p><b>🔇 Mute (M):</b> Toggles the browser Web Audio synthesizer auditioning on or off (starts muted to avoid unexpected output).</p>
+    <p><b>Safe: Off / On:</b> Safety note rate limiter capping maximum note transmission to at most 8 notes per 500ms, protecting the M-VAVE FM-1 hardware microcontroller queue from buffer overflow.</p>
+    <p><b>Preset Slots (1–5):</b> Fast local browser memory slots saving and recalling complete model parameters, seeds, and lock buffers.</p>
+    <p><b>Export / Import:</b> Downloads or restores complete session states as reproducible, version-migrated <code>.fm1p.json</code> snapshot files.</p>
+    <p><b>Guide:</b> Opens the dedicated in-app documentation modal for the currently active sequencer model.</p>
+    <p><b>Tempo (BPM):</b> Master clock tempo (30–300 BPM). Automatically reads and snaps to FM-1 hardware BPM upon USB connection.</p>
+    <p><b>Speed:</b> Autonomous simulation rate multiplier (0.1× to 4.0×) for continuous-time physics and population engines.</p>
+    <p><b>Length &amp; Rate:</b> Active pattern sequence length (1–64 steps) and clock division (1/1 down to 1/64, including dotted and triplet subdivisions).</p>
+    <p><b>Gate:</b> Global note duration percentage relative to step duration.</p>
+    <p><b>Randomise (R / G):</b> Re-rolls model-specific physical parameters and seeds without disturbing global transport or pitch settings.</p>
   </div>
 
-  <h2>Shared Workstation Architecture</h2>
   <div class="param">
-    <h3>Global &amp; Transport</h3>
-    <p><b>▶ Play</b> loops the sequence for live performance and tweaking. <b>Randomise</b> rolls new seeds and parameters. <b>Tempo</b> sets playback speed; on connect and after freezing, the app reads the FM-1's hardware BPM over USB and snaps this value. <b>Length</b> (1–64 steps), <b>Note</b> rate, and <b>Gate length</b> apply across all models.</p>
-  </div>
-  <div class="param">
-    <h3>Notes &amp; Scale Quantizer</h3>
-    <p>Every model feeds into a central quantization engine. Select from 20 musical scale presets or build a custom scale using the chromatic grid. Set the <b>Root</b> tonic note, adjust <b>Quantize</b> snap intensity, and expand register using <b>Octave Span</b> and direction modes.</p>
-  </div>
-  <div class="param">
-    <h3>Rhythm &amp; 16×4 Step Grid</h3>
-    <p>Dedicated 64-step interface in four 16-step bars with live playhead tracking. Tap any step to toggle its gate. The <b>Euclid</b> engine provides instant world rhythm presets (Tresillo, Clave, Bossa Nova, etc.) and algorithmic hit/division blending, plus grid snap and rotation tools.</p>
-  </div>
-  <div class="param">
-    <h3>Groove &amp; Dynamics</h3>
-    <p><b>Humanize</b> introduces micro-timing jitter for organic feel. <b>Swing</b> delays alternate steps, featuring instant groove presets (Straight, Light, MPC, Hard, Triplet) auditioned live and written into FM-1 pattern memory. <b>Velocity</b> sets base loudness and optional randomization.</p>
-  </div>
-  <div class="param">
-    <h3>Pattern Display &amp; Step Locking</h3>
-    <p>Interactive pitch matrix for direct step editing: adjust semitones, clear steps, or lock steps. Locked steps (<code>🔓</code>) survive regeneration and randomization, serving as manual anchors while patterns evolve.</p>
+    <h3>Notes Div &amp; Scale Quantization <span class="kind">Notes Bar</span></h3>
+    <p><b>Root &amp; Octave:</b> Sets the tonic pitch (C to B) and base octave (0 to 8) for scale quantization.</p>
+    <p><b>Scale Preset &amp; Custom Grid:</b> Choose from 20 musical scale presets (Major, Minor, Dorian, Phrygian, Lydian, Mixolydian, Pentatonics, Blues, Byzantine, Whole Tone, etc.) or construct custom micro-scales via the 12-semitone chromatic toggle strip.</p>
+    <p><b>Quantize:</b> Snap intensity (0% raw pitch to 100% strict scale interval quantization).</p>
+    <p><b>Pitch Span:</b> Number of octaves (1–4) spanned by the continuous mapping engine.</p>
+    <p><b>Octave Mode:</b> Directional register expansion (Up, Down, Alternate, or Stochastic Random).</p>
+    <p><b>Polyphony Ceiling &amp; Strategy:</b> Strict hardware ceiling enforcing maximum concurrent voices (1–8) with automatic FIFO voice-stealing for M-VAVE FM-1 buffer stability. Features selectable voice allocation algorithms: <i>Extrema</i>, <i>Lowest</i>, <i>Highest</i>, <i>Spread</i>, <i>Cluster</i>, <i>Cycle</i>, and <i>Random</i>.</p>
   </div>
 
-  <h2>Tools</h2>
+  <div class="param">
+    <h3>Sequence Div &amp; Step Locking <span class="kind">Sequence Bar</span></h3>
+    <p><b>64-Step Pitch Matrix:</b> Four 16-step bars with high-contrast live playhead ring indicators. Each cell displays its quantized note name and velocity opacity.</p>
+    <p><b>Direct Pitch Stepper:</b> Select any step and use <code>‹</code> / <code>›</code> to nudge pitch by semitones.</p>
+    <p><b>Step Clear (✕):</b> Empties a step of notes and locks it.</p>
+    <p><b>Step Locking (🔓 / 🔒):</b> Freezes manual edits. Locked steps survive sequence regeneration, model switching, and randomisation, acting as compositional anchors.</p>
+  </div>
+
+  <div class="param">
+    <h3>Rhythm Div &amp; 64-Step Gate Matrix <span class="kind">Rhythm Bar</span></h3>
+    <p><b>64-Step Gate Grid:</b> Direct toggleable buttons for every step gate in the 64-step sequence.</p>
+    <p><b>Euclidean Generator:</b> Algorithmic Euclidean hit/division engine with hit count, cycle steps, and rotation offset. Includes instant world rhythm presets (Tresillo 3:8, Cinquillo 5:8, Clave 3:2, Bossa Nova 5:16, Rumba 3:16, Shiko 4:16).</p>
+    <p><b>Rhythm Mute &amp; Invert:</b> Invert gate patterns or clear rhythmic tracks instantly.</p>
+  </div>
+
+  <div class="param">
+    <h3>Groove &amp; Velocity Dynamics <span class="kind">Groove Bar</span></h3>
+    <p><b>Humanize:</b> Introduces organic micro-timing jitter (0–100%) to prevent robotic quantization.</p>
+    <p><b>Swing:</b> Delays even-numbered alternate steps with curated groove presets (Straight, Light 54%, MPC 58%, Hard 66%, Triplet 71%).</p>
+    <p><b>Velocity &amp; Spread:</b> Sets base MIDI note velocity (1–127) and random velocity variance.</p>
+  </div>
+
+  <h2>Device Sound Design Tools</h2>
+
   <div class="param">
     <h3>DX Patch Generator <span class="kind">6-OP FM Voice &amp; Bank Design</span></h3>
-    <p>Algorithmic sound designer and SysEx patch manager for Yamaha DX7 and FM-1 hardware. Generate patches across 11 sonic categories (Keys, Bass, Pads, Leads, Bells, etc.), mutate sounds with controlled drift, edit operator ratios/levels/envelopes, audition with an internal 6-OP FM synth, and send directly to FM-1 hardware over USB MIDI or export 32-voice <code>.syx</code> banks.</p>
-  </div>
-  <div class="param">
-    <h3>Virtual Analogue (VA) <span class="kind">Subtractive VA &amp; 16-Preset Pack</span></h3>
-    <p>Subtractive Virtual Analog workbench for BaudGirl FM-1+VA firmware. Features 9 category recipes, 6 sonic profiles, interactive oscillator/filter/ADSR surfaces, real-time MIDI CC streaming, a 7-unit effects chain, and 16-preset VA pack management (slots 113–128).</p>
-  </div>
-  <div class="param">
-    <h3>Preset &amp; Pattern Librarian <span class="kind">Hardware Preset Export &amp; Pattern Sync</span></h3>
-    <p>Bidirectional hardware librarian and 64-step pattern workbench. Pull and archive all 128 presets from the FM-1 via SysEx <code>0x10</code> (exporting as 231B BaudGirl v4 <code>.syx</code>, 163B DX7 VCED, 4104B VMEM banks, or <code>.json</code>, or opening directly in the DX/VA editors). Pull all 16 64-step patterns directly from device RAM via SysEx <code>0x11</code>, edit polyphonic sequences on the interactive pitch/velocity canvas, or upload new patterns (<code>SysEx 0x20</code>) from <code>.syx</code>, <code>.mid</code>, <code>.json</code>, or the Pulses sequencer bank.</p>
+    <p>Algorithmic sound designer and SysEx patch manager for Yamaha DX7 and FM-1 hardware. Generate patches across 11 sonic categories (Keys, Bass, Pads, Leads, Bells, Brass, Strings, Percussion, FX, Complex, Experimental). Features 6 sonic profiles, timbral macros, 6-operator envelope editing, internal 6-OP Web Audio FM preview, and 32-voice cartridge bank (4104B) export and upload.</p>
   </div>
 
-  <h2>Connectivity &amp; Portability</h2>
   <div class="param">
-    <h3>USB &amp; Bluetooth MIDI</h3>
-    <p>USB MIDI provides full two-way communication: pattern freezing, device BPM sync, and live note streaming. Bluetooth (BLE) MIDI enables wireless playback auditioning (freezing and hardware reads require USB).</p>
+    <h3>Virtual Analogue (VA) Synthesizer <span class="kind">Subtractive VA &amp; 16-Preset Pack</span></h3>
+    <p>Subtractive Virtual Analog sound design workbench tailored for the BaudGirl FM-1+VA custom firmware. Features 9 category recipes, 6 sonic profiles, interactive dual oscillator, filter, and ADSR envelope surfaces, real-time MIDI CC streaming, a 7-unit effects chain, and 16-preset VA pack management (slots 113–128).</p>
   </div>
+
   <div class="param">
-    <h3>Presets &amp; Files</h3>
-    <p>Five internal memory slots (<b>save ▸</b> / <b>◂ load</b>) store workstation states in browser storage. <b>export</b> and <b>import</b> save and restore complete state as reproducible JSON files. <b>sysex</b> downloads raw <code>.syx</code> pattern files for external flashing tools.</p>
+    <h3>Preset &amp; Pattern Librarian <span class="kind">Hardware Preset Export &amp; Pattern Sync</span></h3>
+    <p>Bidirectional hardware librarian and 64-step pattern workbench. Pull and archive all 128 presets from the FM-1 via SysEx <code>0x10</code> (exporting as 231B BaudGirl v4 <code>.syx</code>, 163B DX7 VCED, 4104B VMEM banks, or <code>.json</code>). Pull all 16 64-step patterns directly from device RAM via SysEx <code>0x11</code>, edit polyphonic sequences on the interactive pitch/velocity canvas, or upload new patterns (<code>SysEx 0x20</code>) from <code>.syx</code>, <code>.mid</code>, <code>.json</code>, or Pulses banks.</p>
   </div>
+
+  <h2>Connectivity &amp; Hardware Integration</h2>
+
   <div class="param">
-    <h3>Firmware Compatibility</h3>
-    <p>Pattern freezing (SysEx <code>0x20</code>) requires the <b>FM-1+VA / Baud Girl</b> custom firmware. On stock firmware, FM-1 Pulses functions as a real-time generative MIDI performance broadcaster.</p>
+    <h3>USB &amp; Bluetooth (BLE) MIDI</h3>
+    <p>USB MIDI provides full two-way communication: pattern upload, hardware BPM synchronization, patch dumping, and real-time note broadcasting. Bluetooth (BLE) MIDI provides wireless live playback auditioning.</p>
+  </div>
+
+  <div class="param">
+    <h3>Strict 8-Voice Polyphony Ceiling</h3>
+    <p>The M-VAVE FM-1 hardware sound engine is strictly limited to 8 voices. All polyphonic models in FM-1 Pulses enforce a voice allocation manager with FIFO note-stealing, ensuring zero dropped notes, CPU overruns, or hardware glitches.</p>
   </div>
 
 </div>

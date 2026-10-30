@@ -136,25 +136,18 @@ export function playVoice(voiceSlotOrNote, noteOrVel = 90, velOrDur = 90, maybeD
 
   if (typeof maybeDur === "number" && (typeof maybeTimestamp === "number" && maybeTimestamp > 0)) {
     // 5 arguments: (slot, note, vel, durMs, timestamp)
-    slot = voiceSlotOrNote;
+    slot = String(voiceSlotOrNote);
     note = noteOrVel;
     vel = velOrDur;
     durMs = maybeDur;
     timestamp = maybeTimestamp;
   } else if (maybeDur !== undefined) {
-    if (typeof voiceSlotOrNote === "string") {
-      slot = voiceSlotOrNote;
-      note = noteOrVel;
-      vel = velOrDur;
-      durMs = maybeDur;
-      timestamp = typeof maybeTimestamp === "number" ? maybeTimestamp : 0;
-    } else {
-      slot = `auto_${(autoVoiceCounter++) % MAX_HARDWARE_VOICES}`;
-      note = voiceSlotOrNote;
-      vel = noteOrVel;
-      durMs = velOrDur;
-      timestamp = typeof maybeDur === "number" ? maybeDur : 0;
-    }
+    // 4 arguments: (slot, note, vel, durMs)
+    slot = String(voiceSlotOrNote);
+    note = noteOrVel;
+    vel = velOrDur;
+    durMs = maybeDur;
+    timestamp = typeof maybeTimestamp === "number" ? maybeTimestamp : 0;
   } else if (typeof voiceSlotOrNote === "string") {
     // Named voice slot: ("lead", note, vel)
     slot = voiceSlotOrNote;

@@ -31,7 +31,7 @@ import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
-  computeOctaveShift, quantize
+  computeOctaveShift, quantize, randomizeNotes
 } from "./scale.js?v=1";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
@@ -77,7 +77,8 @@ export const PHYSARUM_PRESETS = [
   { id: "pentagon", name: "Steiner Pentagon", desc: "Symmetrical 5-node star forming Steiner minimal tree highways" },
   { id: "bipartite", name: "Bipartite Bridge", desc: "Two separated nutrient clusters connected by an exploratory isthmus" },
   { id: "hex_hub", name: "Hexagonal Ring", desc: "6 peripheral satellite nodes with a central coordination hub" },
-  { id: "spiral", name: "Golden Phyllotaxis", desc: "8 nutrient oats arranged along a logarithmic Fibonacci spiral" }
+  { id: "spiral", name: "Golden Phyllotaxis", desc: "8 nutrient oats arranged along a logarithmic Fibonacci spiral" },
+  { id: "random", name: "Random Scatter", desc: "Stochastically placed nutrient oat nodes dispersed across the petri dish" }
 ];
 
 // Runtime State
@@ -95,6 +96,71 @@ let ctx = null;
 let dragNodeIdx = -1;
 
 /**
+ * Randomize Food Node positions with minimum spatial distance dispersion.
+ */
+export function randomizeFoodNodePositions(count = null) {
+  const numNodes = count !== null ? Math.min(MAX_FOOD, Math.max(1, count)) : (3 + Math.floor(Math.random() * 6)); // 3 to 8 nodes
+
+  const minDist = 12;
+  const positions = [];
+
+  for (let i = 0; i < numNodes; i++) {
+    let bestX = Math.round(8 + Math.random() * (GRID_W - 16));
+    let bestY = Math.round(8 + Math.random() * (GRID_H - 16));
+    let maxDistToOthers = -1;
+
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const candX = Math.round(8 + Math.random() * (GRID_W - 16));
+      const candY = Math.round(8 + Math.random() * (GRID_H - 16));
+
+      if (positions.length === 0) {
+        bestX = candX;
+        bestY = candY;
+        break;
+      }
+
+      let closest = Infinity;
+      for (const p of positions) {
+        const d = Math.hypot(p.x - candX, p.y - candY);
+        if (d < closest) closest = d;
+      }
+
+      if (closest >= minDist) {
+        bestX = candX;
+        bestY = candY;
+        break;
+      }
+
+      if (closest > maxDistToOthers) {
+        maxDistToOthers = closest;
+        bestX = candX;
+        bestY = candY;
+      }
+    }
+
+    positions.push({ x: bestX, y: bestY });
+  }
+
+  for (let i = 0; i < MAX_FOOD; i++) {
+    if (i < positions.length) {
+      foodNodes[i].active = true;
+      foodNodes[i].x = positions[i].x;
+      foodNodes[i].y = positions[i].y;
+      foodNodes[i].scaleDeg = (i * 2) % 12;
+      foodNodes[i].octave = Math.floor(i / 4);
+      foodNodes[i].flux = 0;
+      foodNodes[i].pulseAnim = 0;
+    } else {
+      foodNodes[i].active = false;
+      foodNodes[i].flux = 0;
+      foodNodes[i].pulseAnim = 0;
+    }
+  }
+
+  return positions;
+}
+
+/**
  * Initialize Food Nodes according to preset configuration.
  */
 export function initFoodPreset(presetId = state.physarumPreset || "tokyo") {
@@ -104,7 +170,9 @@ export function initFoodPreset(presetId = state.physarumPreset || "tokyo") {
     foodNodes[i].pulseAnim = 0;
   }
 
-  if (presetId === "tokyo") {
+  if (presetId === "random") {
+    randomizeFoodNodePositions();
+  } else if (presetId === "tokyo") {
     // 6 Nodes: Central Tokyo + 5 major hub stations (Shinjuku, Shibuya, Ikebukuro, Shinagawa, Ueno)
     const pts = [
       { x: 50, y: 32, deg: 0, oct: 0 },
@@ -181,9 +249,19 @@ export function initFoodPreset(presetId = state.physarumPreset || "tokyo") {
 }
 
 /**
- * Randomize chemoattractant trail field using 2D Perlin noise.
+ * Randomize chemoattractant trail field, food node positions, and notes div controls.
  */
 export function randomizePhysarum() {
+  // 1. Randomize controls in the Notes div
+  randomizeNotes();
+
+  // 2. Randomize Food Node positions
+  randomizeFoodNodePositions();
+
+  // 3. Re-seed agents around newly positioned food hubs
+  reseedAgents();
+
+  // 4. Fill organic attractant trail field with Perlin noise
   fillPerlin2D(trailField, GRID_W, GRID_H, {
     scale: 0.08,
     octaves: 3,
@@ -196,8 +274,14 @@ export function randomizePhysarum() {
     power: 1.4
   });
   diffusedField.set(trailField);
-  status("Randomised chemoattractant trail field with Perlin noise", "ok");
+
+  state.physarumPreset = "random";
+  const presetSel = document.getElementById("physarum-preset-select");
+  if (presetSel) presetSel.value = "random";
+
   if (canvas) renderCanvas();
+  doGenerate(true);
+  status("Physarum: Randomised notes controls, node positions, and trail field", "ok");
 }
 
 /**
@@ -237,12 +321,12 @@ export function sampleTrail(x, y) {
 }
 
 /**
- * Calculate pitch for a given food node.
+ * Calculate pitch for a given food node using global pitchSpan / notes octave spread.
  */
 export function getFoodNodeNote(node) {
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
-  const span = Math.min(4, Math.max(1, Number(state.physarumSpan ?? 2)));
+  const span = Math.min(4, Math.max(1, Number(state.pitchSpan ?? state.physarumSpan ?? 2)));
 
   // X coordinate maps to scale degree
   const normX = Math.max(0, Math.min(1, node.x / GRID_W));
@@ -677,27 +761,18 @@ export function startPhysarum() {
   if (isPhysarumPlaying) return;
   isPhysarumPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Physarum Network: Slime mould foraging · Transport active", "ok");
 }
 
 export function stopPhysarum() {
   isPhysarumPlaying = false;
   releasePolyVoices();
-  updatePlayBtnUI();
   status("Physarum Network: Stopped", "warn");
 }
 
 export function togglePhysarumRunning() {
   if (isPhysarumPlaying) stopPhysarum();
   else startPhysarum();
-}
-
-function updatePlayBtnUI() {
-  const btn = document.getElementById("physarum-play-btn");
-  if (!btn) return;
-  btn.textContent = isPhysarumPlaying ? "Stop" : "Play";
-  btn.className = isPhysarumPlaying ? "btn btn-err" : "btn btn-ok";
 }
 
 /**
@@ -747,16 +822,14 @@ export function initPhysarum() {
 
   container.innerHTML = `
     <div class="physarum-enclosure">
-      <!-- Top Control Bar -->
+      <!-- Top Control Bar (redundant transport, RND, and octave spread controls removed in favor of Global / Notes div) -->
       <div class="physarum-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-        <button id="physarum-play-btn" class="btn btn-ok" style="min-width: 60px;" title="Start/Stop Physarum slime mould simulation engine">Play</button>
-        <button id="physarum-rnd-btn" class="btn" title="Randomise trail field with Perlin noise">RND</button>
         <button id="physarum-reseed-btn" class="btn" title="Re-seed swarm around active food hubs">Re-Seed</button>
         <button id="physarum-clear-btn" class="btn" title="Clear all trails">Clear</button>
 
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Slime mould network topology preset (Tokyo railway network, hub, golden spiral, organic)">
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Slime mould network topology preset (Tokyo railway network, hub, golden spiral, organic, random)">
           Preset:
-          <select id="physarum-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;" title="Slime mould network topology preset (Tokyo railway network, hub, golden spiral, organic)">
+          <select id="physarum-preset-select" class="select-field" style="padding: 2px 4px; font-size: 11px;" title="Slime mould network topology preset (Tokyo railway network, hub, golden spiral, organic, random)">
             ${PHYSARUM_PRESETS.map(p => `<option value="${p.id}" ${p.id === (state.physarumPreset || "tokyo") ? "selected" : ""}>${p.name}</option>`).join("")}
           </select>
         </label>
@@ -785,11 +858,6 @@ export function initPhysarum() {
           Agents:
           <input type="range" id="physarum-agents" min="128" max="768" step="64" value="${state.physarumAgents ?? 512}" style="width: 70px;" title="Agent Swarm Population: Number of active bio-computational foraging particles (128 to 768)">
         </label>
-
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Octave Span: Pitch range across octaves mapped vertically across food oat nodes">
-          Span:
-          <input type="range" id="physarum-span" min="1" max="4" step="1" value="${state.physarumSpan ?? 2}" style="width: 50px;" title="Octave Span: Pitch range across octaves mapped vertically across food oat nodes">
-        </label>
       </div>
 
       <!-- Canvas Petri Dish -->
@@ -810,14 +878,6 @@ export function initPhysarum() {
   }
 
   // Hook button listeners
-  const playBtn = document.getElementById("physarum-play-btn");
-  if (playBtn) playBtn.addEventListener("click", togglePhysarumRunning);
-
-  const rndBtn = document.getElementById("physarum-rnd-btn");
-  if (rndBtn) rndBtn.addEventListener("click", () => {
-    randomizePhysarum();
-  });
-
   const reseedBtn = document.getElementById("physarum-reseed-btn");
   if (reseedBtn) reseedBtn.addEventListener("click", () => {
     reseedAgents();
@@ -861,7 +921,6 @@ export function initPhysarum() {
   bindSlider("physarum-sens-ang", "physarumSensorAngle");
   bindSlider("physarum-decay", "physarumDecay");
   bindSlider("physarum-thresh", "physarumThreshold");
-  bindSlider("physarum-span", "physarumSpan");
   bindSlider("physarum-agents", "physarumAgents", (val) => {
     reseedAgents(val);
   });
@@ -885,7 +944,7 @@ registerModel({
       decay: state.physarumDecay ?? 0.94,
       threshold: state.physarumThreshold ?? 18.0,
       agents: state.physarumAgents ?? 512,
-      span: state.physarumSpan ?? 2,
+      span: state.pitchSpan ?? state.physarumSpan ?? 2,
       foodNodes: foodNodes.map(n => ({
         active: n.active,
         x: n.x,
@@ -903,7 +962,11 @@ registerModel({
     if (data.decay !== undefined) setState({ physarumDecay: data.decay });
     if (data.threshold !== undefined) setState({ physarumThreshold: data.threshold });
     if (data.agents !== undefined) setState({ physarumAgents: data.agents });
-    if (data.span !== undefined) setState({ physarumSpan: data.span });
+    if (data.span !== undefined) {
+      setState({ physarumSpan: data.span });
+      state.pitchSpan = data.span;
+      if (refs.pitchSpan?.setValue) refs.pitchSpan.setValue(String(data.span), false);
+    }
 
     if (Array.isArray(data.foodNodes)) {
       for (let i = 0; i < MAX_FOOD; i++) {

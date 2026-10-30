@@ -36,6 +36,8 @@ import {
   w,
   s,
   W,
+  nodeX,
+  nodeY,
   I_bias,
   I_stim,
   activeNeuron,
@@ -49,18 +51,26 @@ import {
   startFhn,
   stopFhn,
   toggleFhnRunning,
-  isFhnRunning
+  isFhnRunning,
+  randomizeNeuronPositions,
+  getNeuronPositions,
+  randomizeFitzhughNagumo,
+  syncFhnControls,
+  activateFitzhughNagumoModel,
+  deactivateFitzhughNagumoModel
 } from "../js/fitzhugh_nagumo.js";
 import { getModelDef } from "../js/snapshot.js";
+import { state, refs, getCurrentModelRandomizer } from "../js/state.js";
 
 test("FHN_PRESETS contains required neuromorphic topology regimes", () => {
-  assert.equal(FHN_PRESETS.length, 5);
+  assert.equal(FHN_PRESETS.length, 6);
   const ids = FHN_PRESETS.map(p => p.id);
   assert.ok(ids.includes("synfire"));
   assert.ok(ids.includes("cpg"));
   assert.ok(ids.includes("bursting_hub"));
   assert.ok(ids.includes("quiescent_resonator"));
   assert.ok(ids.includes("chaotic_recurrent"));
+  assert.ok(ids.includes("random"));
 });
 
 test("initNetwork configures 8 biological neurons matching FM-1 hardware polyphony ceiling", () => {
@@ -188,3 +198,118 @@ test("fitzhugh_nagumo transport handlers toggle running state", () => {
   toggleFhnRunning();
   assert.equal(isFhnRunning(), false);
 });
+
+test("randomizeNeuronPositions distributes nodes within valid normalized bounds", () => {
+  const positions = randomizeNeuronPositions();
+  assert.equal(positions.length, MAX_NEURONS);
+
+  for (let i = 0; i < MAX_NEURONS; i++) {
+    assert.ok(nodeX[i] >= 0.12 && nodeX[i] <= 0.88, `nodeX[${i}] out of bounds: ${nodeX[i]}`);
+    assert.ok(nodeY[i] >= 0.12 && nodeY[i] <= 0.88, `nodeY[${i}] out of bounds: ${nodeY[i]}`);
+    assert.equal(positions[i].x, nodeX[i]);
+    assert.equal(positions[i].y, nodeY[i]);
+  }
+
+  const snapshotPos = getNeuronPositions();
+  assert.equal(snapshotPos.x.length, MAX_NEURONS);
+  assert.equal(snapshotPos.y.length, MAX_NEURONS);
+  for (let i = 0; i < MAX_NEURONS; i++) {
+    assert.equal(snapshotPos.x[i], nodeX[i]);
+    assert.equal(snapshotPos.y[i], nodeY[i]);
+  }
+});
+
+test("randomizeFitzhughNagumo randomizes node positions and local model controls", () => {
+  // Mock controls in refs to verify syncFhnControls
+  let updatedStim = null;
+  let updatedWeight = null;
+  let updatedRec = null;
+  let updatedNoise = null;
+  let updatedSpan = null;
+  let updatedPreset = null;
+
+  refs.fhnStimulus = { setValue: (v) => { updatedStim = v; } };
+  refs.fhnWeight = { setValue: (v) => { updatedWeight = v; } };
+  refs.fhnRecovery = { setValue: (v) => { updatedRec = v; } };
+  refs.fhnNoise = { setValue: (v) => { updatedNoise = v; } };
+  refs.fhnSpan = { setValue: (v) => { updatedSpan = v; } };
+  refs.fhnPreset = { setValue: (v) => { updatedPreset = v; } };
+
+  // Set known initial states
+  state.fhnStimulus = 1.0;
+  state.fhnWeight = 1.0;
+  state.fhnRecovery = 0.08;
+  state.fhnNoise = 0.04;
+  state.fhnSpan = 2;
+  state.pitchSpan = 2;
+  state.fhnPreset = "synfire";
+
+  const prevX = Array.from(nodeX);
+  const prevY = Array.from(nodeY);
+
+  randomizeFitzhughNagumo();
+
+  // Controls must be randomized
+  assert.ok(typeof state.fhnStimulus === "number" && state.fhnStimulus >= 0.4 && state.fhnStimulus <= 1.7);
+  assert.ok(typeof state.fhnWeight === "number" && state.fhnWeight >= 0.4 && state.fhnWeight <= 2.2);
+  assert.ok(typeof state.fhnRecovery === "number" && state.fhnRecovery >= 0.03 && state.fhnRecovery <= 0.15);
+  assert.ok(typeof state.fhnNoise === "number" && state.fhnNoise >= 0.01 && state.fhnNoise <= 0.25);
+  assert.ok(typeof state.fhnSpan === "number" && state.fhnSpan >= 1 && state.fhnSpan <= 4);
+  assert.equal(state.pitchSpan, state.fhnSpan);
+  assert.ok(FHN_PRESETS.map(p => p.id).includes(state.fhnPreset));
+
+  // Controls in refs must have been synced
+  assert.equal(updatedStim, state.fhnStimulus);
+  assert.equal(updatedWeight, state.fhnWeight);
+  assert.equal(updatedRec, state.fhnRecovery);
+  assert.equal(updatedNoise, state.fhnNoise);
+  assert.equal(updatedSpan, state.fhnSpan);
+  assert.equal(updatedPreset, state.fhnPreset);
+
+  // Node positions must be randomized within [0.12, 0.88]
+  for (let i = 0; i < MAX_NEURONS; i++) {
+    assert.ok(nodeX[i] >= 0.12 && nodeX[i] <= 0.88);
+    assert.ok(nodeY[i] >= 0.12 && nodeY[i] <= 0.88);
+  }
+
+  // Clean up refs mock
+  delete refs.fhnStimulus;
+  delete refs.fhnWeight;
+  delete refs.fhnRecovery;
+  delete refs.fhnNoise;
+  delete refs.fhnSpan;
+  delete refs.fhnPreset;
+});
+
+test("model lifecycle registers and unregisters randomizeFitzhughNagumo", () => {
+  activateFitzhughNagumoModel();
+  const currentRandomizer = getCurrentModelRandomizer();
+  assert.equal(currentRandomizer, randomizeFitzhughNagumo);
+
+  deactivateFitzhughNagumoModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+
+test("fitzhugh_nagumo local controls mirroring global ones (Play) are removed", async () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(val) { createdHtml = val; },
+    get innerHTML() { return createdHtml; }
+  };
+
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-fitzhugh_nagumo") return dummyContainer;
+    return null;
+  };
+
+  try {
+    const { initFitzhughNagumo } = await import("../js/fitzhugh_nagumo.js");
+    initFitzhughNagumo();
+    assert.ok(!createdHtml.includes('id="fhn-play-btn"'), "Local play button must be removed (Global play exists)");
+    assert.ok(createdHtml.includes('id="fhn-rnd-btn"'), "RND button present in toolbar");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+

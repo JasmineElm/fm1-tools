@@ -115,10 +115,6 @@ function playSandpileVoice(voiceId, note, vel, durMs) {
   playVoice(voiceId, note, vel, durMs);
 }
 
-function releaseAllVoices() {
-  releasePolyVoices();
-}
-
 // ---- Lattice Management & Initialization ----
 export function initSandpileGrid(presetId = state.sandpilePreset || "empty") {
   const S = Math.min(MAX_GRID_SIZE, Math.max(15, state.sandpileGridSize ?? 33));
@@ -520,7 +516,9 @@ function sandpileLoop(timestamp) {
   renderSandpileCanvas();
   updateReadoutMetrics();
 
-  animFrameId = requestAnimationFrame(sandpileLoop);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(sandpileLoop);
+  }
 }
 
 export function isSandpileRunning() {
@@ -533,16 +531,14 @@ export function startSandpile() {
   audio.unlock();
   dropAccumulator = 0;
   lastAvalancheSize = 0;
-  updatePlayBtnUI();
   status("Abelian Sandpile: Playing · Self-Organized Critical Avalanches", "ok");
 }
 
 export function stopSandpile() {
   isSandpilePlaying = false;
-  releaseAllVoices();
+  releasePolyVoices();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("stopped");
 }
 
@@ -553,18 +549,6 @@ export function toggleSandpileRunning() {
   } else {
     startSandpile();
     return true;
-  }
-}
-
-function updatePlayBtnUI() {
-  const headerBtn = document.getElementById("audition");
-  if (headerBtn) {
-    headerBtn.textContent = isSandpilePlaying ? "■ Stop" : "▶ Play";
-    if (isSandpilePlaying) {
-      headerBtn.classList.add("playing");
-    } else {
-      headerBtn.classList.remove("playing");
-    }
   }
 }
 
@@ -1184,12 +1168,11 @@ export function activateSandpileModel() {
   doGenerate(false);
   renderSandpileCanvas();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(sandpileLoop);
   }
 
-  updatePlayBtnUI();
   status("Abelian Sandpile (SOC): Ready (Press Play or Spacebar to start avalanches)", "ok");
 }
 
@@ -1202,7 +1185,7 @@ export function deactivateSandpileModel() {
 
   releasePolyVoices();
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

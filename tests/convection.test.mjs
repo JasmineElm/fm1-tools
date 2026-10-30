@@ -52,10 +52,12 @@ import {
   isConvectionRunning,
   randomizeConvection,
   activateConvectionModel,
-  deactivateConvectionModel
+  deactivateConvectionModel,
+  initConvection
 } from "../js/convection.js";
 import { getModelDef } from "../js/snapshot.js";
 import { getCurrentModelRandomizer } from "../js/state.js";
+import { toggleLive, stopLive, isLive } from "../js/player.js?v=1";
 
 test("CONVECTION_PRESETS contains required atmospheric thermodynamic regimes", () => {
   assert.equal(CONVECTION_PRESETS.length, 5);
@@ -237,3 +239,62 @@ test("global randomizer dispatch invokes randomizeConvection when convection is 
   deactivateConvectionModel();
   assert.equal(getCurrentModelRandomizer(), null);
 });
+
+test("convection local play button is removed and model uses global transport", () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(val) {
+      createdHtml = val;
+    },
+    get innerHTML() {
+      return createdHtml;
+    }
+  };
+
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-convection") return dummyContainer;
+    return null;
+  };
+
+  try {
+    initConvection();
+
+    // Verify local play button is removed from UI template
+    assert.ok(!createdHtml.includes('id="convect-play-btn"'), "Local play button must be removed (Global play exists)");
+
+    // Verify model-specific controls are preserved
+    assert.ok(createdHtml.includes('id="convect-plume-btn"'), "Inject Plume button retained");
+    assert.ok(createdHtml.includes('id="convect-rnd-btn"'), "RND button retained");
+    assert.ok(createdHtml.includes('id="convect-clear-btn"'), "Clear Clouds button retained");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+
+test("convection integrates seamlessly with global play transport", () => {
+  activateConvectionModel();
+
+  assert.equal(isLive(), false);
+  assert.equal(isConvectionRunning(), false);
+
+  // Global Play toggle
+  toggleLive();
+  assert.equal(isConvectionRunning(), true);
+  assert.equal(isLive(), true);
+
+  // Global Stop toggle
+  toggleLive();
+  assert.equal(isConvectionRunning(), false);
+  assert.equal(isLive(), false);
+
+  // Global Start then stopLive()
+  toggleLive();
+  assert.equal(isConvectionRunning(), true);
+  stopLive();
+  assert.equal(isConvectionRunning(), false);
+  assert.equal(isLive(), false);
+
+  deactivateConvectionModel();
+});
+

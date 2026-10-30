@@ -303,7 +303,7 @@ export function sampleNextState(probs) {
 export function getStateNote(stateIdx, octaveShift = 0) {
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
-  const span = Math.min(4, Math.max(1, Number(state.markovSpan ?? 2)));
+  const span = Math.min(4, Math.max(1, Number(state.pitchSpan ?? state.markovSpan ?? 2)));
 
   const numDeg = intervals.length || 7;
   const deg = stateIdx % numDeg;
@@ -638,11 +638,11 @@ export function isMarkovRunning() {
 }
 
 export function startMarkov() {
-  if (isMarkovPlaying) return;
+  if (isMarkovPlaying) return true;
   isMarkovPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Markov Matrix: Stochastic melodic walkers active", "ok");
+  return true;
 }
 
 export function stopMarkov() {
@@ -650,20 +650,58 @@ export function stopMarkov() {
   releasePolyVoices();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("Markov Matrix: Stopped", "warn");
+  return false;
 }
 
 export function toggleMarkovRunning() {
   if (isMarkovPlaying) stopMarkov();
   else startMarkov();
+  return isMarkovPlaying;
 }
 
-function updatePlayBtnUI() {
-  const btn = document.getElementById("markov-play-btn");
-  if (!btn) return;
-  btn.textContent = isMarkovPlaying ? "Stop" : "Play";
-  btn.className = isMarkovPlaying ? "btn btn-err" : "btn btn-ok";
+/**
+ * Global Randomize dispatch handler for Markov Matrix
+ */
+export function randomizeMarkovMatrix() {
+  // Randomise non-uniform, musically structured transition probabilities across 8x8 matrix
+  for (let r = 0; r < NUM_STATES; r++) {
+    const rowOffset = r * NUM_STATES;
+    const numPreferred = 2 + Math.floor(Math.random() * 3);
+    const preferred = new Set();
+    if (Math.random() < 0.75) {
+      preferred.add((r + 1) % NUM_STATES);
+    }
+    if (Math.random() < 0.5) {
+      preferred.add(0);
+    }
+    while (preferred.size < numPreferred) {
+      preferred.add(Math.floor(Math.random() * NUM_STATES));
+    }
+
+    for (let c = 0; c < NUM_STATES; c++) {
+      if (preferred.has(c)) {
+        transitionWeights[rowOffset + c] = 0.35 + Math.random() * 0.5;
+      } else {
+        transitionWeights[rowOffset + c] = 0.01 + Math.random() * 0.09;
+      }
+    }
+  }
+  normalizeTransitionMatrix();
+
+  state.markovTemp = Math.round((0.4 + Math.random() * 1.4) * 100) / 100;
+  state.markovOrder = Math.floor(1 + Math.random() * 3);
+  state.markovDrift = Math.round((Math.random() * 0.06) * 1000) / 1000;
+  state.markovWalkers = Math.floor(2 + Math.random() * 7);
+
+  for (let i = 0; i < MAX_WALKERS; i++) {
+    walkers[i].active = (i < state.markovWalkers);
+  }
+
+  syncMarkovControls();
+  doGenerate(true);
+  status("Randomised Markov transition matrix probabilities", "ok");
+  renderCanvas();
 }
 
 /**
@@ -671,6 +709,7 @@ function updatePlayBtnUI() {
  */
 export function activateMarkovMatrixModel() {
   setModelGenerator(generateMarkovMatrixBank);
+  setModelRandomizer(randomizeMarkovMatrix);
   setModelStepHandler((stepIdx) => {
     // In SYNC mode: step walkers
     stepSimulation(32);
@@ -685,18 +724,21 @@ export function activateMarkovMatrixModel() {
 
   stopMarkov();
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateMarkovMatrixModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   stopMarkov();
   if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(animFrameId);
+    }
     animFrameId = null;
   }
 }
@@ -711,7 +753,11 @@ function animationTick(now) {
     }
     renderCanvas();
 
-    animFrameId = requestAnimationFrame(animationTick);
+    if (typeof requestAnimationFrame === "function") {
+      animFrameId = requestAnimationFrame(animationTick);
+    } else {
+      animFrameId = null;
+    }
   } else {
     animFrameId = null;
   }
@@ -753,6 +799,17 @@ registerModel({
 });
 
 /**
+ * Sync registered UI control representations with state
+ */
+export function syncMarkovControls() {
+  if (refs.markovPreset?.setValue) refs.markovPreset.setValue(state.markovPreset, false);
+  if (refs.markovTemp?.setValue) refs.markovTemp.setValue(state.markovTemp, false);
+  if (refs.markovOrder?.setValue) refs.markovOrder.setValue(state.markovOrder, false);
+  if (refs.markovWalkers?.setValue) refs.markovWalkers.setValue(state.markovWalkers, false);
+  if (refs.markovDrift?.setValue) refs.markovDrift.setValue(state.markovDrift, false);
+}
+
+/**
  * Initialize DOM Elements & Interactive Event Listeners.
  */
 export function initMarkovMatrix() {
@@ -768,11 +825,10 @@ export function initMarkovMatrix() {
         <div id="markov-order-ctrl"></div>
         <div id="markov-walkers-ctrl"></div>
         <div id="markov-drift-ctrl"></div>
-        <div id="markov-span-ctrl"></div>
         <div style="display: flex; gap: 6px; margin-left: auto;">
+          <button id="markov-rnd-btn" class="btn" title="Randomise transition matrix probabilities">RND</button>
           <button id="markov-mutate-btn" class="btn" title="Add random entropy perturbation to transition matrix">Mutate</button>
           <button id="markov-reset-btn" class="btn" title="Reset transition matrix to preset baseline">Reset</button>
-          <button id="markov-play-btn" class="btn btn-ok" title="Start/Stop Markov Walkers">Play</button>
         </div>
       </div>
 
@@ -792,7 +848,7 @@ export function initMarkovMatrix() {
   const presetCtrl = document.getElementById("markov-preset-ctrl");
   if (presetCtrl) {
     presetCtrl.appendChild(
-      dropdown({
+      R("markovPreset", dropdown({
         label: "Corpus",
         tip: "Markov transition probability network topology preset",
         options: MARKOV_PRESETS.map(p => ({ value: p.id, label: p.name })),
@@ -810,7 +866,7 @@ export function initMarkovMatrix() {
           initMarkovPreset(val);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -818,7 +874,7 @@ export function initMarkovMatrix() {
   const tempCtrl = document.getElementById("markov-temp-ctrl");
   if (tempCtrl) {
     tempCtrl.appendChild(
-      knob({
+      R("markovTemp", knob({
         label: "Temp τ",
         tip: "Softmax sampling temperature (lower = predictable tonic loops, higher = exploratory chaos)",
         min: 0.1,
@@ -829,7 +885,7 @@ export function initMarkovMatrix() {
           setState("markovTemp", v);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -837,7 +893,7 @@ export function initMarkovMatrix() {
   const orderCtrl = document.getElementById("markov-order-ctrl");
   if (orderCtrl) {
     orderCtrl.appendChild(
-      knob({
+      R("markovOrder", knob({
         label: "Order N",
         tip: "Markov memory depth (1st, 2nd, or 3rd order conditional history)",
         min: 1,
@@ -848,7 +904,7 @@ export function initMarkovMatrix() {
           setState("markovOrder", v);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -856,7 +912,7 @@ export function initMarkovMatrix() {
   const walkersCtrl = document.getElementById("markov-walkers-ctrl");
   if (walkersCtrl) {
     walkersCtrl.appendChild(
-      knob({
+      R("markovWalkers", knob({
         label: "Walkers",
         tip: "Number of concurrent polyphonic state-transition walkers (1 to 8 hardware voices)",
         min: 1,
@@ -870,7 +926,7 @@ export function initMarkovMatrix() {
           }
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -878,7 +934,7 @@ export function initMarkovMatrix() {
   const driftCtrl = document.getElementById("markov-drift-ctrl");
   if (driftCtrl) {
     driftCtrl.appendChild(
-      knob({
+      R("markovDrift", knob({
         label: "Drift",
         tip: "Entropy mutation rate slowly drifting transition probability weights over time",
         min: 0.0,
@@ -889,31 +945,18 @@ export function initMarkovMatrix() {
           setState("markovDrift", v);
           renderCanvas();
         }
-      })
-    );
-  }
-
-  // Pitch Span Knob
-  const spanCtrl = document.getElementById("markov-span-ctrl");
-  if (spanCtrl) {
-    spanCtrl.appendChild(
-      knob({
-        label: "Span",
-        tip: "Pitch span in octaves mapped across the 12 Markov pitch states",
-        min: 1,
-        max: 4,
-        step: 1,
-        value: Number(state.markovSpan ?? 2),
-        unit: "oct",
-        onChange: (v) => {
-          setState("markovSpan", v);
-          renderCanvas();
-        }
-      })
+      }))
     );
   }
 
   // Buttons
+  const rndBtn = document.getElementById("markov-rnd-btn");
+  if (rndBtn) {
+    rndBtn.addEventListener("click", () => {
+      randomizeMarkovMatrix();
+    });
+  }
+
   const mutateBtn = document.getElementById("markov-mutate-btn");
   if (mutateBtn) {
     mutateBtn.addEventListener("click", () => {
@@ -932,13 +975,6 @@ export function initMarkovMatrix() {
       initMarkovPreset(state.markovPreset || "bach_chorale");
       status("Reset transition matrix to preset baseline");
       renderCanvas();
-    });
-  }
-
-  const playBtn = document.getElementById("markov-play-btn");
-  if (playBtn) {
-    playBtn.addEventListener("click", () => {
-      toggleMarkovRunning();
     });
   }
 

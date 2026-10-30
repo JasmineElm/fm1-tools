@@ -505,7 +505,6 @@ export function startChladni() {
   if (isChladniPlaying) return;
   isChladniPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Chladni Cymatics: Resonant plate excitation active", "ok");
 }
 
@@ -514,7 +513,6 @@ export function stopChladni() {
   releasePolyVoices();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("Chladni Cymatics: Stopped", "warn");
 }
 
@@ -523,11 +521,25 @@ export function toggleChladniRunning() {
   else startChladni();
 }
 
-function updatePlayBtnUI() {
-  const btn = document.getElementById("chladni-play-btn");
-  if (!btn) return;
-  btn.textContent = isChladniPlaying ? "Stop" : "Play";
-  btn.className = isChladniPlaying ? "btn btn-err" : "btn btn-ok";
+export function syncChladniControls() {
+  if (refs.chladniPreset) refs.chladniPreset.value = state.chladniPreset;
+  if (refs.chladniM) refs.chladniM.value = state.chladniM;
+  if (refs.chladniN) refs.chladniN.value = state.chladniN;
+  if (refs.chladniDrive) refs.chladniDrive.value = state.chladniDrive;
+  if (refs.chladniSpan) refs.chladniSpan.value = state.chladniSpan;
+}
+
+export function randomizeChladni() {
+  const preset = CHLADNI_PRESETS[Math.floor(Math.random() * CHLADNI_PRESETS.length)];
+  state.chladniPreset = preset.id;
+  state.chladniM = Math.floor(Math.random() * 5) + 1;
+  state.chladniN = Math.floor(Math.random() * 5) + 1;
+  state.chladniDrive = Math.round((0.5 + Math.random() * 2.5) * 10) / 10;
+  state.chladniSpan = Math.floor(Math.random() * 3) + 1;
+  scatterSandGrains();
+  syncChladniControls();
+  renderCanvas();
+  status(`Chladni randomized: M=${state.chladniM}, N=${state.chladniN}, Drive=${state.chladniDrive}`);
 }
 
 /**
@@ -535,6 +547,7 @@ function updatePlayBtnUI() {
  */
 export function activateChladniModel() {
   setModelGenerator(generateChladniBank);
+  setModelRandomizer(randomizeChladni);
   setModelStepHandler((stepIdx) => {
     // In SYNC mode: step simulation
     stepSimulation(32);
@@ -549,17 +562,18 @@ export function activateChladniModel() {
 
   stopChladni();
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateChladniModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   stopChladni();
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -575,7 +589,9 @@ function animationTick(now) {
     }
     renderCanvas();
 
-    animFrameId = requestAnimationFrame(animationTick);
+    if (typeof requestAnimationFrame === "function") {
+      animFrameId = requestAnimationFrame(animationTick);
+    }
   } else {
     animFrameId = null;
   }
@@ -639,7 +655,7 @@ export function initChladni() {
           <button id="chladni-bow-btn" class="btn btn-accent" title="Acoustic bow impulse excitation">Violin Bow</button>
           <button id="chladni-scatter-btn" class="btn" title="Scatter sand grains uniformly over plate">Scatter Sand</button>
           <button id="chladni-reset-btn" class="btn" title="Reset plate to preset baseline">Reset</button>
-          <button id="chladni-play-btn" class="btn btn-ok" title="Start/Stop Cymatics Simulation">Play</button>
+          <button id="chladni-rnd-btn" class="btn" title="Randomize modal numbers and drive">Randomize</button>
         </div>
       </div>
 
@@ -659,7 +675,7 @@ export function initChladni() {
   const presetCtrl = document.getElementById("chladni-preset-ctrl");
   if (presetCtrl) {
     presetCtrl.appendChild(
-      dropdown({
+      R("chladniPreset", dropdown({
         label: "Figure",
         tip: "Cymatics nodal line standing wave resonant pattern preset",
         options: CHLADNI_PRESETS.map(p => ({ value: p.id, label: p.name })),
@@ -669,7 +685,7 @@ export function initChladni() {
           initChladniPreset(val);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -677,7 +693,7 @@ export function initChladni() {
   const mCtrl = document.getElementById("chladni-m-ctrl");
   if (mCtrl) {
     mCtrl.appendChild(
-      knob({
+      R("chladniM", knob({
         label: "Mode M",
         tip: "Horizontal modal wavenumber m (number of nodal lines along X axis)",
         min: 1,
@@ -688,7 +704,7 @@ export function initChladni() {
           state.chladniM = v;
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -696,7 +712,7 @@ export function initChladni() {
   const nCtrl = document.getElementById("chladni-n-ctrl");
   if (nCtrl) {
     nCtrl.appendChild(
-      knob({
+      R("chladniN", knob({
         label: "Mode N",
         tip: "Vertical modal wavenumber n (number of nodal lines along Y axis)",
         min: 1,
@@ -707,7 +723,7 @@ export function initChladni() {
           state.chladniN = v;
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -715,7 +731,7 @@ export function initChladni() {
   const driveCtrl = document.getElementById("chladni-drive-ctrl");
   if (driveCtrl) {
     driveCtrl.appendChild(
-      knob({
+      R("chladniDrive", knob({
         label: "Drive",
         tip: "Plate acoustic excitation amplitude and sand particle propulsion energy",
         min: 0.2,
@@ -726,7 +742,7 @@ export function initChladni() {
           state.chladniDrive = v;
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -734,7 +750,7 @@ export function initChladni() {
   const spanCtrl = document.getElementById("chladni-span-ctrl");
   if (spanCtrl) {
     spanCtrl.appendChild(
-      knob({
+      R("chladniSpan", knob({
         label: "Span",
         tip: "Pitch range across octaves mapped across the nodal pickup probes",
         min: 1,
@@ -746,7 +762,7 @@ export function initChladni() {
           state.chladniSpan = v;
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -776,10 +792,10 @@ export function initChladni() {
     });
   }
 
-  const playBtn = document.getElementById("chladni-play-btn");
-  if (playBtn) {
-    playBtn.addEventListener("click", () => {
-      toggleChladniRunning();
+  const rndBtn = document.getElementById("chladni-rnd-btn");
+  if (rndBtn) {
+    rndBtn.addEventListener("click", () => {
+      randomizeChladni();
     });
   }
 

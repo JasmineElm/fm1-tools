@@ -135,7 +135,7 @@ function rk4Step(dt) {
   const c = state.lvC ?? 0.1;
   const d1 = state.lvD1 ?? 0.4;
   const d2 = state.lvD2 ?? 0.01;
-  const speed = state.lvSpeed ?? 1.0;
+  const speed = Math.max(0.1, Number(state.modelSpeed ?? state.lvSpeed ?? 1.0));
   const h = Math.min(0.2, Math.max(0.005, dt * speed));
 
   const [k1x, k1y, k1z] = evalDerivatives(simX, simY, simZ, a, b1, b2, c, d1, d2);
@@ -297,7 +297,7 @@ export function generateLotkaVolterraBank(targetState = state) {
   const c = state.lvC ?? 0.1;
   const d1 = state.lvD1 ?? 0.4;
   const d2 = state.lvD2 ?? 0.01;
-  const speed = state.lvSpeed ?? 1.0;
+  const speed = Math.max(0.1, Number(state.modelSpeed ?? state.lvSpeed ?? 1.0));
   const dt = 0.22 * speed;
 
   const thX = state.lvThresholdX ?? 0.54;
@@ -550,7 +550,9 @@ function freeLoop(now) {
     }
   }
 
-  animFrameId = requestAnimationFrame(freeLoop);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(freeLoop);
+  }
 }
 
 // ---- Flat Workbench Visualizer: 2D Phase Space Canvas ----
@@ -857,16 +859,6 @@ export function initLotkaVolterra() {
   const paramGrid = document.createElement("div");
   paramGrid.className = "lsystem-param-grid";
 
-  const kSpeed = knob({
-    label: "SPEED",
-    min: 0.2, max: 3.0, step: 0.1,
-    value: state.lvSpeed ?? 1.0,
-    unit: "x",
-    title: "Simulation numerical integration speed factor",
-    onChange: (v) => { state.lvSpeed = v; forceRegenRhythm = true; doGenerate(true); forceRegenRhythm = false; }
-  });
-  R("lvSpeed", kSpeed);
-
   const kA = knob({
     label: "PREY ATK",
     min: 2.0, max: 8.0, step: 0.1,
@@ -927,7 +919,7 @@ export function initLotkaVolterra() {
   });
   R("lvThresholdY", kThY);
 
-  paramGrid.append(kSpeed, kA, kB1, kC, kD2, kThX, kThY);
+  paramGrid.append(kA, kB1, kC, kD2, kThX, kThY);
   paramCard.appendChild(paramGrid);
 
   module.append(headerCard, meterCard, paramCard);
@@ -1074,7 +1066,7 @@ export function activateLotkaVolterraModel() {
   renderPhaseCanvas();
   updateHud();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(freeLoop);
   }
@@ -1083,6 +1075,8 @@ export function activateLotkaVolterraModel() {
 export function deactivateLotkaVolterraModel() {
   stopLotkaVolterraFree();
   setModelTransportHandler(null);
+  setModelGenerator(null);
+  setModelRandomizer(null);
   releasePolyVoices();
   setModelStepHandler(null);
   voiceSlots[0] = null;
@@ -1090,7 +1084,7 @@ export function deactivateLotkaVolterraModel() {
   voiceSlots[2] = null;
   lastLiveStep = -1;
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

@@ -77,6 +77,7 @@ export const RIPPLE_PRESETS = [
     speed: 0.65,
     damping: 0.988,
     dripRate: 1.0,
+    threshold: 0.03,
     dripperX: 16,
     dripperY: 24
   },
@@ -87,6 +88,7 @@ export const RIPPLE_PRESETS = [
     speed: 0.68,
     damping: 0.992,
     dripRate: 0.85,
+    threshold: 0.06,
     dripperX: 20,
     dripperY: 24
   },
@@ -97,6 +99,7 @@ export const RIPPLE_PRESETS = [
     speed: 0.70,
     damping: 0.986,
     dripRate: 1.1,
+    threshold: 0.05,
     dripperX: 18,
     dripperY: 24
   },
@@ -107,6 +110,7 @@ export const RIPPLE_PRESETS = [
     speed: 0.62,
     damping: 0.991,
     dripRate: 0.75,
+    threshold: 0.04,
     dripperX: 15,
     dripperY: 15
   },
@@ -117,6 +121,7 @@ export const RIPPLE_PRESETS = [
     speed: 0.60,
     damping: 0.982,
     dripRate: 1.25,
+    threshold: 0.05,
     dripperX: 28,
     dripperY: 24
   }
@@ -453,8 +458,8 @@ export function stepSimulation(dtMs = 16) {
       pickup.pulseAnim = 0;
     }
 
-    // Trigger on rising wavefront crest exceeding threshold (0.16)
-    const threshold = 0.16;
+    // Trigger on rising wavefront crest exceeding preset-tuned acoustic threshold
+    const threshold = currentPreset.threshold ?? 0.035;
     const isCrest = (h >= threshold && pickup.lastHeight < threshold && pickup.cooldown <= 0);
 
     if (isCrest) {
@@ -463,7 +468,7 @@ export function stepSimulation(dtMs = 16) {
 
       if (isRipplePlaying) {
         const note = getPickupNote(pickup);
-        const intensity = Math.min(1.0, Math.max(0.1, h / 0.8));
+        const intensity = Math.min(1.0, Math.max(0.1, h / 0.5));
         const vel = Math.max(50, Math.min(127, Math.round(75 + intensity * 45)));
         const durMs = Math.round(200 + (1.0 - (damping - 0.95) / 0.05) * 220);
 
@@ -651,7 +656,6 @@ export function startRipple() {
   if (isRipplePlaying) return;
   isRipplePlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Ripple Tank: Wave simulation active", "ok");
 }
 
@@ -660,20 +664,12 @@ export function stopRipple() {
   releasePolyVoices();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("Ripple Tank: Stopped", "warn");
 }
 
 export function toggleRippleRunning() {
   if (isRipplePlaying) stopRipple();
   else startRipple();
-}
-
-function updatePlayBtnUI() {
-  const btn = document.getElementById("ripple-play-btn");
-  if (!btn) return;
-  btn.textContent = isRipplePlaying ? "Stop" : "Play";
-  btn.className = isRipplePlaying ? "btn btn-err" : "btn btn-ok";
 }
 
 /**
@@ -792,7 +788,6 @@ export function initRippleTank() {
           <button id="ripple-rnd-btn" class="btn" title="Randomise wave field with Perlin noise">RND</button>
           <button id="ripple-splash-btn" class="btn" title="Drop large central splash">Drop Ripple</button>
           <button id="ripple-clear-btn" class="btn" title="Clear wave height field">Clear</button>
-          <button id="ripple-play-btn" class="btn btn-ok" title="Start/Stop Ripple Tank">Play</button>
         </div>
       </div>
 
@@ -949,13 +944,6 @@ export function initRippleTank() {
     });
   }
 
-  const playBtn = document.getElementById("ripple-play-btn");
-  if (playBtn) {
-    playBtn.addEventListener("click", () => {
-      toggleRippleRunning();
-    });
-  }
-
   setModelRandomizer(randomizeRippleTank);
   setupCanvasInteraction();
   initTankPreset(state.ripplePreset || "double_slit");
@@ -1000,12 +988,17 @@ function setupCanvasInteraction() {
     draggedPickup = getPickupUnderCursor(mx, my);
 
     if (draggedPickup !== -1) {
-      status(`Repositioning Hydrophone H${draggedPickup + 1}`);
+      const note = getPickupNote(pickups[draggedPickup]);
+      playVoice(`ripple_${draggedPickup}`, note, 95, 240);
+      status(`Hydrophone H${draggedPickup + 1} (${midiName(note)}) · Repositioning in acoustic field`);
       return;
     }
 
     if (currentTool === "splash") {
       dropWater(gx, gy, 1.8, 2.5);
+      if (!isRipplePlaying) {
+        status("Dropped ripple · Press Play (or Space) to start wave propagation", "ok");
+      }
     } else {
       // Toggle barrier wall cell
       const idx = gy * GRID_W + gx;

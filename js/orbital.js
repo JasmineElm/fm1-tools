@@ -90,7 +90,6 @@ export function startOrbital() {
   if (isOrbitalPlaying) return;
   isOrbitalPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Orbital: Playing · Keplerian celestial resonance chimes", "ok");
 }
 
@@ -100,7 +99,6 @@ export function stopOrbital() {
   panicPreview();
   try { audio.allOff(); } catch (_) {}
   voiceSlots.fill(null);
-  updatePlayBtnUI();
   status("stopped");
 }
 
@@ -111,18 +109,6 @@ export function toggleOrbitalRunning() {
   } else {
     startOrbital();
     return true;
-  }
-}
-
-function updatePlayBtnUI() {
-  const headerBtn = document.getElementById("audition");
-  if (headerBtn) {
-    headerBtn.textContent = isOrbitalPlaying ? "■ Stop" : "▶ Play";
-    if (isOrbitalPlaying) {
-      headerBtn.classList.add("playing");
-    } else {
-      headerBtn.classList.remove("playing");
-    }
   }
 }
 
@@ -484,7 +470,6 @@ export function randomizeOrbital() {
   state.orbitalBodies = p.bodies;
   state.orbitalEccentricity = 0.1 + Math.random() * 0.45;
   state.orbitalSpeed = 0.8 + Math.random() * 0.8;
-  state.modelSpeed = state.orbitalSpeed;
   state.orbitalGravity = 0.8 + Math.random() * 0.6;
   state.orbitalConjunction = Math.random() > 0.3;
 
@@ -1055,12 +1040,11 @@ export function activateOrbitalModel() {
   renderOrbitCanvas();
   updateHud();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(freeLoop);
   }
 
-  updatePlayBtnUI();
   status("Orbital Resonance: Ready (Press Play or Spacebar to start)", "ok");
 }
 
@@ -1079,7 +1063,7 @@ export function deactivateOrbitalModel() {
   lastLiveStep = -1;
   currentLiveStep = -1;
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

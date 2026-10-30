@@ -192,7 +192,6 @@ export function startHanenbow() {
   audio.unlock();
   fireTimer = 0;
   firePlankton();
-  updatePlayBtnUI();
   status("Hanenbow: Playing · Ballistics leaf collision triggers", "ok");
 }
 
@@ -205,7 +204,6 @@ export function stopHanenbow() {
   for (let i = 0; i < MAX_PLANKTON; i++) {
     pActive[i] = 0;
   }
-  updatePlayBtnUI();
   status("stopped");
 }
 
@@ -216,18 +214,6 @@ export function toggleHanenbowRunning() {
   } else {
     startHanenbow();
     return true;
-  }
-}
-
-function updatePlayBtnUI() {
-  const headerBtn = document.getElementById("audition");
-  if (headerBtn) {
-    headerBtn.textContent = isHanenbowPlaying ? "■ Stop" : "▶ Play";
-    if (isHanenbowPlaying) {
-      headerBtn.classList.add("playing");
-    } else {
-      headerBtn.classList.remove("playing");
-    }
   }
 }
 
@@ -940,7 +926,6 @@ function syncControlsFromState() {
   if (refs.hanenbowSpan?.setValue) refs.hanenbowSpan.setValue(String(state.hanenbowSpan ?? state.pitchSpan ?? 2), false);
   if (presetSelect) presetSelect.value = state.hanenbowPreset || "cascade";
   if (notesSection?.sync) notesSection.sync();
-  updatePlayBtnUI();
 }
 
 // ---- UI Assembly & Model Initialization ----
@@ -1388,12 +1373,11 @@ export function activateHanenbowModel() {
   doGenerate(false);
   renderPondCanvas();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(freeLoop);
   }
 
-  updatePlayBtnUI();
   status("Hanenbow Ballistics: Ready (Press Play or Spacebar to start)", "ok");
 }
 
@@ -1408,7 +1392,7 @@ export function deactivateHanenbowModel() {
   voiceSlots.fill(null);
   lastLiveStep = -1;
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

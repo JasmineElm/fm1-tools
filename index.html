@@ -45,7 +45,7 @@
         </div>
       </div>
       <p class="landing-subtitle">Choose an algorithmic architecture to generate phrases, or load a saved JSON session state to jump directly into its model.</p>
-    </div>
+    <div id="models-filter-bar" class="models-filter-bar"></div>
 
     <div id="models-grid" class="models-grid"></div>
 
@@ -95,6 +95,7 @@
             <div id="preset-slots" class="preset-slots"></div>
             <button id="export" title="Download this session (model, parameters, seed, locks and model buffers) as a versioned .fm1p.json file.">export</button>
             <button id="import" title="Load a .fm1p.json session — switches to the sequencer model it was saved from and restores its exact state.">import</button>
+            <button type="button" id="btn-model-guide" class="btn-model-guide" title="Open comprehensive guide for the active sequencer model">guide</button>
             <input type="file" id="importfile" accept=".json,application/json" hidden>
           </div>
         </div>
@@ -801,6 +802,21 @@
     </div>
   </section>
 </div>
+
+<!-- MODEL GUIDE MODAL -->
+<div id="model-guide-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-guide-title">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <h2 id="modal-guide-title" class="modal-title">Model Guide</h2>
+        <div id="modal-guide-kicker" class="modal-kicker"></div>
+      </div>
+      <button type="button" id="modal-guide-close" class="modal-close-btn" title="Close Guide (Esc)">✕</button>
+    </div>
+    <div id="modal-guide-body" class="modal-body"></div>
+  </div>
+</div>
+
 <script type="module" src="js/rack.js?v=17"></script>
 </body>
 </html>

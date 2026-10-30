@@ -1,6 +1,7 @@
 // modes.js — Sequencing models switcher and landing page manager.
 import { refs } from "./state.js";
 import { setPolyphonyControlsVisible } from "./scale.js";
+import { MODEL_GUIDES } from "./model_guides.js";
 
 export const POLYPHONIC_MODELS = new Set([
   "particles",
@@ -135,8 +136,8 @@ export const MODELS = [
     name: "Buchla Krell Patch",
     kicker: "Dual Function Generators · Source of Uncertainty · Non-Metric Ambient",
     available: true,
-    desc: "Self-generating modular patch pioneered by Todd Barton and inspired by Bebe & Louis Barron's 1956 Forbidden Planet. Dual non-linear function generators cross-modulate Rise and Fall slopes via Sample & Hold random voltages, producing organic non-metric ambient melodies and continuous FM filter swells.",
-    tags: ["Buchla 266", "Source of Uncertainty", "Sample & Hold", "Cross-Mod Dwell", "Non-Metric", "FM CC#74 Swells"],
+    desc: "Self-generating modular patch pioneered by Todd Barton and inspired by Bebe & Louis Barron's 1956 Forbidden Planet. Dual non-linear function generators cross-modulate Rise and Fall slopes via Sample & Hold random voltages, producing organic non-metric ambient melodies and dynamic velocity phrasing.",
+    tags: ["Buchla 266", "Source of Uncertainty", "Sample & Hold", "Cross-Mod Dwell", "Non-Metric", "8-Voice Polyphony"],
     icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 18l5-12 6 12 7-8" />
       <circle cx="8" cy="6" r="1.8" fill="currentColor" />
@@ -383,7 +384,7 @@ export const MODELS = [
     name: "Markov Melodic Memory",
     kicker: "Transition Matrix · Boltzmann Entropy · High-Order N-Grams",
     available: true,
-    desc: "Conditional state transition probability matrix between scale degrees with Boltzmann temperature scaling and high-order N-gram memory history. Multiple concurrent polyphonic walkers explore melodic cadences, cyclic ostinatos, and aleatoric clouds while Shannon entropy dynamically modulates FM-1 CC #74 Brightness.",
+    desc: "Conditional state transition probability matrix between scale degrees with Boltzmann temperature scaling and high-order N-gram memory history. Multiple concurrent polyphonic walkers explore melodic cadences, cyclic ostinatos, and aleatoric clouds with Shannon entropy telemetry.",
     tags: ["Markov Matrix", "Boltzmann Temp", "Shannon Entropy", "N-Gram Memory", "8-Voice Polyphony", "Direct Heatmap"],
     icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="6" cy="6" r="2.5" />
@@ -398,7 +399,7 @@ export const MODELS = [
     name: "Melodic Genome Breeder",
     kicker: "Interactive Genetic Algorithm · Crossover · Allele Mutation",
     available: true,
-    desc: "Evolutionary melodic population breeder. Maintains 8 active musical genome chromosomes subjected to roulette wheel selection, single-point crossover, and allele mutation. Upvote or downvote individual genomes to steer melodic survival while genetic diversity modulates FM-1 CC #74 Brightness.",
+    desc: "Evolutionary melodic population breeder. Maintains 8 active musical genome chromosomes subjected to roulette wheel selection, single-point crossover, and allele mutation. Upvote or downvote individual genomes to steer melodic survival across successive generations.",
     tags: ["Genetic Algorithm", "Evolutionary", "Crossover", "Mutation", "Interactive Fitness", "8-Voice Polyphony"],
     icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 4c4 4 4 12 8 12s4-8 8-12" />
@@ -412,7 +413,7 @@ export const MODELS = [
     name: "Chladni Cymatics Plate",
     kicker: "Standing Wave Acoustics · Nodal Sand Patterns · Harmonic Probes",
     available: true,
-    desc: "Ernst Chladni’s vibrating square acoustic plate simulation. Virtual sand grains are repelled from anti-nodal zones, accumulating into geometric standing wave nodal figures. Eight hydrophone pickup probes capture chime harmonics and bell overtones while plate vibrational energy modulates FM-1 CC #74 Brightness.",
+    desc: "Ernst Chladni’s vibrating square acoustic plate simulation. Virtual sand grains are repelled from anti-nodal zones, accumulating into geometric standing wave nodal figures. Eight hydrophone pickup probes capture chime harmonics and bell overtones with dynamic velocity response.",
     tags: ["Chladni", "Cymatics", "Standing Waves", "Eigenfunctions", "Sand Patterns", "8-Voice Polyphony"],
     icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="1" />
@@ -426,7 +427,7 @@ export const MODELS = [
     name: "Brownian Thermal Ratchet",
     kicker: "Langevin Thermodynamics · Feynman Diode · Stochastic Work",
     available: true,
-    desc: "Richard Feynman’s microscopic thermal ratchet and pawl engine. A paddle wheel in a fluctuating heat bath (T1) drives an asymmetric toothed cogwheel, restricted to forward rotation by a spring-loaded pawl in bath T2 against counter-torque load. Forward and reverse clicks trigger polyphonic pawl chimes while rotational energy modulates FM-1 CC #74 Brightness.",
+    desc: "Richard Feynman’s microscopic thermal ratchet and pawl engine. A paddle wheel in a fluctuating heat bath (T1) drives an asymmetric toothed cogwheel, restricted to forward rotation by a spring-loaded pawl in bath T2 against counter-torque load. Forward and reverse clicks trigger velocity-sensitive polyphonic pawl chimes.",
     tags: ["Brownian Ratchet", "Feynman Diode", "Langevin Dynamics", "Thermal Rectifier", "8-Voice Polyphony"],
     icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="8" />
@@ -454,7 +455,7 @@ export const MODELS = [
     name: "Polymer Self-Avoiding Walk",
     kicker: "Lattice Self-Avoidance · Steric Jamming · Folding Cascades",
     available: true,
-    desc: "Growing polymer chain simulation on a 2D discrete lattice. Monomers advance to unoccupied adjacent lattice nodes subject to strict self-avoidance. When encountering steric hindrance dead-ends (jamming traps), the chain collapses and anneals, discharging an explosive polyphonic chord cascade across up to 8 voices while radius of gyration modulates FM-1 CC #74 Brightness.",
+    desc: "Growing polymer chain simulation on a 2D discrete lattice. Monomers advance to unoccupied adjacent lattice nodes subject to strict self-avoidance. When encountering steric hindrance dead-ends (jamming traps), the chain collapses and anneals, discharging an explosive polyphonic chord cascade across up to 8 voices.",
     tags: ["Polymer", "Self-Avoiding Walk", "Steric Jamming", "Protein Folding", "8-Voice Polyphony"],
     icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 4h8v8H4z" stroke-dasharray="2 2" />
@@ -496,6 +497,203 @@ export const TOOLS = [
   }
 ];
 
+export const FILTER_TAGS = [
+  { id: "monophonic", label: "Monophonic" },
+  { id: "polyphonic", label: "Polyphonic" },
+  { id: "grid-based", label: "Grid-based" },
+  { id: "physics", label: "Physics" },
+  { id: "biological", label: "Biological" },
+  { id: "stochastic", label: "Stochastic" },
+  { id: "algorithmic", label: "Algorithmic" },
+  { id: "autonomous", label: "Autonomous" }
+];
+
+export const MODEL_TAG_MAP = {
+  mene311: ["monophonic", "stochastic"],
+  turing: ["monophonic", "algorithmic", "stochastic"],
+  cellular: ["monophonic", "grid-based", "algorithmic"],
+  particles: ["polyphonic", "grid-based", "physics"],
+  pendulum: ["polyphonic", "physics", "autonomous"],
+  flock: ["polyphonic", "biological", "autonomous"],
+  rungler: ["monophonic", "algorithmic"],
+  krell: ["polyphonic", "stochastic", "autonomous"],
+  lsystem: ["polyphonic", "algorithmic"],
+  lotka_volterra: ["polyphonic", "biological"],
+  orbital: ["polyphonic", "physics", "autonomous"],
+  hanenbow: ["polyphonic", "physics", "autonomous"],
+  sandpile: ["polyphonic", "grid-based", "physics"],
+  percolation: ["polyphonic", "grid-based", "stochastic"],
+  dla: ["polyphonic", "grid-based", "stochastic"],
+  epidemic: ["polyphonic", "biological"],
+  changes: ["polyphonic", "algorithmic"],
+  physarum: ["polyphonic", "grid-based", "biological", "autonomous"],
+  reaction_diffusion: ["polyphonic", "grid-based", "autonomous"],
+  kuramoto: ["polyphonic", "algorithmic", "autonomous"],
+  fitzhugh_nagumo: ["polyphonic", "biological", "autonomous"],
+  ripple_tank: ["polyphonic", "grid-based", "physics", "autonomous"],
+  convection: ["polyphonic", "grid-based", "physics", "autonomous"],
+  markov_matrix: ["polyphonic", "grid-based", "algorithmic"],
+  genetic_breeder: ["polyphonic", "biological"],
+  chladni: ["polyphonic", "grid-based", "physics", "autonomous"],
+  brownian_ratchet: ["polyphonic", "physics", "stochastic", "autonomous"],
+  tracy_ribbon: ["polyphonic", "grid-based", "autonomous"],
+  self_avoiding_walk: ["polyphonic", "grid-based", "stochastic", "biological"]
+};
+
+// Bind filter tags to each model definition
+for (const m of MODELS) {
+  m.filterTags = MODEL_TAG_MAP[m.id] || [];
+}
+
+const activeSelectedTags = new Set();
+
+export function filterModelsByTags(selectedTags = []) {
+  const tagList = Array.isArray(selectedTags) ? selectedTags : Array.from(selectedTags || []);
+  if (!tagList || tagList.length === 0) {
+    return [...MODELS];
+  }
+  return MODELS.filter((m) => {
+    const mTags = MODEL_TAG_MAP[m.id] || [];
+    return tagList.every((t) => mTags.includes(t));
+  });
+}
+
+export function getSelectedFilterTags() {
+  return Array.from(activeSelectedTags);
+}
+
+export function setSelectedFilterTags(tags) {
+  activeSelectedTags.clear();
+  if (tags) {
+    for (const t of tags) activeSelectedTags.add(t);
+  }
+  applyModelFilters();
+}
+
+export function clearSelectedFilterTags() {
+  activeSelectedTags.clear();
+  applyModelFilters();
+}
+
+export function toggleFilterTag(tagId) {
+  if (activeSelectedTags.has(tagId)) {
+    activeSelectedTags.delete(tagId);
+  } else {
+    activeSelectedTags.add(tagId);
+  }
+  applyModelFilters();
+  return activeSelectedTags.has(tagId);
+}
+
+export function renderModelFilterBar(container) {
+  if (!container) return;
+  container.innerHTML = "";
+  container.setAttribute("role", "toolbar");
+  container.setAttribute("aria-label", "Filter sequencing models by tag");
+
+  const label = document.createElement("span");
+  label.className = "models-filter-label";
+  label.textContent = "TAGS";
+
+  const tagsGroup = document.createElement("div");
+  tagsGroup.className = "models-filter-tags";
+
+  for (const tag of FILTER_TAGS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "model-filter-btn";
+    btn.dataset.tag = tag.id;
+    btn.textContent = tag.label;
+    btn.setAttribute("aria-pressed", activeSelectedTags.has(tag.id) ? "true" : "false");
+    if (activeSelectedTags.has(tag.id)) {
+      btn.classList.add("is-active");
+    }
+
+    btn.addEventListener("click", () => {
+      toggleFilterTag(tag.id);
+    });
+
+    tagsGroup.appendChild(btn);
+  }
+
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.className = "model-filter-clear-btn";
+  clearBtn.textContent = "CLEAR";
+  clearBtn.title = "Clear all active tag filters";
+  clearBtn.style.display = activeSelectedTags.size > 0 ? "" : "none";
+  clearBtn.addEventListener("click", () => {
+    clearSelectedFilterTags();
+  });
+
+  const countBadge = document.createElement("span");
+  countBadge.className = "models-filter-count";
+  countBadge.id = "models-filter-count";
+
+  container.append(label, tagsGroup, clearBtn, countBadge);
+  updateFilterUIState();
+}
+
+export function applyModelFilters() {
+  const grid = document.getElementById("models-grid");
+  const cards = grid ? grid.querySelectorAll(".model-card") : [];
+  const selected = Array.from(activeSelectedTags);
+
+  let visibleCount = 0;
+  cards.forEach((card) => {
+    const modelId = card.dataset.modelId;
+    if (!modelId) return;
+    const modelTags = MODEL_TAG_MAP[modelId] || [];
+    const matches = selected.length === 0 || selected.every((t) => modelTags.includes(t));
+    card.style.display = matches ? "" : "none";
+    if (matches) visibleCount++;
+  });
+
+  let emptyEl = document.getElementById("models-empty-state");
+  if (visibleCount === 0 && cards.length > 0) {
+    if (!emptyEl && grid) {
+      emptyEl = document.createElement("div");
+      emptyEl.id = "models-empty-state";
+      emptyEl.className = "models-empty-state";
+      emptyEl.textContent = "No models match all selected tags. Try deselecting a tag.";
+      grid.appendChild(emptyEl);
+    }
+  } else if (emptyEl) {
+    emptyEl.remove();
+  }
+
+  updateFilterUIState(visibleCount, cards.length);
+}
+
+function updateFilterUIState(visibleCount, totalCount) {
+  const container = document.getElementById("models-filter-bar");
+  if (!container) return;
+
+  const buttons = container.querySelectorAll(".model-filter-btn");
+  buttons.forEach((btn) => {
+    const tagId = btn.dataset.tag;
+    const active = activeSelectedTags.has(tagId);
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+
+  const clearBtn = container.querySelector(".model-filter-clear-btn");
+  if (clearBtn) {
+    clearBtn.style.display = activeSelectedTags.size > 0 ? "" : "none";
+  }
+
+  const countEl = container.querySelector(".models-filter-count");
+  if (countEl) {
+    if (activeSelectedTags.size > 0) {
+      const total = totalCount ?? MODELS.length;
+      const count = visibleCount ?? filterModelsByTags(activeSelectedTags).length;
+      countEl.textContent = `${count} / ${total}`;
+    } else {
+      countEl.textContent = `${MODELS.length}`;
+    }
+  }
+}
+
 let activeModelId = null;
 let callbacks = { onEnterModel: null, onLeaveModel: null };
 
@@ -511,6 +709,7 @@ export function renderModelsGrid(container) {
     const card = document.createElement("div");
     card.className = "model-card is-active";
     card.dataset.modelId = m.id;
+    card.dataset.tags = (MODEL_TAG_MAP[m.id] || []).join(" ");
     card.title = `${m.name}: ${m.desc}`;
 
     card.innerHTML = `
@@ -546,6 +745,52 @@ export function renderModelsGrid(container) {
 
     container.appendChild(card);
   }
+
+  applyModelFilters();
+}
+
+export function openModelGuide(modelId = activeModelId) {
+  if (!modelId) return;
+  const guide = MODEL_GUIDES[modelId];
+  if (!guide) return;
+
+  const modal = document.getElementById("model-guide-modal");
+  const titleEl = document.getElementById("modal-guide-title");
+  const kickerEl = document.getElementById("modal-guide-kicker");
+  const bodyEl = document.getElementById("modal-guide-body");
+  if (!modal || !titleEl || !bodyEl) return;
+
+  titleEl.textContent = guide.title;
+  if (kickerEl) kickerEl.textContent = guide.kicker || "";
+
+  let html = `<div class="modal-section-title">Model Overview</div>`;
+  if (Array.isArray(guide.paragraphs)) {
+    for (const p of guide.paragraphs) {
+      html += `<p class="modal-paragraph">${p}</p>`;
+    }
+  }
+
+  if (Array.isArray(guide.controls) && guide.controls.length > 0) {
+    html += `<div class="modal-section-title">Controls &amp; Surface Interaction</div>`;
+    html += `<ul class="modal-control-list">`;
+    for (const c of guide.controls) {
+      html += `
+        <li class="modal-control-item">
+          <div class="modal-control-name">${c.name}</div>
+          <div class="modal-control-desc">${c.desc}</div>
+        </li>
+      `;
+    }
+    html += `</ul>`;
+  }
+
+  bodyEl.innerHTML = html;
+  modal.style.display = "flex";
+}
+
+export function closeModelGuide() {
+  const modal = document.getElementById("model-guide-modal");
+  if (modal) modal.style.display = "none";
 }
 
 export function renderToolsGrid(container) {
@@ -867,6 +1112,9 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
   callbacks.onEnterModel = onEnterModel;
   callbacks.onLeaveModel = onLeaveModel;
 
+  const filterBar = document.getElementById("models-filter-bar");
+  if (filterBar) renderModelFilterBar(filterBar);
+
   const grid = document.getElementById("models-grid");
   if (grid) renderModelsGrid(grid);
 
@@ -897,6 +1145,30 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
 
   const linkLibModels = document.getElementById("lib-link-models");
   linkLibModels?.addEventListener("click", returnToLanding);
+
+  // Wire model guide modal button and close handlers
+  const btnGuide = document.getElementById("btn-model-guide");
+  btnGuide?.addEventListener("click", () => {
+    openModelGuide(activeModelId);
+  });
+
+  const modal = document.getElementById("model-guide-modal");
+  const closeBtn = document.getElementById("modal-guide-close");
+  closeBtn?.addEventListener("click", closeModelGuide);
+
+  modal?.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModelGuide();
+    }
+  });
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal && modal.style.display !== "none") {
+        closeModelGuide();
+      }
+    });
+  }
 
   // Handle URL hash changes
   window.addEventListener("hashchange", () => {

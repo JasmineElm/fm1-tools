@@ -726,11 +726,11 @@ export function isConvectionRunning() {
 }
 
 export function startConvection() {
-  if (isConvectionPlaying) return;
+  if (isConvectionPlaying) return true;
   isConvectionPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Thermal Convection: Atmospheric simulation active", "ok");
+  return true;
 }
 
 export function stopConvection() {
@@ -738,20 +738,14 @@ export function stopConvection() {
   releasePolyVoices();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("Thermal Convection: Stopped", "warn");
+  return false;
 }
 
 export function toggleConvectionRunning() {
   if (isConvectionPlaying) stopConvection();
   else startConvection();
-}
-
-function updatePlayBtnUI() {
-  const btn = document.getElementById("convect-play-btn");
-  if (!btn) return;
-  btn.textContent = isConvectionPlaying ? "Stop" : "Play";
-  btn.className = isConvectionPlaying ? "btn btn-err" : "btn btn-ok";
+  return isConvectionPlaying;
 }
 
 /**
@@ -867,7 +861,6 @@ export function initConvection() {
           <button id="convect-plume-btn" class="btn" title="Inject buoyant thermal plume from ground">Inject Plume</button>
           <button id="convect-rnd-btn" class="btn" title="Randomise atmospheric fields with Perlin noise">RND</button>
           <button id="convect-clear-btn" class="btn" title="Clear clouds and calm fluid">Clear Clouds</button>
-          <button id="convect-play-btn" class="btn btn-ok" title="Start/Stop Convection Simulation">Play</button>
         </div>
       </div>
 
@@ -1030,13 +1023,6 @@ export function initConvection() {
       velV.fill(0);
       status("Cleared clouds and calmed atmospheric circulation");
       renderCanvas();
-    });
-  }
-
-  const playBtn = document.getElementById("convect-play-btn");
-  if (playBtn) {
-    playBtn.addEventListener("click", () => {
-      toggleConvectionRunning();
     });
   }
 

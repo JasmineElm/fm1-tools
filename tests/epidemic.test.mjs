@@ -1,9 +1,63 @@
 // tests/epidemic.test.mjs — Unit test suite for SIR Epidemic Network Dynamics Sequencer (js/epidemic.js)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { initEpidemicGraph, getEpidemicNodeNote, infectNode, generateEpidemicBank, EPIDEMIC_PRESETS } from "../js/epidemic.js";
-import { state } from "../js/state.js";
+import {
+  initEpidemicGraph,
+  getEpidemicNodeNote,
+  infectNode,
+  generateEpidemicBank,
+  randomizeEpidemic,
+  randomizeNodePositions,
+  getNodePositions,
+  syncEpidemicControls,
+  initEpidemic,
+  EPIDEMIC_PRESETS
+} from "../js/epidemic.js";
+import { state, refs } from "../js/state.js";
 import { getModelDef } from "../js/snapshot.js";
+
+// Mock minimal browser globals for testing initEpidemic UI controls
+if (typeof document === "undefined") {
+  const dummyCtx = {
+    fillRect: () => {},
+    strokeRect: () => {},
+    clearRect: () => {},
+    beginPath: () => {},
+    arc: () => {},
+    fill: () => {},
+    stroke: () => {},
+    fillText: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    save: () => {},
+    restore: () => {},
+    setLineDash: () => {},
+    measureText: () => ({ width: 10 })
+  };
+  const createDummyEl = () => ({
+    appendChild: () => {},
+    append: () => {},
+    style: {},
+    classList: { add: () => {}, remove: () => {} },
+    addEventListener: () => {},
+    setAttribute: () => {},
+    removeAttribute: () => {},
+    getContext: () => dummyCtx
+  });
+  globalThis.document = {
+    getElementById: () => createDummyEl(),
+    querySelector: () => createDummyEl(),
+    querySelectorAll: () => [],
+    createElement: () => createDummyEl(),
+    createElementNS: () => createDummyEl(),
+    documentElement: { style: {} }
+  };
+}
+if (typeof globalThis.getComputedStyle === "undefined") {
+  globalThis.getComputedStyle = () => ({
+    getPropertyValue: () => ""
+  });
+}
 
 test("Epidemic presets list contains required topology layouts", () => {
   const ids = EPIDEMIC_PRESETS.map((p) => p.id);
@@ -85,3 +139,56 @@ test("epidemic model snapshot registration and round trip", () => {
   assert.equal(state.epidemicNodes, 52);
   assert.equal(state.epidemicBeta, 60);
 });
+
+test("randomizeEpidemic randomizes model controls and node positions", () => {
+  // Initialize controls
+  initEpidemic();
+
+  // Track initial values
+  const prevNodes = state.epidemicNodes;
+  const prevBeta = state.epidemicBeta;
+  const prevRadius = state.epidemicRadius;
+
+  randomizeEpidemic();
+
+  // Model controls are randomized within their allowed domains
+  assert.ok(state.epidemicNodes >= 16 && state.epidemicNodes <= 96, "Nodes within 16-96");
+  assert.ok(state.epidemicBeta >= 5 && state.epidemicBeta <= 95, "Beta within 5-95");
+  assert.ok(state.epidemicRadius >= 0.08 && state.epidemicRadius <= 0.45, "Radius within 0.08-0.45");
+  assert.ok(state.epidemicRecovery >= 4 && state.epidemicRecovery <= 32, "Recovery within 4-32");
+  assert.ok(state.epidemicImmunity >= 6 && state.epidemicImmunity <= 64, "Immunity within 6-64");
+  assert.ok(state.epidemicSpan >= 1 && state.epidemicSpan <= 4, "Span within 1-4");
+  assert.ok(state.epidemicGateLen >= 40 && state.epidemicGateLen <= 400, "Gate within 40-400");
+  assert.ok(EPIDEMIC_PRESETS.some(p => p.id === state.epidemicPreset), "Preset is a valid preset");
+
+  // Controls are registered in refs
+  assert.ok(refs.epidemicPreset, "refs.epidemicPreset registered");
+  assert.ok(refs.epidemicNodes, "refs.epidemicNodes registered");
+  assert.ok(refs.epidemicBeta, "refs.epidemicBeta registered");
+  assert.ok(refs.epidemicRadius, "refs.epidemicRadius registered");
+  assert.ok(refs.epidemicRecovery, "refs.epidemicRecovery registered");
+  assert.ok(refs.epidemicImmunity, "refs.epidemicImmunity registered");
+  assert.ok(refs.epidemicSpan, "refs.epidemicSpan registered");
+  assert.ok(refs.epidemicGateLen, "refs.epidemicGateLen registered");
+
+  // Node positions are valid within canvas space [0.08, 0.92]
+  const pos1 = getNodePositions();
+  assert.ok(pos1.x.length >= 16);
+  for (let i = 0; i < pos1.x.length; i++) {
+    assert.ok(pos1.x[i] >= 0.08 && pos1.x[i] <= 0.92, `Node ${i} X within bounds`);
+    assert.ok(pos1.y[i] >= 0.08 && pos1.y[i] <= 0.92, `Node ${i} Y within bounds`);
+  }
+
+  // A subsequent randomize produces fresh node positions
+  randomizeNodePositions(pos1.x.length);
+  const pos2 = getNodePositions();
+  let anyDifferent = false;
+  for (let i = 0; i < pos1.x.length; i++) {
+    if (Math.abs(pos1.x[i] - pos2.x[i]) > 0.001 || Math.abs(pos1.y[i] - pos2.y[i]) > 0.001) {
+      anyDifferent = true;
+      break;
+    }
+  }
+  assert.ok(anyDifferent, "Node positions are freshly randomized");
+});
+

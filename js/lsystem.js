@@ -203,6 +203,7 @@ export function compileLSystem() {
   buildSimulationCache();
   renderRibbon();
   renderTreeCanvas();
+  return compiledString;
 }
 
 /**
@@ -1136,9 +1137,11 @@ export function activateLsystemModel() {
 
 export function deactivateLsystemModel() {
   releasePolyVoices();
+  setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   lastLiveStep = -1;
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

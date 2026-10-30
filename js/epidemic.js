@@ -77,16 +77,13 @@ export const EPIDEMIC_PRESETS = [
   { id: "clusters", name: "Town Metapopulations", desc: "3 dense community clusters connected by sparse transit bridges" },
   { id: "mobile", name: "Mobile Drift Swarm", desc: "Wandering Brownian agents colliding dynamically in space" },
   { id: "lattice", name: "2D Grid Lattice", desc: "Structured regular contact grid; circular wave expansion" },
-  { id: "ring", name: "Concentric Rings", desc: "Nested radial orbits creating layered polyphonic choral rings" }
+  { id: "ring", name: "Concentric Rings", desc: "Nested radial orbits creating layered polyphonic choral rings" },
+  { id: "random", name: "Random Scatter", desc: "Stochastically scattered population agents and dynamic contact hubs" }
 ];
 
 // ---- Audio Dispatch & 8-Voice Polyphony Ceiling (via js/poly.js) ----
 function playEpidemicVoice(nodeId, note, vel, durMs) {
   playVoice(nodeId, note, vel, durMs);
-}
-
-function releaseAllVoices() {
-  releasePolyVoices();
 }
 
 // Maps node spatial position to a scale-quantized pitch
@@ -111,6 +108,53 @@ export function getEpidemicNodeNote(x, y) {
   return quantize(rawMidi, intervals, root);
 }
 
+// ---- Node Position Randomization & Coordinate Access ----
+export function randomizeNodePositions(N = Number(state.epidemicNodes ?? 48)) {
+  const count = Math.min(MAX_NODES, Math.max(16, N));
+  const mode = Math.random();
+  if (mode < 0.45) {
+    // Multi-cluster communities with random hub locations
+    const numHubs = 2 + Math.floor(Math.random() * 3);
+    const hubs = [];
+    for (let h = 0; h < numHubs; h++) {
+      hubs.push({
+        cx: 0.20 + Math.random() * 0.60,
+        cy: 0.20 + Math.random() * 0.60
+      });
+    }
+    for (let i = 0; i < count; i++) {
+      const hub = hubs[i % numHubs];
+      const r = Math.sqrt(Math.random()) * (0.09 + Math.random() * 0.12);
+      const ang = Math.random() * Math.PI * 2;
+      posX[i] = Math.min(0.92, Math.max(0.08, hub.cx + Math.cos(ang) * r));
+      posY[i] = Math.min(0.92, Math.max(0.08, hub.cy + Math.sin(ang) * r));
+      velX[i] = (Math.random() - 0.5) * 0.04;
+      velY[i] = (Math.random() - 0.5) * 0.04;
+      nodePitch[i] = getEpidemicNodeNote(posX[i], posY[i]);
+    }
+  } else {
+    // Spatial scatter across landscape
+    for (let i = 0; i < count; i++) {
+      posX[i] = Math.min(0.92, Math.max(0.08, 0.08 + Math.random() * 0.84));
+      posY[i] = Math.min(0.92, Math.max(0.08, 0.08 + Math.random() * 0.84));
+      velX[i] = (Math.random() - 0.5) * 0.05;
+      velY[i] = (Math.random() - 0.5) * 0.05;
+      nodePitch[i] = getEpidemicNodeNote(posX[i], posY[i]);
+    }
+  }
+}
+
+export function getNodePositions() {
+  const N = Math.min(MAX_NODES, Math.max(16, Number(state.epidemicNodes ?? 48)));
+  const x = new Float32Array(N);
+  const y = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    x[i] = posX[i];
+    y[i] = posY[i];
+  }
+  return { x, y };
+}
+
 // ---- Network Topology Initialization ----
 export function initEpidemicGraph(presetId = state.epidemicPreset || "spiral") {
   const N = Math.min(MAX_NODES, Math.max(16, Number(state.epidemicNodes ?? 48)));
@@ -123,14 +167,16 @@ export function initEpidemicGraph(presetId = state.epidemicPreset || "spiral") {
   totalCases = 0;
   extinctCooldown = 0;
 
-  if (presetId === "spiral") {
+  if (presetId === "random") {
+    randomizeNodePositions(N);
+  } else if (presetId === "spiral") {
     // Vogel Sunflower Phyllotaxis Spiral
     const goldenAngle = 2.3999632;
     for (let i = 0; i < N; i++) {
       const r = Math.sqrt((i + 0.5) / N) * 0.42;
       const theta = i * goldenAngle;
-      posX[i] = 0.5 + Math.cos(theta) * r;
-      posY[i] = 0.5 + Math.sin(theta) * r;
+      posX[i] = Math.min(0.92, Math.max(0.08, 0.5 + Math.cos(theta) * r));
+      posY[i] = Math.min(0.92, Math.max(0.08, 0.5 + Math.sin(theta) * r));
       velX[i] = 0;
       velY[i] = 0;
       nodePitch[i] = getEpidemicNodeNote(posX[i], posY[i]);
@@ -181,10 +227,10 @@ export function initEpidemicGraph(presetId = state.epidemicPreset || "spiral") {
     const rings = 3;
     for (let i = 0; i < N; i++) {
       const ringIdx = i % rings;
-      const r = 0.12 + (ringIdx / (rings - 1)) * 0.32;
+      const r = 0.12 + (ringIdx / (rings - 1)) * 0.28;
       const angle = (Math.floor(i / rings) / Math.ceil(N / rings)) * Math.PI * 2;
-      posX[i] = 0.5 + Math.cos(angle) * r;
-      posY[i] = 0.5 + Math.sin(angle) * r;
+      posX[i] = Math.min(0.92, Math.max(0.08, 0.5 + Math.cos(angle) * r));
+      posY[i] = Math.min(0.92, Math.max(0.08, 0.5 + Math.sin(angle) * r));
       velX[i] = 0;
       velY[i] = 0;
       nodePitch[i] = getEpidemicNodeNote(posX[i], posY[i]);
@@ -370,14 +416,12 @@ export function startEpidemic() {
   isEpidemicPlaying = true;
   audio.unlock();
   stepAccumulator = 0;
-  updatePlayBtnUI();
   status("Epidemic Network: Playing · SIR Contagion Waves", "ok");
 }
 
 export function stopEpidemic() {
   isEpidemicPlaying = false;
-  releaseAllVoices();
-  updatePlayBtnUI();
+  releasePolyVoices();
   status("stopped");
 }
 
@@ -388,18 +432,6 @@ export function toggleEpidemicRunning() {
   } else {
     startEpidemic();
     return true;
-  }
-}
-
-function updatePlayBtnUI() {
-  const headerBtn = document.getElementById("audition");
-  if (headerBtn) {
-    headerBtn.textContent = isEpidemicPlaying ? "■ Stop" : "▶ Play";
-    if (isEpidemicPlaying) {
-      headerBtn.classList.add("playing");
-    } else {
-      headerBtn.classList.remove("playing");
-    }
   }
 }
 
@@ -603,20 +635,45 @@ export function generateEpidemicBank(st) {
   ];
 }
 
+export function syncEpidemicControls() {
+  if (refs.epidemicPreset?.setValue) refs.epidemicPreset.setValue(state.epidemicPreset, false);
+  if (refs.epidemicNodes?.setValue) refs.epidemicNodes.setValue(state.epidemicNodes, false);
+  if (refs.epidemicBeta?.setValue) refs.epidemicBeta.setValue(state.epidemicBeta, false);
+  if (refs.epidemicRadius?.setValue) refs.epidemicRadius.setValue(Math.round((state.epidemicRadius ?? 0.22) * 100), false);
+  if (refs.epidemicRecovery?.setValue) refs.epidemicRecovery.setValue(state.epidemicRecovery, false);
+  if (refs.epidemicImmunity?.setValue) refs.epidemicImmunity.setValue(state.epidemicImmunity, false);
+  if (refs.epidemicSpan?.setValue) refs.epidemicSpan.setValue(state.epidemicSpan, false);
+  if (refs.epidemicGateLen?.setValue) refs.epidemicGateLen.setValue(state.epidemicGateLen, false);
+}
+
 // ---- Randomizer Contract ----
 export function randomizeEpidemic() {
-  state.epidemicBeta = Math.round(20 + Math.random() * 65);
-  state.epidemicRadius = Number((0.12 + Math.random() * 0.28).toFixed(2));
-  state.epidemicRecovery = Math.round(6 + Math.random() * 20);
-  state.epidemicImmunity = Math.round(12 + Math.random() * 36);
-  state.epidemicSpan = Math.round(1 + Math.random() * 3);
+  state.epidemicNodes = 16 + Math.floor(Math.random() * 19) * 4; // 16 to 88 nodes (step 4)
+  state.epidemicBeta = Math.round(15 + Math.random() * 70);       // 15% to 85%
+  state.epidemicRadius = Number((0.10 + Math.random() * 0.28).toFixed(2)); // 0.10 to 0.38
+  state.epidemicRecovery = Math.round(6 + Math.random() * 20);    // 6 to 26 ticks
+  state.epidemicImmunity = Math.round(10 + Math.random() * 38);   // 10 to 48 ticks
+  state.epidemicSpan = Math.round(1 + Math.random() * 3);         // 1 to 4 octaves
+  state.epidemicGateLen = Math.round((80 + Math.random() * 240) / 10) * 10; // 80ms to 320ms
 
-  const presets = ["spiral", "clusters", "mobile", "lattice", "ring"];
+  const presets = EPIDEMIC_PRESETS.map((p) => p.id);
   state.epidemicPreset = presets[Math.floor(Math.random() * presets.length)];
 
+  const N = Math.min(MAX_NODES, Math.max(16, Number(state.epidemicNodes ?? 48)));
   initEpidemicGraph(state.epidemicPreset);
+  // Guarantee node positions are freshly randomized
+  randomizeNodePositions(N);
+
+  // Inoculate Patient Zero at random node
+  infectNode(Math.floor(Math.random() * N), -1, false);
+
+  updatePopulationCounts();
+  renderEpidemicCanvas();
+  updateReadoutMetrics();
+
+  syncEpidemicControls();
   doGenerate(true);
-  status("Epidemic: Randomized parameters and re-seeded outbreak", "ok");
+  status("Epidemic: Randomized node positions and model controls", "ok");
 }
 
 // ---- UI Construction ----
@@ -772,7 +829,7 @@ export function initEpidemic() {
   gridWrap.style.justifyContent = "space-between";
 
   // Topology Preset Dropdown
-  const kPreset = dropdown({
+  const kPreset = R("epidemicPreset", dropdown({
     label: "TOPOLOGY",
     options: EPIDEMIC_PRESETS.map((p) => ({ value: p.id, label: p.name })),
     value: state.epidemicPreset || "spiral",
@@ -782,11 +839,11 @@ export function initEpidemic() {
       initEpidemicGraph(v);
       doGenerate(false);
     }
-  });
+  }));
   gridWrap.appendChild(kPreset);
 
   // Nodes Knob (16 to 96)
-  const kNodes = knob({
+  const kNodes = R("epidemicNodes", knob({
     label: "NODES",
     min: 16, max: 96, step: 4,
     value: state.epidemicNodes ?? 48,
@@ -797,11 +854,11 @@ export function initEpidemic() {
       initEpidemicGraph(state.epidemicPreset || "spiral");
       doGenerate(false);
     }
-  });
+  }));
   gridWrap.appendChild(kNodes);
 
   // Transmission Rate Beta Knob (5% to 95%)
-  const kBeta = knob({
+  const kBeta = R("epidemicBeta", knob({
     label: "BETA (β)",
     min: 5, max: 95, step: 1,
     value: state.epidemicBeta ?? 45,
@@ -810,11 +867,11 @@ export function initEpidemic() {
     onChange: (v) => {
       state.epidemicBeta = v;
     }
-  });
+  }));
   gridWrap.appendChild(kBeta);
 
   // Contact Proximity Radius Knob (0.08 to 0.45)
-  const kRadius = knob({
+  const kRadius = R("epidemicRadius", knob({
     label: "RADIUS",
     min: 8, max: 45, step: 1,
     value: Math.round((state.epidemicRadius ?? 0.22) * 100),
@@ -823,11 +880,11 @@ export function initEpidemic() {
     onChange: (v) => {
       state.epidemicRadius = v / 100;
     }
-  });
+  }));
   gridWrap.appendChild(kRadius);
 
   // Recovery Time Knob (4 to 32 ticks)
-  const kRec = knob({
+  const kRec = R("epidemicRecovery", knob({
     label: "RECOVERY",
     min: 4, max: 32, step: 1,
     value: state.epidemicRecovery ?? 12,
@@ -836,11 +893,11 @@ export function initEpidemic() {
     onChange: (v) => {
       state.epidemicRecovery = Math.round(v);
     }
-  });
+  }));
   gridWrap.appendChild(kRec);
 
   // Immunity Duration Knob (6 to 64 ticks)
-  const kImm = knob({
+  const kImm = R("epidemicImmunity", knob({
     label: "IMMUNITY",
     min: 6, max: 64, step: 2,
     value: state.epidemicImmunity ?? 24,
@@ -849,11 +906,11 @@ export function initEpidemic() {
     onChange: (v) => {
       state.epidemicImmunity = Math.round(v);
     }
-  });
+  }));
   gridWrap.appendChild(kImm);
 
   // Span Knob (1 to 4 Octaves)
-  const kSpan = knob({
+  const kSpan = R("epidemicSpan", knob({
     label: "SPAN",
     min: 1, max: 4, step: 1,
     value: state.epidemicSpan ?? 2,
@@ -863,11 +920,11 @@ export function initEpidemic() {
       state.epidemicSpan = Math.round(v);
       doGenerate(false);
     }
-  });
+  }));
   gridWrap.appendChild(kSpan);
 
   // Gate Duration Knob (40ms to 400ms)
-  const kGate = knob({
+  const kGate = R("epidemicGateLen", knob({
     label: "GATE",
     min: 40, max: 400, step: 10,
     value: state.epidemicGateLen ?? 200,
@@ -876,7 +933,7 @@ export function initEpidemic() {
     onChange: (v) => {
       state.epidemicGateLen = v;
     }
-  });
+  }));
   paramsCard.appendChild(gridWrap);
   epidemicContainer.appendChild(paramsCard);
 
@@ -899,12 +956,11 @@ export function activateEpidemicModel() {
   doGenerate(false);
   renderEpidemicCanvas();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(epidemicLoop);
   }
 
-  updatePlayBtnUI();
   status("Epidemic Network Dynamics: Ready (Press Play or Spacebar to run contagion)", "ok");
 }
 
@@ -917,7 +973,7 @@ export function deactivateEpidemicModel() {
 
   releasePolyVoices();
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -950,5 +1006,6 @@ registerModel({
     if (h.span !== undefined) state.epidemicSpan = h.span;
     if (h.gateLen !== undefined) state.epidemicGateLen = h.gateLen;
     initEpidemicGraph(state.epidemicPreset || "spiral");
+    syncEpidemicControls();
   }
 });

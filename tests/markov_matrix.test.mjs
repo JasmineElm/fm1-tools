@@ -47,9 +47,16 @@ import {
   startMarkov,
   stopMarkov,
   toggleMarkovRunning,
-  isMarkovRunning
+  isMarkovRunning,
+  initMarkovMatrix,
+  randomizeMarkovMatrix,
+  activateMarkovMatrixModel,
+  deactivateMarkovMatrixModel
 } from "../js/markov_matrix.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
+import { toggleLive, stopLive, isLive } from "../js/player.js?v=1";
+import { state } from "../js/state.js";
 
 test("MARKOV_PRESETS contains required musical transition corpora", () => {
   assert.equal(MARKOV_PRESETS.length, 5);
@@ -192,3 +199,126 @@ test("Transport start/stop/toggle controls", () => {
   toggleMarkovRunning();
   assert.equal(isMarkovRunning(), false);
 });
+
+test("markov_matrix local controls mirroring global ones (Play, Span) are removed", () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(val) {
+      createdHtml = val;
+    },
+    get innerHTML() {
+      return createdHtml;
+    }
+  };
+
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-markov_matrix") return dummyContainer;
+    return null;
+  };
+
+  try {
+    initMarkovMatrix();
+
+    // Verify local Play button is removed (Global play exists)
+    assert.ok(!createdHtml.includes('id="markov-play-btn"'), "Local play button must be removed (Global play exists)");
+
+    // Verify local Span slider is removed (Notes div octave spread exists)
+    assert.ok(!createdHtml.includes('id="markov-span-ctrl"'), "Local Span knob must be removed (Notes div octave spread exists)");
+
+    // Verify model-specific controls are preserved
+    assert.ok(createdHtml.includes('id="markov-preset-ctrl"'), "Preset select retained");
+    assert.ok(createdHtml.includes('id="markov-temp-ctrl"'), "Temperature knob retained");
+    assert.ok(createdHtml.includes('id="markov-order-ctrl"'), "Memory order knob retained");
+    assert.ok(createdHtml.includes('id="markov-walkers-ctrl"'), "Walkers knob retained");
+    assert.ok(createdHtml.includes('id="markov-drift-ctrl"'), "Drift knob retained");
+    assert.ok(createdHtml.includes('id="markov-rnd-btn"'), "Randomise button present in toolbar");
+    assert.ok(createdHtml.includes('id="markov-mutate-btn"'), "Mutate button retained");
+    assert.ok(createdHtml.includes('id="markov-reset-btn"'), "Reset button retained");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+
+test("randomizeMarkovMatrix randomises transition probabilities in the matrix with normalised rows", () => {
+  initMarkovPreset("bach_chorale");
+  const baselineWeights = Float32Array.from(transitionWeights);
+
+  randomizeMarkovMatrix();
+
+  // Ensure weights changed from baseline
+  let hasDifference = false;
+  for (let i = 0; i < NUM_STATES * NUM_STATES; i++) {
+    if (Math.abs(transitionWeights[i] - baselineWeights[i]) > 0.001) {
+      hasDifference = true;
+      break;
+    }
+  }
+  assert.ok(hasDifference, "randomizeMarkovMatrix should alter transitionWeights");
+
+  // Verify all rows sum to 1.0 in normalizedProbs and weights are non-uniform
+  for (let r = 0; r < NUM_STATES; r++) {
+    let rowSum = 0;
+    let minP = 1.0;
+    let maxP = 0.0;
+    for (let c = 0; c < NUM_STATES; c++) {
+      const p = normalizedProbs[r * NUM_STATES + c];
+      rowSum += p;
+      if (p < minP) minP = p;
+      if (p > maxP) maxP = p;
+    }
+    assert.ok(
+      Math.abs(rowSum - 1.0) < 0.0001,
+      `Row ${r} sum ${rowSum} in normalizedProbs must equal 1.0`
+    );
+    // Should have contrast between preferred and non-preferred transitions
+    assert.ok(
+      maxP > minP,
+      `Row ${r} should have non-uniform transition probabilities (max ${maxP} vs min ${minP})`
+    );
+  }
+});
+
+test("global randomizer dispatch invokes randomizeMarkovMatrix when markov_matrix is active", () => {
+  activateMarkovMatrixModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  // Mutate transition weights
+  rnd();
+  let nonZeroCount = 0;
+  for (let i = 0; i < NUM_STATES * NUM_STATES; i++) {
+    if (transitionWeights[i] > 0) nonZeroCount++;
+  }
+  assert.equal(nonZeroCount, NUM_STATES * NUM_STATES);
+
+  deactivateMarkovMatrixModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+
+test("markov_matrix integrates seamlessly with global play transport", () => {
+  activateMarkovMatrixModel();
+
+  assert.equal(isLive(), false);
+  assert.equal(isMarkovRunning(), false);
+
+  // Global Play toggle
+  toggleLive();
+  assert.equal(isMarkovRunning(), true);
+  assert.equal(isLive(), true);
+
+  // Global Stop toggle
+  toggleLive();
+  assert.equal(isMarkovRunning(), false);
+  assert.equal(isLive(), false);
+
+  // Global Start then stopLive()
+  toggleLive();
+  assert.equal(isMarkovRunning(), true);
+  stopLive();
+  assert.equal(isMarkovRunning(), false);
+  assert.equal(isLive(), false);
+
+  deactivateMarkovMatrixModel();
+});
+

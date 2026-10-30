@@ -217,3 +217,29 @@ test("changes model dual-clock lookahead queues future bell strikes ahead of tim
   assert.equal(isChangesRunning(), false);
 });
 
+test("randomizeChanges randomizes campanology parameters and syncs controls", async () => {
+  const { randomizeChanges, activateChangesModel, deactivateChangesModel } = await import("../js/changes.js");
+  const { state, refs, getCurrentModelRandomizer } = await import("../js/state.js");
+
+  let syncedStage = null;
+  let syncedMethod = null;
+  refs.changesStage = { setValue: (v) => { syncedStage = v; } };
+  refs.changesMethod = { setValue: (v) => { syncedMethod = v; } };
+
+  activateChangesModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(rnd, randomizeChanges);
+
+  randomizeChanges();
+  assert.ok(state.changesStage >= 4 && state.changesStage <= 8);
+  assert.ok(typeof state.changesMethod === "string");
+  assert.equal(syncedStage, state.changesStage);
+  assert.equal(syncedMethod, state.changesMethod);
+
+  delete refs.changesStage;
+  delete refs.changesMethod;
+  deactivateChangesModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+
+

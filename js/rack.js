@@ -304,6 +304,9 @@ export function buildNotesBar() {
       state.krellSpan = state.pitchSpan;
       state.lsystemSpan = state.pitchSpan;
       state.lvSpan = state.pitchSpan;
+      state.physarumSpan = state.pitchSpan;
+      state.kuramotoSpan = state.pitchSpan;
+      state.fhnSpan = state.pitchSpan;
       if (refs.turingSpan?.setValue) refs.turingSpan.setValue(state.pitchSpan, false);
       if (refs.krellSpan?.setValue) refs.krellSpan.setValue(state.pitchSpan, false);
       if (refs.lsystemSpan?.setValue) refs.lsystemSpan.setValue(state.pitchSpan, false);

@@ -38,6 +38,7 @@ import {
   foodNodes,
   PHYSARUM_PRESETS,
   initFoodPreset,
+  randomizeFoodNodePositions,
   reseedAgents,
   sampleTrail,
   stepSimulation,
@@ -50,19 +51,21 @@ import {
   randomizePhysarum,
   trailField,
   activatePhysarumModel,
-  deactivatePhysarumModel
+  deactivatePhysarumModel,
+  initPhysarum
 } from "../js/physarum.js";
 import { getModelDef } from "../js/snapshot.js";
-import { getCurrentModelRandomizer } from "../js/state.js";
+import { state, refs, getCurrentModelRandomizer } from "../js/state.js";
 
 test("PHYSARUM_PRESETS contains required network topologies", () => {
-  assert.equal(PHYSARUM_PRESETS.length, 5);
+  assert.equal(PHYSARUM_PRESETS.length, 6);
   const ids = PHYSARUM_PRESETS.map(p => p.id);
   assert.ok(ids.includes("tokyo"));
   assert.ok(ids.includes("pentagon"));
   assert.ok(ids.includes("bipartite"));
   assert.ok(ids.includes("hex_hub"));
   assert.ok(ids.includes("spiral"));
+  assert.ok(ids.includes("random"));
 });
 
 test("initFoodPreset configures active food nodes strictly within 8-voice hardware ceiling", () => {
@@ -200,3 +203,95 @@ test("global randomizer dispatch invokes randomizePhysarum when physarum is acti
   deactivatePhysarumModel();
   assert.equal(getCurrentModelRandomizer(), null);
 });
+
+test("randomizeFoodNodePositions distributes nodes within grid boundaries", () => {
+  const positions = randomizeFoodNodePositions(6);
+  assert.equal(positions.length, 6);
+  const activeNodes = foodNodes.filter(n => n.active);
+  assert.equal(activeNodes.length, 6);
+
+  for (const node of activeNodes) {
+    assert.ok(node.x >= 8 && node.x <= GRID_W - 8, `Node x ${node.x} within bounds`);
+    assert.ok(node.y >= 8 && node.y <= GRID_H - 8, `Node y ${node.y} within bounds`);
+  }
+});
+
+test("randomizePhysarum randomizes node positions and alters controls in the notes div", () => {
+  initFoodPreset("tokyo");
+  const initialX = foodNodes[0].x;
+  const initialY = foodNodes[0].y;
+
+  // Set known initial values in notes div state
+  state.scale = "chromatic";
+  state.rootNote = 0; // C
+  state.rootOctave = 1;
+  state.pitchSpan = 1;
+
+  randomizePhysarum();
+
+  // 1. Food node positions must have been randomized
+  const activeNodes = foodNodes.filter(n => n.active);
+  assert.ok(activeNodes.length >= 1 && activeNodes.length <= MAX_FOOD);
+  const changedPosition = foodNodes.some(n => n.active && (n.x !== initialX || n.y !== initialY));
+  assert.ok(changedPosition, "Food node positions must be randomized");
+
+  // 2. Controls in the notes div must have been altered
+  assert.ok(typeof state.scale === "string", "Scale must be a valid scale name");
+  assert.notEqual(state.scale, "custom");
+  assert.ok(typeof state.rootNote === "number" && state.rootNote >= 0 && state.rootNote <= 11, "Root note 0-11");
+  assert.ok(typeof state.rootOctave === "number" && state.rootOctave >= 2 && state.rootOctave <= 5, "Root octave 2-5");
+  assert.ok(typeof state.pitchSpan === "number" && state.pitchSpan >= 1 && state.pitchSpan <= 4, "Pitch span 1-4");
+  assert.ok(typeof state.quantSteps === "number" && state.quantSteps >= 50 && state.quantSteps <= 100, "Quant steps 50-100");
+  assert.ok(typeof state.octave === "number" && state.octave >= 0 && state.octave <= 100, "Octave 0-100");
+  assert.ok(["up", "down", "both"].includes(state.octaveMode), "Octave mode valid");
+  assert.ok(typeof state.polyphony === "number" && state.polyphony >= 1 && state.polyphony <= 8, "Polyphony 1-8");
+  assert.ok(typeof state.polyStrategy === "string", "Poly strategy valid");
+
+  // 3. Preset state updated to 'random'
+  assert.equal(state.physarumPreset, "random");
+});
+
+test("locally implemented controls with Global or notes div counterparts are removed", () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(html) {
+      createdHtml = html;
+    },
+    get innerHTML() {
+      return createdHtml;
+    }
+  };
+
+  // Mock document.getElementById to return dummy container
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-physarum") return dummyContainer;
+    return null;
+  };
+
+  try {
+    initPhysarum();
+
+    // Verify local play button is removed
+    assert.ok(!createdHtml.includes('id="physarum-play-btn"'), "Local play button must be removed (Global play exists)");
+
+    // Verify local RND button is removed
+    assert.ok(!createdHtml.includes('id="physarum-rnd-btn"'), "Local RND button must be removed (Global randomise exists)");
+
+    // Verify local Span slider is removed
+    assert.ok(!createdHtml.includes('id="physarum-span"'), "Local Span slider must be removed (Notes div octave spread exists)");
+
+    // Verify remaining model-specific controls are preserved
+    assert.ok(createdHtml.includes('id="physarum-reseed-btn"'), "Re-Seed button retained");
+    assert.ok(createdHtml.includes('id="physarum-clear-btn"'), "Clear button retained");
+    assert.ok(createdHtml.includes('id="physarum-preset-select"'), "Preset select retained");
+    assert.ok(createdHtml.includes('id="physarum-sens-dist"'), "Sens Dist retained");
+    assert.ok(createdHtml.includes('id="physarum-sens-ang"'), "Sens Ang retained");
+    assert.ok(createdHtml.includes('id="physarum-decay"'), "Decay retained");
+    assert.ok(createdHtml.includes('id="physarum-thresh"'), "Thresh retained");
+    assert.ok(createdHtml.includes('id="physarum-agents"'), "Agents retained");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+

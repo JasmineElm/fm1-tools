@@ -213,7 +213,9 @@ function krellTick(time) {
   }
 
   renderKrellVisualizer();
-  animFrameId = requestAnimationFrame(krellTick);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(krellTick);
+  }
 }
 
 // ---- Visualizer Canvas ----
@@ -396,7 +398,7 @@ export function startKrell() {
     krellVoices[i].dwellTimer = i * 0.35;
     krellVoices[i].stage = "REST";
   }
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(krellTick);
   }
   status("Buchla Krell patch playing · Continuous envelope generation", "ok");
@@ -405,7 +407,7 @@ export function startKrell() {
 export function stopKrell() {
   isKrellPlaying = false;
   isRunning = false;
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
@@ -480,7 +482,7 @@ export function activateKrellModel() {
 export function deactivateKrellModel() {
   stopKrell();
   isRunning = false;
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

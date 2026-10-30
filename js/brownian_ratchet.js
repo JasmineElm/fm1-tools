@@ -795,7 +795,9 @@ function animLoop(timestamp) {
   }
 
   renderCanvas();
-  animFrameId = requestAnimationFrame(animLoop);
+  if (typeof requestAnimationFrame === "function") {
+    animFrameId = requestAnimationFrame(animLoop);
+  }
 }
 
 export function startBrownianRatchet() {
@@ -1013,8 +1015,13 @@ export function initBrownianRatchet() {
     status("Ratchet angle reset to 0");
   }, "Reset wheel angle and click counters");
 
+  const btnRandomize = actionBtn("Randomize", () => {
+    randomizeBrownianRatchet();
+  }, "Randomize thermodynamic parameters");
+
   actionGroup.appendChild(btnNudge);
   actionGroup.appendChild(btnReset);
+  actionGroup.appendChild(btnRandomize);
 
   sectPresets.appendChild(rowPreset);
   sectPresets.appendChild(rowOctave);
@@ -1042,7 +1049,7 @@ export function initBrownianRatchet() {
   });
 
   // Start rendering loop
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animLoop);
   }
 }
@@ -1050,7 +1057,7 @@ export function initBrownianRatchet() {
 /**
  * Refresh UI control widgets when state values update.
  */
-function syncControls() {
+export function syncControls() {
   if (refs.ratchetT1) refs.ratchetT1.setValue(state.ratchetT1);
   if (refs.ratchetT2) refs.ratchetT2.setValue(state.ratchetT2);
   if (refs.ratchetLoad) refs.ratchetLoad.setValue(state.ratchetLoad);
@@ -1062,9 +1069,27 @@ function syncControls() {
   if (refs.ratchetPreset) refs.ratchetPreset.setValue(state.ratchetPreset);
 }
 
+export function randomizeBrownianRatchet() {
+  const preset = RATCHET_PRESETS[Math.floor(Math.random() * RATCHET_PRESETS.length)];
+  state.ratchetPreset = preset.id;
+  state.ratchetT1 = Math.round((0.5 + Math.random() * 8.5) * 10) / 10;
+  state.ratchetT2 = Math.round((0.1 + Math.random() * 4.0) * 10) / 10;
+  state.ratchetLoad = Math.round((-0.5 + Math.random() * 3.0) * 100) / 100;
+  state.ratchetAsym = Math.round((0.2 + Math.random() * 0.65) * 100) / 100;
+  state.ratchetTeeth = Math.floor(Math.random() * 12) + 8;
+  state.ratchetBarrier = Math.round((1.5 + Math.random() * 4.0) * 10) / 10;
+  state.ratchetDamping = Math.round((0.8 + Math.random() * 2.0) * 10) / 10;
+  state.ratchetOctave = Math.floor(Math.random() * 3) - 1;
+  initGasParticles(state.ratchetT1);
+  syncControls();
+  renderCanvas();
+  status(`Brownian Ratchet randomized: T1=${state.ratchetT1}°, T2=${state.ratchetT2}°, Load=${state.ratchetLoad}`);
+}
+
 export function activateBrownianRatchetModel() {
   if (container) container.style.display = "block";
   stopBrownianRatchet();
+  setModelRandomizer(randomizeBrownianRatchet);
   setModelTransportHandler({
     start: startBrownianRatchet,
     stop: stopBrownianRatchet,
@@ -1072,7 +1097,7 @@ export function activateBrownianRatchetModel() {
     isRunning: isBrownianRatchetRunning
   });
   renderCanvas();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(animLoop);
   }
@@ -1080,9 +1105,10 @@ export function activateBrownianRatchetModel() {
 
 export function deactivateBrownianRatchetModel() {
   stopBrownianRatchet();
+  setModelRandomizer(null);
   setModelTransportHandler(null);
   if (container) container.style.display = "none";
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

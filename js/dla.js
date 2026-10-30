@@ -85,10 +85,6 @@ function playDlaVoice(voiceId, note, vel, durMs) {
   playVoice(voiceId, note, vel, durMs);
 }
 
-function releaseAllVoices() {
-  releasePolyVoices();
-}
-
 // ---- Lattice & Seed Initialization ----
 export function initDlaLattice(presetId = state.dlaPreset || "center") {
   lattice.fill(0);
@@ -345,14 +341,12 @@ export function startDla() {
   isDlaPlaying = true;
   audio.unlock();
   walkerAccumulator = 0;
-  updatePlayBtnUI();
   status("DLA Dendritic Crystal: Playing · Brownian aleatoric growth", "ok");
 }
 
 export function stopDla() {
   isDlaPlaying = false;
-  releaseAllVoices();
-  updatePlayBtnUI();
+  releasePolyVoices();
   status("stopped");
 }
 
@@ -363,18 +357,6 @@ export function toggleDlaRunning() {
   } else {
     startDla();
     return true;
-  }
-}
-
-function updatePlayBtnUI() {
-  const headerBtn = document.getElementById("audition");
-  if (headerBtn) {
-    headerBtn.textContent = isDlaPlaying ? "■ Stop" : "▶ Play";
-    if (isDlaPlaying) {
-      headerBtn.classList.add("playing");
-    } else {
-      headerBtn.classList.remove("playing");
-    }
   }
 }
 
@@ -782,12 +764,11 @@ export function activateDlaModel() {
   doGenerate(false);
   renderDlaCanvas();
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     lastFrameTime = performance.now();
     animFrameId = requestAnimationFrame(dlaLoop);
   }
 
-  updatePlayBtnUI();
   status("DLA Dendritic Crystal: Ready (Press Play or Spacebar to grow crystal)", "ok");
 }
 
@@ -800,7 +781,7 @@ export function deactivateDlaModel() {
 
   releasePolyVoices();
 
-  if (animFrameId) {
+  if (animFrameId && typeof cancelAnimationFrame === "function") {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }

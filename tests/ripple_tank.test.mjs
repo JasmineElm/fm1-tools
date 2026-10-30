@@ -234,3 +234,47 @@ test("global randomizer dispatch invokes randomizeRippleTank when ripple_tank is
   deactivateRippleTankModel();
   assert.equal(getCurrentModelRandomizer(), null);
 });
+
+test("stepSimulation triggers notes when wave crests pass pickups in double_slit and other presets", () => {
+  for (const preset of RIPPLE_PRESETS) {
+    initTankPreset(preset.id);
+    startRipple();
+
+    let triggerCount = 0;
+    for (let s = 0; s < 400; s++) {
+      stepSimulation(16);
+      for (let p = 0; p < MAX_PICKUPS; p++) {
+        if (pickups[p].pulseAnim > 0.8) {
+          triggerCount++;
+        }
+      }
+    }
+
+    stopRipple();
+    assert.ok(triggerCount > 0, `Preset ${preset.id} must trigger acoustic note events at hydrophone pickups (got ${triggerCount})`);
+  }
+});
+
+test("ripple_tank local controls mirroring global ones (Play) are removed", async () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(val) { createdHtml = val; },
+    get innerHTML() { return createdHtml; }
+  };
+
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-ripple_tank") return dummyContainer;
+    return null;
+  };
+
+  try {
+    const { initRippleTank } = await import("../js/ripple_tank.js");
+    initRippleTank();
+    assert.ok(!createdHtml.includes('id="ripple-play-btn"'), "Local play button must be removed (Global play exists)");
+    assert.ok(createdHtml.includes('id="ripple-rnd-btn"'), "RND button present in toolbar");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+

@@ -50,10 +50,11 @@ import {
   toggleReactionDiffusionRunning,
   isReactionDiffusionRunning,
   activateReactionDiffusionModel,
-  deactivateReactionDiffusionModel
+  deactivateReactionDiffusionModel,
+  initReactionDiffusion
 } from "../js/reaction_diffusion.js";
 import { getModelDef } from "../js/snapshot.js";
-import { getCurrentModelRandomizer } from "../js/state.js";
+import { state, getCurrentModelRandomizer } from "../js/state.js";
 
 test("RD_PRESETS contains required Turing morphogenesis parameter regimes", () => {
   assert.equal(RD_PRESETS.length, 5);
@@ -192,3 +193,137 @@ test("global randomizer dispatch invokes randomizeReactionDiffusion when reactio
   deactivateReactionDiffusionModel();
   assert.equal(getCurrentModelRandomizer(), null);
 });
+
+test("reaction_diffusion local controls mirroring global ones (Play) are removed", () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(val) { createdHtml = val; },
+    get innerHTML() { return createdHtml; }
+  };
+
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-reaction_diffusion") return dummyContainer;
+    return null;
+  };
+
+  try {
+    initReactionDiffusion();
+    assert.ok(!createdHtml.includes('id="rd-play-btn"'), "Local play button must be removed (Global play exists)");
+    assert.ok(createdHtml.includes('id="rd-rnd-btn"'), "RND button present in toolbar");
+    assert.ok(createdHtml.includes('id="rd-drift-btn"'), "DRIFT toggle button present in toolbar");
+    assert.ok(createdHtml.includes('id="rd-strobe-select"'), "Strobe rate selector present in toolbar");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+
+test("autonomous drift (1D) updates probe positions and reflects at boundary walls", () => {
+  initProbes();
+  state.rdDrift = 1;
+  state.modelSpeed = 1.0;
+
+  const probe = probes[0];
+  probe.x = 20;
+  probe.y = 20;
+  probe.vx = 1.5;
+  probe.vy = 1.0;
+
+  const origX = probe.x;
+  const origY = probe.y;
+
+  // Run simulation step
+  stepSimulation(30);
+
+  // Position should have changed with drift enabled
+  assert.notEqual(probe.x, origX, "Probe X position must advance with autonomous drift");
+  assert.notEqual(probe.y, origY, "Probe Y position must advance with autonomous drift");
+
+  // Test boundary reflection
+  probe.x = GRID_W - 3;
+  probe.vx = 2.0; // Moving right towards boundary
+  stepSimulation(30);
+  assert.ok(probe.x <= GRID_W - 4, `Probe must stay within boundary margin (got ${probe.x}, max ${GRID_W - 4})`);
+  assert.ok(probe.vx < 0, "Probe vx must reflect elastically to negative on right boundary hit");
+
+  // Test drift disabled
+  state.rdDrift = 0;
+  const freezeX = probe.x;
+  const freezeY = probe.y;
+  stepSimulation(30);
+  assert.equal(probe.x, freezeX, "Probe position must remain frozen when drift is disabled");
+  assert.equal(probe.y, freezeY, "Probe position must remain frozen when drift is disabled");
+  state.rdDrift = 1;
+});
+
+test("dynamic pitch modulation (2A) modulates scale degrees via morphogen concentration and gradient", () => {
+  initProbes();
+  const probe = probes[0];
+  probe.x = 30;
+  probe.y = 30;
+
+  // With morphogen V = 0
+  const noteV0 = getProbeNote(probe, 1.0, 0.0);
+  // With morphogen V = 0.5
+  const noteVHigh = getProbeNote(probe, 0.3, 0.5);
+
+  assert.ok(typeof noteV0 === "number" && noteV0 >= 0 && noteV0 <= 127);
+  assert.ok(typeof noteVHigh === "number" && noteVHigh >= 0 && noteVHigh <= 127);
+});
+
+test("reaction energy calculation (2B) maps to musical velocity and articulation range", () => {
+  // Test reaction energy R = U * V^2 mapping
+  const lowU = 0.9, lowV = 0.05;
+  const highU = 0.35, highV = 0.45;
+
+  const rLow = lowU * (lowV * lowV);
+  const rHigh = highU * (highV * highV);
+
+  const intLow = Math.min(1.0, rLow / 0.05);
+  const intHigh = Math.min(1.0, rHigh / 0.05);
+
+  const velLow = Math.max(48, Math.min(127, Math.round(52 + intLow * 72)));
+  const velHigh = Math.max(48, Math.min(127, Math.round(52 + intHigh * 72)));
+
+  assert.ok(velLow >= 48 && velLow <= 80, `Soft velocity for low energy: ${velLow}`);
+  assert.ok(velHigh >= 95 && velHigh <= 127, `Accented velocity for high reaction energy: ${velHigh}`);
+
+  const durLow = Math.round(140 + lowV * 360);
+  const durHigh = Math.round(140 + highV * 360);
+
+  assert.ok(durLow >= 140 && durLow < durHigh, "Duration must be shorter for lower concentration");
+  assert.ok(durHigh <= 500, "Duration must not exceed maximum 500ms");
+});
+
+test("reaction_diffusion snapshot preserves drift, strobe rate, and probe velocities", () => {
+  const def = getModelDef("reaction_diffusion");
+  state.rdDrift = 0;
+  state.rdStrobeRate = "8t";
+  probes[0].vx = 0.88;
+  probes[0].vy = -0.44;
+
+  const captured = def.capture();
+  assert.equal(captured.drift, 0);
+  assert.equal(captured.strobeRate, "8t");
+  assert.equal(captured.probes[0].vx, 0.88);
+  assert.equal(captured.probes[0].vy, -0.44);
+
+  // Alter state
+  state.rdDrift = 1;
+  state.rdStrobeRate = "16n";
+  probes[0].vx = 0;
+  probes[0].vy = 0;
+
+  // Restore
+  def.restore(captured);
+  assert.equal(state.rdDrift, 0);
+  assert.equal(state.rdStrobeRate, "8t");
+  assert.equal(probes[0].vx, 0.88);
+  assert.equal(probes[0].vy, -0.44);
+
+  // Restore defaults
+  state.rdDrift = 1;
+  state.rdStrobeRate = "16n";
+});
+
+

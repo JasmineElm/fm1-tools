@@ -113,6 +113,15 @@ export const FHN_PRESETS = [
     weight: 0.85,
     recovery: 0.07,
     noise: 0.12
+  },
+  {
+    id: "random",
+    name: "Random Neuropil",
+    desc: "Stochastically positioned soma nodes and randomized synaptic wiring matrix",
+    bias: 0.28,
+    weight: 0.75,
+    recovery: 0.08,
+    noise: 0.06
   }
 ];
 
@@ -129,6 +138,66 @@ let canvas = null;
 let ctx = null;
 let hoveredNeuron = -1;
 let draggedNeuron = -1;
+
+/**
+ * Randomize 2D spatial positions of all biological neuron nodes within the graph canvas area.
+ * Bounded within [0.12, 0.88] with minimum inter-soma clearance.
+ */
+export function randomizeNeuronPositions() {
+  const minDist = 0.16;
+  const positions = [];
+
+  for (let i = 0; i < MAX_NEURONS; i++) {
+    let bestX = 0.15 + Math.random() * 0.70;
+    let bestY = 0.15 + Math.random() * 0.70;
+    let maxDistToOthers = -1;
+
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const candX = 0.12 + Math.random() * 0.76;
+      const candY = 0.12 + Math.random() * 0.76;
+
+      if (positions.length === 0) {
+        bestX = candX;
+        bestY = candY;
+        break;
+      }
+
+      let closest = Infinity;
+      for (const p of positions) {
+        const d = Math.hypot(p.x - candX, p.y - candY);
+        if (d < closest) closest = d;
+      }
+
+      if (closest >= minDist) {
+        bestX = candX;
+        bestY = candY;
+        break;
+      }
+
+      if (closest > maxDistToOthers) {
+        maxDistToOthers = closest;
+        bestX = candX;
+        bestY = candY;
+      }
+    }
+
+    nodeX[i] = bestX;
+    nodeY[i] = bestY;
+    positions.push({ x: nodeX[i], y: nodeY[i] });
+  }
+
+  return positions;
+}
+
+export function getNeuronPositions() {
+  const x = new Float32Array(MAX_NEURONS);
+  const y = new Float32Array(MAX_NEURONS);
+  for (let i = 0; i < MAX_NEURONS; i++) {
+    x[i] = nodeX[i];
+    y[i] = nodeY[i];
+  }
+  return { x, y };
+}
 
 /**
  * Configure network topology and baseline excitability according to preset.
@@ -230,6 +299,19 @@ export function initNetwork(presetId = state.fhnPreset || "synfire") {
         }
       }
     }
+  } else if (preset.id === "random") {
+    randomizeNeuronPositions();
+    for (let i = 0; i < MAX_NEURONS; i++) {
+      I_bias[i] = 0.20 + Math.random() * 0.25;
+      for (let j = 0; j < MAX_NEURONS; j++) {
+        if (i === j) continue;
+        if (Math.random() < 0.45) {
+          W[i * MAX_NEURONS + j] = Math.random() > 0.35
+            ? Number((0.25 + Math.random() * 0.55).toFixed(2))
+            : Number((-0.20 - Math.random() * 0.45).toFixed(2));
+        }
+      }
+    }
   } else {
     // chaotic_recurrent: Random Neuropil
     for (let i = 0; i < MAX_NEURONS; i++) {
@@ -256,7 +338,7 @@ export function initNetwork(presetId = state.fhnPreset || "synfire") {
 export function getNeuronNote(idx) {
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
-  const span = Math.min(4, Math.max(1, Number(state.fhnSpan ?? 2)));
+  const span = Math.min(4, Math.max(1, Number(state.pitchSpan ?? state.fhnSpan ?? 2)));
 
   const numDeg = intervals.length || 7;
   const deg = idx % numDeg;
@@ -628,7 +710,6 @@ export function startFhn() {
   if (isFhnPlaying) return;
   isFhnPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("FitzHugh-Nagumo: Spiking neural network active", "ok");
 }
 
@@ -637,7 +718,6 @@ export function stopFhn() {
   releasePolyVoices();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("FitzHugh-Nagumo: Stopped", "warn");
 }
 
@@ -646,11 +726,51 @@ export function toggleFhnRunning() {
   else startFhn();
 }
 
-function updatePlayBtnUI() {
-  const btn = document.getElementById("fhn-play-btn");
-  if (!btn) return;
-  btn.textContent = isFhnPlaying ? "Stop" : "Play";
-  btn.className = isFhnPlaying ? "btn btn-err" : "btn btn-ok";
+/**
+ * Synchronize UI controls with state values.
+ */
+export function syncFhnControls() {
+  if (refs.fhnPreset?.setValue) refs.fhnPreset.setValue(state.fhnPreset, false);
+  if (refs.fhnStimulus?.setValue) refs.fhnStimulus.setValue(Number(state.fhnStimulus ?? 1.0), false);
+  if (refs.fhnWeight?.setValue) refs.fhnWeight.setValue(Number(state.fhnWeight ?? 1.0), false);
+  if (refs.fhnRecovery?.setValue) refs.fhnRecovery.setValue(Number(state.fhnRecovery ?? 0.08), false);
+  if (refs.fhnNoise?.setValue) refs.fhnNoise.setValue(Number(state.fhnNoise ?? 0.04), false);
+  if (refs.fhnSpan?.setValue) refs.fhnSpan.setValue(Number(state.fhnSpan ?? state.pitchSpan ?? 2), false);
+}
+
+/**
+ * Randomize FitzHugh-Nagumo node placement, topology, and local model controls.
+ */
+export function randomizeFitzhughNagumo() {
+  state.fhnStimulus = Number((0.4 + Math.random() * 1.3).toFixed(2));
+  state.fhnWeight = Number((0.4 + Math.random() * 1.8).toFixed(2));
+  state.fhnRecovery = Number((0.03 + Math.random() * 0.12).toFixed(2));
+  state.fhnNoise = Number((0.01 + Math.random() * 0.20).toFixed(2));
+  state.fhnSpan = Math.round(1 + Math.random() * 3);
+  state.pitchSpan = state.fhnSpan;
+
+  const presets = FHN_PRESETS.map(p => p.id);
+  state.fhnPreset = presets[Math.floor(Math.random() * presets.length)];
+
+  initNetwork(state.fhnPreset);
+  randomizeNeuronPositions();
+
+  let nonZeroSynapses = 0;
+  for (let i = 0; i < MAX_NEURONS * MAX_NEURONS; i++) {
+    if (W[i] !== 0) nonZeroSynapses++;
+  }
+  if (nonZeroSynapses < 4) {
+    for (let i = 0; i < MAX_NEURONS; i++) {
+      const target = (i + 1 + Math.floor(Math.random() * (MAX_NEURONS - 1))) % MAX_NEURONS;
+      W[i * MAX_NEURONS + target] = Number((0.3 + Math.random() * 0.5).toFixed(2));
+    }
+  }
+
+  injectStimulus(Math.floor(Math.random() * MAX_NEURONS), 2.5);
+  syncFhnControls();
+  renderCanvas();
+  doGenerate(true);
+  status("FitzHugh-Nagumo: Randomized node placement and model controls", "ok");
 }
 
 /**
@@ -658,6 +778,7 @@ function updatePlayBtnUI() {
  */
 export function activateFitzhughNagumoModel() {
   setModelGenerator(generateFitzhughNagumoBank);
+  setModelRandomizer(randomizeFitzhughNagumo);
   setModelStepHandler((stepIdx) => {
     // In SYNC mode: advance simulation step
     stepSimulation(32);
@@ -671,19 +792,22 @@ export function activateFitzhughNagumoModel() {
   });
 
   stopFhn();
-  lastFrameTime = performance.now();
-  if (!animFrameId) {
+  lastFrameTime = typeof performance !== "undefined" && performance.now ? performance.now() : 0;
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateFitzhughNagumoModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   stopFhn();
   if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(animFrameId);
+    }
     animFrameId = null;
   }
 }
@@ -698,7 +822,11 @@ function animationTick(now) {
     }
     renderCanvas();
 
-    animFrameId = requestAnimationFrame(animationTick);
+    if (typeof requestAnimationFrame === "function") {
+      animFrameId = requestAnimationFrame(animationTick);
+    } else {
+      animFrameId = null;
+    }
   } else {
     animFrameId = null;
   }
@@ -720,7 +848,9 @@ registerModel({
     span: state.fhnSpan ?? 2,
     v: Array.from(v),
     w: Array.from(w),
-    W: Array.from(W)
+    W: Array.from(W),
+    nodeX: Array.from(nodeX),
+    nodeY: Array.from(nodeY)
   }),
   restore: (data) => {
     if (!data) return;
@@ -740,6 +870,13 @@ registerModel({
     if (Array.isArray(data.W)) {
       for (let i = 0; i < Math.min(MAX_NEURONS * MAX_NEURONS, data.W.length); i++) W[i] = data.W[i];
     }
+    if (Array.isArray(data.nodeX)) {
+      for (let i = 0; i < Math.min(MAX_NEURONS, data.nodeX.length); i++) nodeX[i] = data.nodeX[i];
+    }
+    if (Array.isArray(data.nodeY)) {
+      for (let i = 0; i < Math.min(MAX_NEURONS, data.nodeY.length); i++) nodeY[i] = data.nodeY[i];
+    }
+    syncFhnControls();
     renderCanvas();
   }
 });
@@ -762,9 +899,9 @@ export function initFitzhughNagumo() {
         <div id="fhn-noise-ctrl"></div>
         <div id="fhn-span-ctrl"></div>
         <div style="display: flex; gap: 6px; margin-left: auto;">
+          <button id="fhn-rnd-btn" class="btn" title="Randomise node placement and model controls">RND</button>
           <button id="fhn-pulse-btn" class="btn" title="Inject current pulse into Neuron 1">Inject Pulse</button>
           <button id="fhn-reset-btn" class="btn" title="Reset membrane potentials to resting state">Reset</button>
-          <button id="fhn-play-btn" class="btn btn-ok" title="Start/Stop Neuromorphic Spiking Network">Play</button>
         </div>
       </div>
 
@@ -784,7 +921,7 @@ export function initFitzhughNagumo() {
   const presetCtrl = document.getElementById("fhn-preset-ctrl");
   if (presetCtrl) {
     presetCtrl.appendChild(
-      dropdown({
+      R("fhnPreset", dropdown({
         label: "Topology",
         tip: "Neuromorphic biophysical synaptic connection network topology preset",
         options: FHN_PRESETS.map(p => ({ value: p.id, label: p.name })),
@@ -802,7 +939,7 @@ export function initFitzhughNagumo() {
           initNetwork(val);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -810,7 +947,7 @@ export function initFitzhughNagumo() {
   const stimCtrl = document.getElementById("fhn-stim-ctrl");
   if (stimCtrl) {
     stimCtrl.appendChild(
-      knob({
+      R("fhnStimulus", knob({
         label: "Bias I",
         tip: "Tonic depolarizing current injected into neurons to provoke spontaneous action potentials",
         min: 0.0,
@@ -822,7 +959,7 @@ export function initFitzhughNagumo() {
           setState("fhnStimulus", v);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -830,7 +967,7 @@ export function initFitzhughNagumo() {
   const weightCtrl = document.getElementById("fhn-weight-ctrl");
   if (weightCtrl) {
     weightCtrl.appendChild(
-      knob({
+      R("fhnWeight", knob({
         label: "Weight W",
         tip: "Global synaptic coupling conductance scaling across the neural circuit",
         min: 0.0,
@@ -842,7 +979,7 @@ export function initFitzhughNagumo() {
           setState("fhnWeight", v);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -850,7 +987,7 @@ export function initFitzhughNagumo() {
   const recCtrl = document.getElementById("fhn-rec-ctrl");
   if (recCtrl) {
     recCtrl.appendChild(
-      knob({
+      R("fhnRecovery", knob({
         label: "Recov ε",
         tip: "Recovery timescale ε (higher = brief spikes and quick reset, lower = sustained bursts)",
         min: 0.02,
@@ -861,7 +998,7 @@ export function initFitzhughNagumo() {
           setState("fhnRecovery", v);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -869,7 +1006,7 @@ export function initFitzhughNagumo() {
   const noiseCtrl = document.getElementById("fhn-noise-ctrl");
   if (noiseCtrl) {
     noiseCtrl.appendChild(
-      knob({
+      R("fhnNoise", knob({
         label: "Noise",
         tip: "Stochastic membrane current noise driving random biological firing",
         min: 0.0,
@@ -880,7 +1017,7 @@ export function initFitzhughNagumo() {
           setState("fhnNoise", v);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -888,7 +1025,7 @@ export function initFitzhughNagumo() {
   const spanCtrl = document.getElementById("fhn-span-ctrl");
   if (spanCtrl) {
     spanCtrl.appendChild(
-      knob({
+      R("fhnSpan", knob({
         label: "Span",
         tip: "Pitch span in octaves mapped across the 8 neuromorphic neurons",
         min: 1,
@@ -900,11 +1037,18 @@ export function initFitzhughNagumo() {
           setState("fhnSpan", v);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
   // Buttons
+  const rndBtn = document.getElementById("fhn-rnd-btn");
+  if (rndBtn) {
+    rndBtn.addEventListener("click", () => {
+      randomizeFitzhughNagumo();
+    });
+  }
+
   const pulseBtn = document.getElementById("fhn-pulse-btn");
   if (pulseBtn) {
     pulseBtn.addEventListener("click", () => {
@@ -923,15 +1067,9 @@ export function initFitzhughNagumo() {
     });
   }
 
-  const playBtn = document.getElementById("fhn-play-btn");
-  if (playBtn) {
-    playBtn.addEventListener("click", () => {
-      toggleFhnRunning();
-    });
-  }
-
   setupCanvasInteraction();
   initNetwork(state.fhnPreset || "synfire");
+  setModelRandomizer(randomizeFitzhughNagumo);
   renderCanvas();
 }
 

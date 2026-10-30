@@ -138,7 +138,7 @@ export function computeOrderParameter() {
 export function getOscillatorNote(idx) {
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
-  const span = Math.min(4, Math.max(1, Number(state.kuramotoSpan ?? 2)));
+  const span = Math.min(4, Math.max(1, Number(state.pitchSpan ?? state.kuramotoSpan ?? 2)));
 
   // Degree based on index (0 to 7)
   const numDeg = intervals.length || 7;
@@ -468,14 +468,12 @@ export function startKuramoto() {
   if (isKuramotoPlaying) return;
   isKuramotoPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Kuramoto Oscillators: Phase synchronization active", "ok");
 }
 
 export function stopKuramoto() {
   isKuramotoPlaying = false;
   releasePolyVoices();
-  updatePlayBtnUI();
   status("Kuramoto Oscillators: Stopped", "warn");
 }
 
@@ -484,18 +482,43 @@ export function toggleKuramotoRunning() {
   else startKuramoto();
 }
 
-function updatePlayBtnUI() {
-  const btn = document.getElementById("kuramoto-play-btn");
-  if (!btn) return;
-  btn.textContent = isKuramotoPlaying ? "Stop" : "Play";
-  btn.className = isKuramotoPlaying ? "btn btn-err" : "btn btn-ok";
-}
-
 /**
  * Model Activation / Deactivation Lifecycle
  */
+export function syncKuramotoControls() {
+  const presetEl = document.getElementById("kuramoto-preset-select");
+  if (presetEl && state.kuramotoPreset) presetEl.value = state.kuramotoPreset;
+  const coupEl = document.getElementById("kuramoto-coupling");
+  if (coupEl && state.kuramotoCoupling !== undefined) coupEl.value = state.kuramotoCoupling;
+  const sigEl = document.getElementById("kuramoto-sigma");
+  if (sigEl && state.kuramotoSigma !== undefined) sigEl.value = state.kuramotoSigma;
+  const noiseEl = document.getElementById("kuramoto-noise");
+  if (noiseEl && state.kuramotoNoise !== undefined) noiseEl.value = state.kuramotoNoise;
+}
+
+export function randomizeKuramoto() {
+  const p = KURAMOTO_PRESETS[Math.floor(Math.random() * KURAMOTO_PRESETS.length)];
+  state.kuramotoPreset = p.id;
+  state.kuramotoCoupling = Number((0.2 + Math.random() * 2.8).toFixed(1));
+  state.kuramotoSigma = Number((0.1 + Math.random() * 1.1).toFixed(2));
+  state.kuramotoNoise = Number((0.02 + Math.random() * 0.3).toFixed(2));
+
+  initOscillators(p.id);
+  // Randomize initial phase distribution
+  for (let i = 0; i < MAX_OSCILLATORS; i++) {
+    theta[i] = Math.random() * Math.PI * 2;
+    prevTheta[i] = theta[i];
+  }
+
+  syncKuramotoControls();
+  renderCanvas();
+  doGenerate(true);
+  status(`Randomized Kuramoto Oscillators: ${p.name} · K=${state.kuramotoCoupling}`, "ok");
+}
+
 export function activateKuramotoModel() {
   setModelGenerator(generateKuramotoBank);
+  setModelRandomizer(randomizeKuramoto);
   setModelStepHandler((stepIdx) => {
     // SYNC mode step: execute simulation advance
     stepSimulation(32);
@@ -509,20 +532,23 @@ export function activateKuramotoModel() {
   });
 
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateKuramotoModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   isKuramotoPlaying = false;
   releasePolyVoices();
 
   if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(animFrameId);
+    }
     animFrameId = null;
   }
 }
@@ -536,9 +562,9 @@ export function initKuramoto() {
 
   container.innerHTML = `
     <div class="kuramoto-enclosure">
-      <!-- Top Control Bar -->
+      <!-- Top Control Bar (redundant transport and octave spread controls removed in favor of Global / Notes div) -->
       <div class="kuramoto-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-        <button id="kuramoto-play-btn" class="btn btn-ok" style="min-width: 60px;" title="Start/Stop Kuramoto phase synchronization simulation engine">Play</button>
+        <button id="kuramoto-rnd-btn" class="btn" title="Randomise oscillator parameters and phases">RND</button>
         <button id="kuramoto-reset-btn" class="btn" title="Reset phases and random frequencies">Reset</button>
 
         <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Phase oscillator network coupling regime preset (synchrony, polyrhythms, critical, bimodal, chaotic)">
@@ -562,11 +588,6 @@ export function initKuramoto() {
           Noise:
           <input type="range" id="kuramoto-noise" min="0" max="0.5" step="0.02" value="${state.kuramotoNoise ?? 0.05}" style="width: 60px;" title="Thermal Phase Noise: Stochastic angular jitter perturbing oscillator orbits">
         </label>
-
-        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pitch Octave Span: Pitch range across octaves mapped across the 8 phase oscillators">
-          Span:
-          <input type="range" id="kuramoto-span" min="1" max="4" step="1" value="${state.kuramotoSpan ?? 2}" style="width: 50px;" title="Pitch Octave Span: Pitch range across octaves mapped across the 8 phase oscillators">
-        </label>
       </div>
 
       <!-- Canvas Dial -->
@@ -587,8 +608,10 @@ export function initKuramoto() {
   }
 
   // Hook buttons
-  const playBtn = document.getElementById("kuramoto-play-btn");
-  if (playBtn) playBtn.addEventListener("click", toggleKuramotoRunning);
+  const rndBtn = document.getElementById("kuramoto-rnd-btn");
+  if (rndBtn) rndBtn.addEventListener("click", () => {
+    randomizeKuramoto();
+  });
 
   const resetBtn = document.getElementById("kuramoto-reset-btn");
   if (resetBtn) resetBtn.addEventListener("click", () => {
@@ -633,7 +656,6 @@ export function initKuramoto() {
   bindSlider("kuramoto-coupling", "kuramotoCoupling");
   bindSlider("kuramoto-sigma", "kuramotoSigma");
   bindSlider("kuramoto-noise", "kuramotoNoise");
-  bindSlider("kuramoto-span", "kuramotoSpan");
 
   // Initial layout and seeding
   initOscillators(state.kuramotoPreset || "near_sync");
@@ -651,7 +673,7 @@ registerModel({
       coupling: state.kuramotoCoupling ?? 2.2,
       sigma: state.kuramotoSigma ?? 0.15,
       noise: state.kuramotoNoise ?? 0.05,
-      span: state.kuramotoSpan ?? 2,
+      span: state.pitchSpan ?? state.kuramotoSpan ?? 2,
       theta: Array.from(theta),
       omega: Array.from(omega)
     };
@@ -662,7 +684,11 @@ registerModel({
     if (data.coupling !== undefined) setState({ kuramotoCoupling: data.coupling });
     if (data.sigma !== undefined) setState({ kuramotoSigma: data.sigma });
     if (data.noise !== undefined) setState({ kuramotoNoise: data.noise });
-    if (data.span !== undefined) setState({ kuramotoSpan: data.span });
+    if (data.span !== undefined) {
+      setState({ kuramotoSpan: data.span });
+      state.pitchSpan = data.span;
+      if (refs.pitchSpan?.setValue) refs.pitchSpan.setValue(String(data.span), false);
+    }
 
     if (Array.isArray(data.theta)) {
       for (let i = 0; i < MAX_OSCILLATORS; i++) {

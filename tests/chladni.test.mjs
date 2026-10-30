@@ -50,9 +50,15 @@ import {
   startChladni,
   stopChladni,
   toggleChladniRunning,
-  isChladniRunning
+  isChladniRunning,
+  randomizeChladni,
+  syncChladniControls,
+  activateChladniModel,
+  deactivateChladniModel,
+  initChladni
 } from "../js/chladni.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 
 test("CHLADNI_PRESETS contains required 2D standing wave modal figures", () => {
   assert.equal(CHLADNI_PRESETS.length, 5);
@@ -174,3 +180,37 @@ test("Transport start/stop/toggle controls", () => {
   toggleChladniRunning();
   assert.equal(isChladniRunning(), false);
 });
+
+test("randomizeChladni updates state and registers as active model randomizer", () => {
+  activateChladniModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  randomizeChladni();
+  assert.ok(sandX.length === NUM_SAND_GRAINS);
+
+  deactivateChladniModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+
+test("initChladni creates workbench with randomize button and no redundant local play button", () => {
+  let innerHtml = "";
+  const container = {
+    set innerHTML(val) { innerHtml = val; },
+    get innerHTML() { return innerHtml; }
+  };
+  const origGetById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-chladni") return container;
+    return null;
+  };
+
+  try {
+    initChladni();
+    assert.ok(innerHtml.includes("chladni-rnd-btn"), "Should have local randomize button");
+    assert.ok(!innerHtml.includes("chladni-play-btn"), "Should NOT have local play button replicating global transport");
+  } finally {
+    globalThis.document.getElementById = origGetById;
+  }
+});
+

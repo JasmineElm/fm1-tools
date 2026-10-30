@@ -54,9 +54,14 @@ import {
   startBreeder,
   stopBreeder,
   toggleBreederRunning,
-  isBreederRunning
+  isBreederRunning,
+  initGeneticBreeder,
+  activateGeneticBreederModel,
+  deactivateGeneticBreederModel,
+  randomizeGeneticBreeder
 } from "../js/genetic_breeder.js";
 import { getModelDef } from "../js/snapshot.js";
+import { state, getCurrentModelRandomizer } from "../js/state.js";
 
 test("BREEDER_PRESETS contains required evolutionary musical lineages", () => {
   assert.equal(BREEDER_PRESETS.length, 5);
@@ -222,3 +227,40 @@ test("Transport start/stop/toggle controls", () => {
   toggleBreederRunning();
   assert.equal(isBreederRunning(), false);
 });
+
+test("genetic_breeder local controls mirroring global ones (Play) are removed", () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(val) { createdHtml = val; },
+    get innerHTML() { return createdHtml; }
+  };
+
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-genetic_breeder") return dummyContainer;
+    return null;
+  };
+
+  try {
+    initGeneticBreeder();
+    assert.ok(!createdHtml.includes('id="gene-play-btn"'), "Local play button must be removed (Global play exists)");
+    assert.ok(createdHtml.includes('id="gene-rnd-btn"'), "RND button present in toolbar");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+
+test("randomizeGeneticBreeder randomizes parameters and registers with global randomizer", () => {
+  activateGeneticBreederModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(rnd, randomizeGeneticBreeder);
+
+  randomizeGeneticBreeder();
+  assert.ok(state.geneCrossover >= 0.2 && state.geneCrossover <= 0.95);
+  assert.ok(state.geneMutation >= 0.01 && state.geneMutation <= 0.35);
+  assert.ok(typeof state.genePreset === "string");
+
+  deactivateGeneticBreederModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+

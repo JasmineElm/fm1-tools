@@ -590,7 +590,6 @@ export function startBreeder() {
   if (isBreederPlaying) return;
   isBreederPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
   status("Genetic Breeder: Evolutionary melodic population active", "ok");
 }
 
@@ -599,7 +598,6 @@ export function stopBreeder() {
   releasePolyVoices();
   panicPreview();
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("Genetic Breeder: Stopped", "warn");
 }
 
@@ -608,11 +606,33 @@ export function toggleBreederRunning() {
   else startBreeder();
 }
 
-function updatePlayBtnUI() {
-  const btn = document.getElementById("gene-play-btn");
-  if (!btn) return;
-  btn.textContent = isBreederPlaying ? "Stop" : "Play";
-  btn.className = isBreederPlaying ? "btn btn-err" : "btn btn-ok";
+export function syncBreederControls() {
+  if (refs.genePreset?.setValue) refs.genePreset.setValue(state.genePreset, false);
+  if (refs.geneCrossover?.setValue) refs.geneCrossover.setValue(state.geneCrossover, false);
+  if (refs.geneMutation?.setValue) refs.geneMutation.setValue(state.geneMutation, false);
+  if (refs.geneSpan?.setValue) refs.geneSpan.setValue(state.geneSpan, false);
+}
+
+export function randomizeGeneticBreeder() {
+  const p = BREEDER_PRESETS[Math.floor(Math.random() * BREEDER_PRESETS.length)];
+  state.genePreset = p.id;
+  state.geneCrossover = Number((0.4 + Math.random() * 0.5).toFixed(2));
+  state.geneMutation = Number((0.03 + Math.random() * 0.2).toFixed(2));
+  state.geneSpan = Math.round(1 + Math.random() * 3);
+
+  initBreederPreset(p.id);
+
+  for (let g = 0; g < POPULATION_SIZE; g++) {
+    fitnessScores[g] = Number((0.5 + Math.random() * 1.5).toFixed(1));
+    genomeMutes[g] = 0;
+    mutateChromosome(g, 0.25);
+  }
+
+  computePopulationVariance();
+  syncBreederControls();
+  renderCanvas();
+  doGenerate(true);
+  status(`Randomized Melodic Genomes: ${p.name}`, "ok");
 }
 
 /**
@@ -620,6 +640,7 @@ function updatePlayBtnUI() {
  */
 export function activateGeneticBreederModel() {
   setModelGenerator(generateGeneticBreederBank);
+  setModelRandomizer(randomizeGeneticBreeder);
   setModelStepHandler((stepIdx) => {
     // In SYNC mode: step simulation
     stepSimulation(32);
@@ -634,18 +655,21 @@ export function activateGeneticBreederModel() {
 
   stopBreeder();
   lastFrameTime = performance.now();
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 }
 
 export function deactivateGeneticBreederModel() {
   setModelGenerator(null);
+  setModelRandomizer(null);
   setModelStepHandler(null);
   setModelTransportHandler(null);
   stopBreeder();
   if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(animFrameId);
+    }
     animFrameId = null;
   }
 }
@@ -745,10 +769,10 @@ export function initGeneticBreeder() {
         <div id="gene-mutation-ctrl"></div>
         <div id="gene-span-ctrl"></div>
         <div style="display: flex; gap: 6px; margin-left: auto;">
+          <button id="gene-rnd-btn" class="btn" title="Randomise lineage and chromosome alleles">RND</button>
           <button id="gene-breed-btn" class="btn btn-accent" title="Breed next generation using fitness selection & crossover">Breed Gen</button>
           <button id="gene-mutate-btn" class="btn" title="Perturb all genomes with genetic mutation">Mutate</button>
           <button id="gene-reset-btn" class="btn" title="Reset population to preset baseline">Reset</button>
-          <button id="gene-play-btn" class="btn btn-ok" title="Start/Stop Melodic Genome Breeder">Play</button>
         </div>
       </div>
 
@@ -821,7 +845,7 @@ export function initGeneticBreeder() {
   const presetCtrl = document.getElementById("gene-preset-ctrl");
   if (presetCtrl) {
     presetCtrl.appendChild(
-      dropdown({
+      R("genePreset", dropdown({
         label: "Lineage",
         tip: "Evolutionary melodic chromosome lineage and aesthetic target preset",
         options: BREEDER_PRESETS.map(p => ({ value: p.id, label: p.name })),
@@ -836,7 +860,7 @@ export function initGeneticBreeder() {
           initBreederPreset(val);
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -844,7 +868,7 @@ export function initGeneticBreeder() {
   const crossoverCtrl = document.getElementById("gene-crossover-ctrl");
   if (crossoverCtrl) {
     crossoverCtrl.appendChild(
-      knob({
+      R("geneCrossover", knob({
         label: "Crossover",
         tip: "Probability of homologous chromosome genetic crossover during sexual reproduction",
         min: 0.2,
@@ -855,7 +879,7 @@ export function initGeneticBreeder() {
           state.geneCrossover = v;
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -863,7 +887,7 @@ export function initGeneticBreeder() {
   const mutationCtrl = document.getElementById("gene-mutation-ctrl");
   if (mutationCtrl) {
     mutationCtrl.appendChild(
-      knob({
+      R("geneMutation", knob({
         label: "Mutation",
         tip: "Point mutation rate per gene during generation reproduction",
         min: 0.01,
@@ -874,7 +898,7 @@ export function initGeneticBreeder() {
           state.geneMutation = v;
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
@@ -882,7 +906,7 @@ export function initGeneticBreeder() {
   const spanCtrl = document.getElementById("gene-span-ctrl");
   if (spanCtrl) {
     spanCtrl.appendChild(
-      knob({
+      R("geneSpan", knob({
         label: "Span",
         tip: "Pitch span in octaves mapped across chromosome alleles",
         min: 1,
@@ -894,11 +918,18 @@ export function initGeneticBreeder() {
           state.geneSpan = v;
           renderCanvas();
         }
-      })
+      }))
     );
   }
 
   // Action Buttons
+  const rndBtn = document.getElementById("gene-rnd-btn");
+  if (rndBtn) {
+    rndBtn.addEventListener("click", () => {
+      randomizeGeneticBreeder();
+    });
+  }
+
   const breedBtn = document.getElementById("gene-breed-btn");
   if (breedBtn) {
     breedBtn.addEventListener("click", () => {
@@ -925,13 +956,6 @@ export function initGeneticBreeder() {
       initBreederPreset(state.genePreset || "baroque_inventions");
       status("Reset population to baseline lineage");
       renderCanvas();
-    });
-  }
-
-  const playBtn = document.getElementById("gene-play-btn");
-  if (playBtn) {
-    playBtn.addEventListener("click", () => {
-      toggleBreederRunning();
     });
   }
 

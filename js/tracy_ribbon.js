@@ -12,7 +12,7 @@ import {
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
-import { liveNoteOn, liveNoteOff, panicPreview, dispatchTimbreCc } from "./player.js";
+import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
@@ -517,16 +517,6 @@ export function stepSimulation(dt = 0.016) {
       c.pulseAnim = Math.max(0, c.pulseAnim - dt * 2.5);
     }
   }
-
-  // Modulate FM-1 CC #74 Brightness with the average speed and vertical height
-  let avgHeight = 0;
-  for (let k = 0; k < numActive; k++) {
-    avgHeight += creatures[k].y / (GRID_ROWS - 1);
-  }
-  avgHeight /= Math.max(1, numActive);
-  const targetCc = Math.round(40 + avgHeight * 70);
-  smoothedCcVal = Math.round(smoothedCcVal * 0.9 + targetCc * 0.1);
-  dispatchTimbreCc(smoothedCcVal);
 
   return { triggered: anyTriggered, creatureS, noteIndex: 0 };
 }

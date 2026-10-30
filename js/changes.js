@@ -933,7 +933,6 @@ export function startChanges() {
   }, 25);
 
   scheduleLookahead(simulatedClock);
-  updatePlayBtnUI();
   status("Changes campanology: Ringing bells · Method changes active", "ok");
 }
 
@@ -949,7 +948,6 @@ export function stopChanges() {
   releasePolyVoices();
   try { midi.sendAllNotesOff(); } catch (_) {}
   try { audio.allOff(); } catch (_) {}
-  updatePlayBtnUI();
   status("stopped");
 }
 
@@ -963,16 +961,45 @@ export function toggleChangesRunning() {
   }
 }
 
-function updatePlayBtnUI() {
-  const headerBtn = document.getElementById("audition");
-  if (headerBtn) {
-    headerBtn.textContent = isChangesPlaying ? "■ Stop" : "▶ Play";
-    if (isChangesPlaying) {
-      headerBtn.classList.add("playing");
-    } else {
-      headerBtn.classList.remove("playing");
-    }
-  }
+export function syncChangesControls() {
+  if (refs.changesStage?.setValue) refs.changesStage.setValue(state.changesStage, false);
+  if (refs.changesMethod?.setValue) refs.changesMethod.setValue(state.changesMethod, false);
+  if (refs.changesRate?.setValue) refs.changesRate.setValue(state.changesRate, false);
+  if (refs.changesOpenLead?.setValue) refs.changesOpenLead.setValue(state.changesOpenLead, false);
+  if (refs.changesSelectedBell?.setValue) refs.changesSelectedBell.setValue(state.changesSelectedBell, false);
+  if (refs.changesVelocity?.setValue) refs.changesVelocity.setValue(state.changesVelocity, false);
+  if (refs.changesSwing?.setValue) refs.changesSwing.setValue(state.changesSwing, false);
+}
+
+/**
+ * Global Randomize dispatch handler for Change Ringing
+ */
+export function randomizeChanges() {
+  const stage = 4 + Math.floor(Math.random() * 5); // 4 to 8
+  const method = METHODS[Math.floor(Math.random() * METHODS.length)].v;
+  const rate = Math.round(100 + Math.random() * 180);
+  const openLead = Math.random() < 0.3 ? 0 : Math.round(Math.random() * 60);
+  const selectedBell = 1 + Math.floor(Math.random() * stage);
+  const vel = Math.round(80 + Math.random() * 35);
+  const swing = Math.round(Math.random() * 15);
+
+  state.changesStage = stage;
+  state.changesMethod = method;
+  state.changesRate = rate;
+  state.changesOpenLead = openLead;
+  state.changesSelectedBell = selectedBell;
+  state.changesVelocity = vel;
+  state.changesSwing = swing;
+
+  currentStage = stage;
+  currentMethod = method;
+  leadIndex = 0;
+  resetToRounds(stage);
+
+  syncChangesControls();
+  renderCanvas();
+  scheduleRegen();
+  status(`Randomized Campanology: ${STAGES.find(s => s.v === stage)?.t || stage} · ${METHODS.find(m => m.v === method)?.t || method}`, "ok");
 }
 
 /**
@@ -982,6 +1009,7 @@ export function activateChangesModel() {
   isRunning = true;
   lastFrameTime = performance.now();
   setModelGenerator(generateChangesBank);
+  setModelRandomizer(randomizeChanges);
   setModelStepHandler(null);
   setModelTransportHandler({
     toggle: toggleChangesRunning,
@@ -990,11 +1018,10 @@ export function activateChangesModel() {
     isRunning: isChangesRunning
   });
 
-  if (!animFrameId) {
+  if (!animFrameId && typeof requestAnimationFrame === "function") {
     animFrameId = requestAnimationFrame(animationTick);
   }
 
-  updatePlayBtnUI();
   renderCanvas();
   status("Changes campanology engine ready (Press Play or Spacebar to ring bells)", "ok");
 }
@@ -1007,10 +1034,13 @@ export function deactivateChangesModel() {
   isRunning = false;
   setModelStepHandler(null);
   setModelTransportHandler(null);
+  setModelRandomizer(null);
   setModelGenerator(null);
 
   if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(animFrameId);
+    }
     animFrameId = null;
   }
   releasePolyVoices();
@@ -1059,7 +1089,7 @@ export function initChanges() {
   const rackEl = document.getElementById("changes-controls-rack");
   if (rackEl) {
     // 1. Stage dropdown (Minimus 4 to Major 8)
-    const stageDropdown = dropdown({
+    const stageDropdown = R("changesStage", dropdown({
       label: "STG",
       tip: "Number of bells in the change ringing peal (Minimus 4 to Major 8)",
       options: STAGES.map(s => ({ value: s.v, label: s.t })),
@@ -1071,11 +1101,11 @@ export function initChanges() {
         renderCanvas();
         scheduleRegen();
       }
-    });
+    }));
     rackEl.appendChild(stageDropdown);
 
     // 2. Method dropdown
-    const methodDropdown = dropdown({
+    const methodDropdown = R("changesMethod", dropdown({
       label: "METH",
       tip: "Traditional English change ringing algorithm (Plain Bob, Grandsire, Stedman, Cambridge)",
       options: METHODS.map(m => ({ value: m.v, label: m.t })),
@@ -1087,11 +1117,11 @@ export function initChanges() {
         renderCanvas();
         scheduleRegen();
       }
-    });
+    }));
     rackEl.appendChild(methodDropdown);
 
     // 3. Strike Rate knob (ms)
-    const rateKnob = knob({
+    const rateKnob = R("changesRate", knob({
       label: "RATE",
       tip: "Inter-strike interval between successive bell strikes in milliseconds",
       min: 60,
@@ -1102,11 +1132,11 @@ export function initChanges() {
       onChange: (val) => {
         setState({ changesRate: Math.round(val) });
       }
-    });
+    }));
     rackEl.appendChild(rateKnob);
 
     // 4. Open Lead pause knob (%)
-    const leadPauseKnob = knob({
+    const leadPauseKnob = R("changesOpenLead", knob({
       label: "LEAD",
       tip: "Open lead pause length after each backstroke (set to 0% for steady dependable rhythm)",
       min: 0,
@@ -1117,11 +1147,11 @@ export function initChanges() {
       onChange: (val) => {
         setState({ changesOpenLead: Math.round(val) });
       }
-    });
+    }));
     rackEl.appendChild(leadPauseKnob);
 
     // 5. Selected working bell knob (1 to 8)
-    const bellSelectKnob = knob({
+    const bellSelectKnob = R("changesSelectedBell", knob({
       label: "BELL",
       tip: "Selected working bell to highlight and follow through the blue line course",
       min: 1,
@@ -1133,11 +1163,11 @@ export function initChanges() {
         setState({ changesSelectedBell: b });
         renderCanvas();
       }
-    });
+    }));
     rackEl.appendChild(bellSelectKnob);
 
     // 6. Base Velocity knob
-    const velKnob = knob({
+    const velKnob = R("changesVelocity", knob({
       label: "VEL",
       tip: "Base MIDI velocity for bell strikes",
       min: 30,
@@ -1147,11 +1177,11 @@ export function initChanges() {
       onChange: (val) => {
         setState({ changesVelocity: Math.round(val) });
       }
-    });
+    }));
     rackEl.appendChild(velKnob);
 
     // 7. Swing / Rubato knob
-    const swingKnob = knob({
+    const swingKnob = R("changesSwing", knob({
       label: "SWNG",
       tip: "Handstroke swing / rubato timing displacement percentage",
       min: 0,
@@ -1162,10 +1192,15 @@ export function initChanges() {
       onChange: (val) => {
         setState({ changesSwing: Math.round(val) });
       }
-    });
+    }));
     rackEl.appendChild(swingKnob);
 
-    // 8. Action buttons: BOB and SINGLE calls
+    // 8. Action buttons: RND, BOB and SINGLE calls
+    const btnRnd = actionBtn("RND", () => {
+      randomizeChanges();
+    }, "Randomise campanology stage, method, timing, and bells");
+    rackEl.appendChild(btnRnd);
+
     const btnBob = actionBtn("BOB", () => {
       pendingCall = "bob";
       status("Conductor Call: BOB called for next lead end!");

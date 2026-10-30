@@ -60,9 +60,14 @@ import {
   startSelfAvoidingWalk,
   stopSelfAvoidingWalk,
   toggleSelfAvoidingWalkRunning,
-  isSelfAvoidingWalkRunning
+  isSelfAvoidingWalkRunning,
+  randomizeSelfAvoidingWalk,
+  activateSelfAvoidingWalkModel,
+  deactivateSelfAvoidingWalkModel,
+  initSelfAvoidingWalk
 } from "../js/self_avoiding_walk.js";
 import { getModelDef } from "../js/snapshot.js";
+import { getCurrentModelRandomizer } from "../js/state.js";
 
 test("SAW_PRESETS contains required conformational polymer growth regimes", () => {
   assert.equal(SAW_PRESETS.length, 5);
@@ -216,3 +221,16 @@ test("Transport start/stop/toggle controls", () => {
   assert.equal(isSelfAvoidingWalkRunning(), true);
   stopSelfAvoidingWalk();
 });
+
+test("randomizeSelfAvoidingWalk updates parameters and registers as model randomizer", () => {
+  activateSelfAvoidingWalkModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(typeof rnd, "function");
+
+  randomizeSelfAvoidingWalk();
+  assert.equal(chainLen, 1);
+
+  deactivateSelfAvoidingWalkModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+

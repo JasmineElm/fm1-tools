@@ -60,6 +60,8 @@ for (let i = 0; i < MAX_PROBES; i++) {
     active: true,
     x: 0,
     y: 0,
+    vx: (Math.random() - 0.5) * 1.2,
+    vy: (Math.random() - 0.5) * 1.2,
     lastVal: 0,
     cooldown: 0,
     pulseAnim: 0
@@ -80,6 +82,7 @@ let isRdPlaying = false;
 let animFrameId = null;
 let lastFrameTime = 0;
 let activeMorphogenMetric = 0;
+let strobeAccumulator = 0;
 
 // UI & Canvas References
 let container = null;
@@ -108,6 +111,9 @@ export function initProbes() {
     probes[i].active = true;
     probes[i].x = layout[i].x;
     probes[i].y = layout[i].y;
+    const angle = (i / MAX_PROBES) * Math.PI * 2;
+    probes[i].vx = Math.cos(angle) * 0.8;
+    probes[i].vy = Math.sin(angle) * 0.8;
     probes[i].lastVal = 0;
     probes[i].cooldown = 0;
     probes[i].pulseAnim = 0;
@@ -170,6 +176,18 @@ export function inoculateDroplet(cx, cy, radius = 4) {
  * Generates organic morphogen clusters and sets complementary inhibitor field.
  */
 export function randomizeReactionDiffusion() {
+  const p = RD_PRESETS[Math.floor(Math.random() * RD_PRESETS.length)];
+  state.rdPreset = p.id;
+  state.rdFeed = Number((p.F + (Math.random() - 0.5) * 0.008).toFixed(4));
+  state.rdKill = Number((p.k + (Math.random() - 0.5) * 0.004).toFixed(4));
+
+  const presetSel = document.getElementById("rd-preset-select");
+  if (presetSel) presetSel.value = p.id;
+  const feedEl = document.getElementById("rd-feed");
+  if (feedEl) feedEl.value = state.rdFeed;
+  const killEl = document.getElementById("rd-kill");
+  if (killEl) killEl.value = state.rdKill;
+
   fillPerlin2D(gridV, GRID_W, GRID_H, {
     scale: 0.08,
     octaves: 3,
@@ -193,33 +211,50 @@ export function randomizeReactionDiffusion() {
 
   nextU.set(gridU);
   nextV.set(gridV);
-  status("Randomised Gray-Scott chemical substrate with Perlin noise", "ok");
+  status(`Randomised Gray-Scott chemical substrate (${p.name})`, "ok");
   if (canvas) renderCanvas();
 }
 
 /**
- * Maps probe sensor spatial position to a scale-quantized pitch.
+ * Maps probe sensor spatial position and local chemical morphogen state
+ * to a scale-quantized pitch (Suggestion 2A).
  */
-export function getProbeNote(probe) {
+export function getProbeNote(probe, localU, localV) {
   const intervals = getActiveScaleIntervals();
   const root = getRootMidi();
-  const span = Math.min(4, Math.max(1, Number(state.rdSpan ?? 2)));
+  const span = Math.min(4, Math.max(1, Number(state.rdSpan ?? state.pitchSpan ?? 2)));
 
-  // X coordinate maps to scale degrees
+  const px = Math.max(1, Math.min(GRID_W - 2, Math.round(probe.x)));
+  const py = Math.max(1, Math.min(GRID_H - 2, Math.round(probe.y)));
+  const idx = py * GRID_W + px;
+  const u = localU !== undefined ? localU : gridU[idx];
+  const v = localV !== undefined ? localV : gridV[idx];
+
+  // Base spatial position
   const normX = Math.max(0, Math.min(1, probe.x / GRID_W));
-  const numDeg = intervals.length || 7;
-  const deg = Math.floor(normX * numDeg) % numDeg;
-
-  // Y coordinate maps to octave shift (higher position = higher pitch)
   const normY = Math.max(0, Math.min(1, 1 - (probe.y / GRID_H)));
-  const oct = Math.min(span, Math.floor(normY * (span + 1)));
+  const numDeg = intervals.length || 7;
+
+  // Local spatial gradient of V: ∇V = (dV/dx, dV/dy)
+  const gradX = (gridV[py * GRID_W + (px + 1)] - gridV[py * GRID_W + (px - 1)]) * 0.5;
+  const gradY = (gridV[(py + 1) * GRID_W + px] - gridV[(py - 1) * GRID_W + px]) * 0.5;
+  const theta = Math.atan2(gradY, gradX); // [-PI, PI]
+
+  // Suggestion 2A: Dynamic degree offset from local chemical concentration V and gradient angle
+  const morphOffset = Math.floor(v * 4);
+  const angleOffset = Math.floor(((theta + Math.PI) / (Math.PI * 2)) * 3);
+  const deg = (Math.floor(normX * numDeg) + morphOffset + angleOffset) % numDeg;
+
+  // Octave shift with spatial Y elevation
+  const oct = Math.min(span, Math.max(0, Math.floor(normY * (span + 1))));
 
   const rawMidi = root + oct * 12 + (intervals[deg] ?? 0);
   return quantize(rawMidi, intervals, root);
 }
 
 /**
- * Execute one numerical integration step of the Gray-Scott reaction-diffusion PDE.
+ * Execute one numerical integration step of the Gray-Scott reaction-diffusion PDE,
+ * update probe drift along chemical gradients (1D), and evaluate rhythmic strobe triggers (1A, 2A, 2B, 2C).
  */
 export function stepSimulation(dtMs = 16) {
   const speedMult = Math.max(0.1, Number(state.modelSpeed ?? 1.0));
@@ -231,11 +266,11 @@ export function stepSimulation(dtMs = 16) {
   const k = Number(state.rdKill ?? currentPreset.k);
   const Du = Number(state.rdDu ?? currentPreset.Du);
   const Dv = Number(state.rdDv ?? currentPreset.Dv);
-  const threshold = Math.max(0.1, Math.min(0.8, Number(state.rdThreshold ?? 0.28)));
+  const threshold = Math.max(0.08, Math.min(0.60, Number(state.rdThreshold ?? 0.20)));
 
   const dt = 1.0;
 
-  // Perform multiple numerical sub-steps per frame for rapid chemical morphogenesis
+  // 1. Perform multiple numerical sub-steps per frame for rapid chemical morphogenesis
   for (let step = 0; step < numSubsteps; step++) {
     for (let y = 1; y < GRID_H - 1; y++) {
       const rowOffset = y * GRID_W;
@@ -270,51 +305,149 @@ export function stepSimulation(dtMs = 16) {
     gridV.set(nextV);
   }
 
-  // Probe Sensors Evaluation & Note Triggers
-  let totalActiveV = 0;
+  // 2. Autonomous Drifting / Gradient-Scanning Probes (Suggestion 1D)
+  const driftEnabled = (state.rdDrift ?? 1) !== 0;
+  const driftSpeed = Number(state.rdDriftSpeed ?? 1.0) * speedMult;
 
+  if (driftEnabled) {
+    const dtSec = Math.min(0.08, dtMs / 1000);
+    for (let p = 0; p < MAX_PROBES; p++) {
+      const probe = probes[p];
+      if (!probe.active || p === dragProbeIdx) continue;
+
+      const px = Math.max(1, Math.min(GRID_W - 2, Math.round(probe.x)));
+      const py = Math.max(1, Math.min(GRID_H - 2, Math.round(probe.y)));
+
+      // Calculate spatial gradient of V: ∇V = (dV/dx, dV/dy)
+      const gradX = (gridV[py * GRID_W + (px + 1)] - gridV[py * GRID_W + (px - 1)]) * 0.5;
+      const gradY = (gridV[(py + 1) * GRID_W + px] - gridV[(py - 1) * GRID_W + px]) * 0.5;
+
+      // Gently steer toward chemical boundaries / wavefronts
+      probe.vx += gradX * 3.5 * dtSec;
+      probe.vy += gradY * 3.5 * dtSec;
+
+      // Limit velocity
+      const curSpeed = Math.hypot(probe.vx, probe.vy);
+      const targetSpeed = 1.2 * driftSpeed;
+      if (curSpeed > targetSpeed) {
+        probe.vx = (probe.vx / curSpeed) * targetSpeed;
+        probe.vy = (probe.vy / curSpeed) * targetSpeed;
+      } else if (curSpeed < 0.2) {
+        probe.vx += (Math.random() - 0.5) * 0.6;
+        probe.vy += (Math.random() - 0.5) * 0.6;
+      }
+
+      // Update position
+      probe.x += probe.vx * dtSec * 12;
+      probe.y += probe.vy * dtSec * 12;
+
+      // Elastic boundary reflection
+      if (probe.x < 3) { probe.x = 3; probe.vx = Math.abs(probe.vx); }
+      if (probe.x > GRID_W - 4) { probe.x = GRID_W - 4; probe.vx = -Math.abs(probe.vx); }
+      if (probe.y < 3) { probe.y = 3; probe.vy = Math.abs(probe.vy); }
+      if (probe.y > GRID_H - 4) { probe.y = GRID_H - 4; probe.vy = -Math.abs(probe.vy); }
+    }
+  }
+
+  // 3. Pulse animation decay
   for (let p = 0; p < MAX_PROBES; p++) {
-    const probe = probes[p];
-    if (!probe.active) continue;
-
-    const px = Math.max(1, Math.min(GRID_W - 2, Math.round(probe.x)));
-    const py = Math.max(1, Math.min(GRID_H - 2, Math.round(probe.y)));
-    const idx = py * GRID_W + px;
-    const currentVal = gridV[idx];
-    totalActiveV += currentVal;
-
-    // Cooldown decay
-    if (probe.cooldown > 0) {
-      probe.cooldown -= (dtMs / 16) * speedMult;
-    }
-
-    // Pulse animation decay
-    if (probe.pulseAnim > 0.01) {
-      probe.pulseAnim *= 0.88;
+    if (probes[p].pulseAnim > 0.01) {
+      probes[p].pulseAnim *= 0.88;
     } else {
-      probe.pulseAnim = 0;
+      probes[p].pulseAnim = 0;
     }
+  }
 
-    // Threshold crossing check: rising edge of morphogen V concentration!
-    if (currentVal >= threshold && probe.lastVal < threshold && probe.cooldown <= 0) {
-      probe.cooldown = 14; // Refractory delay
-      probe.pulseAnim = 1.0;
+  // 4. Rhythmic Strobe / Scanning Clock (Suggestion 1A)
+  const bpm = Math.max(30, Math.min(300, Number(state.tempo ?? 120)));
+  const strobeDiv = state.rdStrobeRate === "8n" ? 2 : (state.rdStrobeRate === "4n" ? 1 : (state.rdStrobeRate === "8t" ? 3 : 4));
+  const strobeIntervalMs = (60000 / bpm) / strobeDiv;
 
-      if (isRdPlaying) {
-        const note = getProbeNote(probe);
-        const intensity = Math.min(1.0, currentVal / 0.6);
-        const vel = Math.max(45, Math.min(127, Math.round(80 + intensity * 40)));
-        const durMs = Math.round(200 + intensity * 240);
+  if (isRdPlaying) {
+    strobeAccumulator += dtMs * speedMult;
+    strobeAccumulator = Math.min(strobeAccumulator, strobeIntervalMs * 2.5);
+  }
 
-        // Dispatch voice strictly through poly.js manager (voice slot p, 0 to 7)
-        playVoice(`rd_${p}`, note, vel, durMs);
+  while (strobeAccumulator >= strobeIntervalMs) {
+    strobeAccumulator -= strobeIntervalMs;
+
+    if (!isRdPlaying) break;
+
+    const candidates = [];
+
+    for (let p = 0; p < MAX_PROBES; p++) {
+      const probe = probes[p];
+      if (!probe.active) continue;
+
+      // 3x3 spatial kernel averaging (eliminates single-pixel blind spots)
+      const px = Math.round(probe.x);
+      const py = Math.round(probe.y);
+      let sumV = 0;
+      let sumU = 0;
+      let count = 0;
+
+      for (let dy = -1; dy <= 1; dy++) {
+        const ny = Math.max(0, Math.min(GRID_H - 1, py + dy));
+        const rOffset = ny * GRID_W;
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = Math.max(0, Math.min(GRID_W - 1, px + dx));
+          const idx = rOffset + nx;
+          sumV += gridV[idx];
+          sumU += gridU[idx];
+          count++;
+        }
+      }
+
+      const avgV = sumV / count;
+      const avgU = sumU / count;
+
+      if (avgV >= threshold) {
+        // Suggestion 2B: Reaction energy R = U * V^2
+        const reactionEnergy = avgU * (avgV * avgV);
+        const intensity = Math.min(1.0, reactionEnergy / 0.05);
+
+        // Velocity: accents on explosive spot division, softer for background diffusion
+        const vel = Math.max(48, Math.min(127, Math.round(52 + intensity * 72)));
+
+        // Articulation: fast transients for waves, sustained notes for dense clusters
+        const durMs = Math.round(140 + avgV * 360);
+
+        // Suggestion 2A: Dynamic pitch modulation via chemical state
+        const note = getProbeNote(probe, avgU, avgV);
+
+        candidates.push({
+          idx: p,
+          probe,
+          note,
+          vel,
+          durMs,
+          energy: reactionEnergy,
+          metric: reactionEnergy
+        });
       }
     }
 
-    probe.lastVal = currentVal;
+    // Suggestion 2C: Polyphonic voice allocation via selectPolyVoices
+    if (candidates.length > 0) {
+      const maxVoices = Math.min(MAX_PROBES, Math.max(1, Number(state.polyphony ?? 4)));
+      const strategy = state.polyStrategy || state.rdPolyStrategy || "spread";
+      const selected = selectPolyVoices(candidates, maxVoices, strategy);
+
+      for (let i = 0; i < selected.length; i++) {
+        const cand = selected[i];
+        playVoice(`rd_${cand.idx}`, cand.note, cand.vel, cand.durMs);
+        probes[cand.idx].pulseAnim = 1.0;
+      }
+    }
   }
 
   // Morphogen metric monitoring
+  let totalActiveV = 0;
+  for (let p = 0; p < MAX_PROBES; p++) {
+    const px = Math.max(0, Math.min(GRID_W - 1, Math.round(probes[p].x)));
+    const py = Math.max(0, Math.min(GRID_H - 1, Math.round(probes[p].y)));
+    totalActiveV += gridV[py * GRID_W + px];
+  }
   const avgV = totalActiveV / MAX_PROBES;
   activeMorphogenMetric = Math.min(1.0, avgV / 0.4);
 }
@@ -389,6 +522,16 @@ export function renderCanvas() {
     ctx.fill();
     ctx.stroke();
 
+    // Drift motion vector indicator (Suggestion 1D)
+    if ((state.rdDrift ?? 1) !== 0 && (probe.vx || probe.vy)) {
+      ctx.strokeStyle = colorAccent2;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px + (probe.vx || 0) * 8, py + (probe.vy || 0) * 8);
+      ctx.stroke();
+    }
+
     // Inner probe crosshair
     ctx.strokeStyle = colorAccent2;
     ctx.lineWidth = 1;
@@ -421,7 +564,9 @@ export function renderCanvas() {
   ctx.fillText("GRAY-SCOTT REACTION-DIFFUSION · TURING CHEMICAL MORPHOGENESIS", 12, 16);
 
   ctx.textAlign = "right";
-  ctx.fillText(`ACTIVE PROBES: ${MAX_PROBES}/8 | REACTION ENTROPY: ${(activeMorphogenMetric * 100).toFixed(0)}%`, w - 12, 16);
+  const driftStr = (state.rdDrift ?? 1) !== 0 ? "DRIFT: ON" : "DRIFT: OFF";
+  const strobeStr = `STROBE: ${state.rdStrobeRate || "16n"}`;
+  ctx.fillText(`PROBES: ${MAX_PROBES}/8 | ${driftStr} | ${strobeStr} | ENTROPY: ${(activeMorphogenMetric * 100).toFixed(0)}%`, w - 12, 16);
 }
 
 /**
@@ -532,9 +677,15 @@ export function generateReactionDiffusionBank(stateObj) {
     }
 
     const probe = activeProbes[s % activeProbes.length];
-    const note = getProbeNote(probe);
+    const px = Math.max(0, Math.min(GRID_W - 1, Math.round(probe.x)));
+    const py = Math.max(0, Math.min(GRID_H - 1, Math.round(probe.y)));
+    const idx = py * GRID_W + px;
+    const u = gridU[idx];
+    const v = gridV[idx];
+    const note = getProbeNote(probe, u, v);
+    const energy = u * v * v;
     const isDownbeat = (s % 8 === 0);
-    const vel = isDownbeat ? 112 : 86;
+    const vel = Math.max(48, Math.min(127, Math.round(75 + energy * 400 + (isDownbeat ? 18 : 0))));
 
     steps.push({
       note,
@@ -567,27 +718,19 @@ export function startReactionDiffusion() {
   if (isRdPlaying) return;
   isRdPlaying = true;
   audio.unlock();
-  updatePlayBtnUI();
-  status("Reaction-Diffusion: Turing morphogenesis · Transport active", "ok");
+  strobeAccumulator = 0;
+  status("Reaction-Diffusion: Turing morphogenesis · Rhythmic strobe active", "ok");
 }
 
 export function stopReactionDiffusion() {
   isRdPlaying = false;
   releasePolyVoices();
-  updatePlayBtnUI();
   status("Reaction-Diffusion: Stopped", "warn");
 }
 
 export function toggleReactionDiffusionRunning() {
   if (isRdPlaying) stopReactionDiffusion();
   else startReactionDiffusion();
-}
-
-function updatePlayBtnUI() {
-  const btn = document.getElementById("rd-play-btn");
-  if (!btn) return;
-  btn.textContent = isRdPlaying ? "Stop" : "Play";
-  btn.className = isRdPlaying ? "btn btn-err" : "btn btn-ok";
 }
 
 /**
@@ -639,10 +782,20 @@ export function initReactionDiffusion() {
     <div class="rd-enclosure">
       <!-- Top Control Bar -->
       <div class="rd-controls" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-        <button id="rd-play-btn" class="btn btn-ok" style="min-width: 60px;" title="Start/Stop reaction-diffusion simulation engine">Play</button>
         <button id="rd-rnd-btn" class="btn" title="Randomise chemical substrate with Perlin noise">RND</button>
         <button id="rd-seed-btn" class="btn" title="Re-inoculate chemical seeds">Re-Seed</button>
         <button id="rd-clear-btn" class="btn" title="Clear substrate to pure U">Clear</button>
+        <button id="rd-drift-btn" class="btn ${(state.rdDrift ?? 1) !== 0 ? "btn-active" : ""}" title="Toggle autonomous probe drift along chemical gradients">${(state.rdDrift ?? 1) !== 0 ? "DRIFT: ON" : "DRIFT: OFF"}</button>
+
+        <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Rhythmic Strobe Clock: musical rate subdivision for scanning probes">
+          Strobe:
+          <select id="rd-strobe-select" class="select-field" style="padding: 2px 4px; font-size: 11px;" title="Rhythmic Strobe Clock: musical rate subdivision for scanning probes">
+            <option value="16n" ${state.rdStrobeRate === "16n" || !state.rdStrobeRate ? "selected" : ""}>16th</option>
+            <option value="8n" ${state.rdStrobeRate === "8n" ? "selected" : ""}>8th</option>
+            <option value="8t" ${state.rdStrobeRate === "8t" ? "selected" : ""}>Triplet</option>
+            <option value="4n" ${state.rdStrobeRate === "4n" ? "selected" : ""}>Quarter</option>
+          </select>
+        </label>
 
         <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Turing morphogenesis preset: chemical reaction parameters dictating coral labyrinth, spot mitosis, soliton wave, or spiral patterns">
           Preset:
@@ -663,7 +816,7 @@ export function initReactionDiffusion() {
 
         <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Activation Threshold: Concentration of morphogen V required at a probe sensor to trigger a note pulse">
           Thresh:
-          <input type="range" id="rd-thresh" min="0.15" max="0.55" step="0.02" value="${state.rdThreshold ?? 0.28}" style="width: 70px;" title="Activation Threshold: Concentration of morphogen V required at a probe sensor to trigger a note pulse">
+          <input type="range" id="rd-thresh" min="0.08" max="0.45" step="0.02" value="${state.rdThreshold ?? 0.20}" style="width: 70px;" title="Activation Threshold: Concentration of morphogen V required at a probe sensor to trigger a note pulse">
         </label>
 
         <label style="font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 4px;" title="Pitch Octave Span: Pitch range across octaves mapped vertically across the chemical substrate">
@@ -690,9 +843,6 @@ export function initReactionDiffusion() {
   }
 
   // Hook buttons
-  const playBtn = document.getElementById("rd-play-btn");
-  if (playBtn) playBtn.addEventListener("click", toggleReactionDiffusionRunning);
-
   const rndBtn = document.getElementById("rd-rnd-btn");
   if (rndBtn) rndBtn.addEventListener("click", () => {
     randomizeReactionDiffusion();
@@ -712,6 +862,26 @@ export function initReactionDiffusion() {
     renderCanvas();
     status("Cleared chemical substrate to pure U");
   });
+
+  const driftBtn = document.getElementById("rd-drift-btn");
+  if (driftBtn) {
+    driftBtn.addEventListener("click", () => {
+      const cur = (state.rdDrift ?? 1) !== 0;
+      state.rdDrift = cur ? 0 : 1;
+      driftBtn.textContent = state.rdDrift ? "DRIFT: ON" : "DRIFT: OFF";
+      driftBtn.classList.toggle("btn-active", !!state.rdDrift);
+      status(`Probe drift ${state.rdDrift ? "enabled" : "disabled"}`);
+      renderCanvas();
+    });
+  }
+
+  const strobeSelect = document.getElementById("rd-strobe-select");
+  if (strobeSelect) {
+    strobeSelect.addEventListener("change", (e) => {
+      state.rdStrobeRate = e.target.value;
+      status(`Strobe clock rate: ${e.target.value}`);
+    });
+  }
 
   setModelRandomizer(randomizeReactionDiffusion);
 
@@ -768,12 +938,16 @@ registerModel({
       preset: state.rdPreset || "coral",
       feed: state.rdFeed ?? 0.0545,
       kill: state.rdKill ?? 0.0620,
-      threshold: state.rdThreshold ?? 0.28,
+      threshold: state.rdThreshold ?? 0.20,
       span: state.rdSpan ?? 2,
+      drift: state.rdDrift ?? 1,
+      strobeRate: state.rdStrobeRate || "16n",
       probes: probes.map(p => ({
         active: p.active,
         x: p.x,
-        y: p.y
+        y: p.y,
+        vx: p.vx,
+        vy: p.vy
       }))
     };
   },
@@ -784,6 +958,8 @@ registerModel({
     if (data.kill !== undefined) setState({ rdKill: data.kill });
     if (data.threshold !== undefined) setState({ rdThreshold: data.threshold });
     if (data.span !== undefined) setState({ rdSpan: data.span });
+    if (data.drift !== undefined) state.rdDrift = data.drift;
+    if (data.strobeRate !== undefined) state.rdStrobeRate = data.strobeRate;
 
     if (Array.isArray(data.probes)) {
       for (let i = 0; i < MAX_PROBES; i++) {
@@ -791,6 +967,8 @@ registerModel({
           probes[i].active = !!data.probes[i].active;
           probes[i].x = data.probes[i].x;
           probes[i].y = data.probes[i].y;
+          if (data.probes[i].vx !== undefined) probes[i].vx = data.probes[i].vx;
+          if (data.probes[i].vy !== undefined) probes[i].vy = data.probes[i].vy;
           probes[i].lastVal = 0;
           probes[i].cooldown = 0;
           probes[i].pulseAnim = 0;

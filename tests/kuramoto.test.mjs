@@ -44,9 +44,11 @@ import {
   startKuramoto,
   stopKuramoto,
   toggleKuramotoRunning,
-  isKuramotoRunning
+  isKuramotoRunning,
+  initKuramoto
 } from "../js/kuramoto.js";
 import { getModelDef } from "../js/snapshot.js";
+import { state } from "../js/state.js";
 
 test("KURAMOTO_PRESETS contains required non-linear phase regimes", () => {
   assert.equal(KURAMOTO_PRESETS.length, 5);
@@ -158,3 +160,82 @@ test("kuramoto transport handlers toggle running state", () => {
   toggleKuramotoRunning();
   assert.equal(isKuramotoRunning(), false);
 });
+
+test("kuramoto getOscillatorNote adheres to global pitchSpan from notes div", () => {
+  initOscillators("polyrhythm");
+
+  const notes1 = [];
+  state.pitchSpan = 1;
+  for (let i = 0; i < MAX_OSCILLATORS; i++) {
+    notes1.push(getOscillatorNote(i));
+  }
+
+  const notes4 = [];
+  state.pitchSpan = 4;
+  for (let i = 0; i < MAX_OSCILLATORS; i++) {
+    notes4.push(getOscillatorNote(i));
+  }
+
+  // Pitch span of 4 should produce a wider pitch spread across oscillators than span 1
+  const spread1 = Math.max(...notes1) - Math.min(...notes1);
+  const spread4 = Math.max(...notes4) - Math.min(...notes4);
+  assert.ok(spread4 >= spread1, `Expected spread4 (${spread4}) >= spread1 (${spread1})`);
+});
+
+test("locally implemented controls with Global or notes div counterparts are removed in kuramoto", () => {
+  let createdHtml = "";
+  const dummyContainer = {
+    set innerHTML(html) {
+      createdHtml = html;
+    },
+    get innerHTML() {
+      return createdHtml;
+    }
+  };
+
+  const origGetElementById = globalThis.document.getElementById;
+  globalThis.document.getElementById = (id) => {
+    if (id === "model-kuramoto") return dummyContainer;
+    return null;
+  };
+
+  try {
+    initKuramoto();
+
+    // Verify local play button is removed (Global play transport exists)
+    assert.ok(!createdHtml.includes('id="kuramoto-play-btn"'), "Local play button must be removed (Global play exists)");
+
+    // Verify local Span slider is removed (Notes div octave spread exists)
+    assert.ok(!createdHtml.includes('id="kuramoto-span"'), "Local Span slider must be removed (Notes div octave spread exists)");
+
+    // Verify model-specific controls are preserved
+    assert.ok(createdHtml.includes('id="kuramoto-rnd-btn"'), "RND button present in toolbar");
+    assert.ok(createdHtml.includes('id="kuramoto-reset-btn"'), "Reset button retained");
+    assert.ok(createdHtml.includes('id="kuramoto-preset-select"'), "Preset select retained");
+    assert.ok(createdHtml.includes('id="kuramoto-coupling"'), "Coupling slider retained");
+    assert.ok(createdHtml.includes('id="kuramoto-sigma"'), "Dispersion slider retained");
+    assert.ok(createdHtml.includes('id="kuramoto-noise"'), "Noise slider retained");
+  } finally {
+    globalThis.document.getElementById = origGetElementById;
+  }
+});
+
+test("randomizeKuramoto randomizes parameters and registers with global randomizer", async () => {
+  const { randomizeKuramoto, activateKuramotoModel, deactivateKuramotoModel } = await import("../js/kuramoto.js");
+  const { state, getCurrentModelRandomizer } = await import("../js/state.js");
+
+  activateKuramotoModel();
+  const rnd = getCurrentModelRandomizer();
+  assert.equal(rnd, randomizeKuramoto);
+
+  randomizeKuramoto();
+  assert.ok(state.kuramotoCoupling >= 0.2 && state.kuramotoCoupling <= 3.5);
+  assert.ok(state.kuramotoSigma >= 0.05 && state.kuramotoSigma <= 1.5);
+  assert.ok(state.kuramotoNoise >= 0.01 && state.kuramotoNoise <= 0.5);
+  assert.ok(typeof state.kuramotoPreset === "string");
+
+  deactivateKuramotoModel();
+  assert.equal(getCurrentModelRandomizer(), null);
+});
+
+

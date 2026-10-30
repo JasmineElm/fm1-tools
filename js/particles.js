@@ -987,8 +987,6 @@ export function generateParticleBank() {
  */
 export function randomizeParticles() {
   particleRhythmOverridden = false;
-  state.seed = (Math.random() * 1e9) | 0;
-  if (refs.seed?.setValue) refs.seed.setValue(state.seed, false);
 
   const numParticles = 4 + Math.floor(Math.random() * 4);
   particles = [];
@@ -1023,7 +1021,7 @@ export function randomizeParticles() {
   generateParticleBank();
   randomizeRhythm();
   renderCanvas();
-  status(`Randomized Particles physics & Rhythm · seed ${state.seed >>> 0}`, "ok");
+  status("Randomized Particles physics & Rhythm", "ok");
 }
 
 /**
