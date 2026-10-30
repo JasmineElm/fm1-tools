@@ -28,7 +28,8 @@ export const POLYPHONIC_MODELS = new Set([
   "chladni",
   "brownian_ratchet",
   "tracy_ribbon",
-  "self_avoiding_walk"
+  "self_avoiding_walk",
+  "billiards"
 ]);
 
 export const MODELS = [
@@ -451,6 +452,19 @@ export const MODELS = [
     </svg>`
   },
   {
+    id: "billiards",
+    name: "Ballistic Billiards",
+    kicker: "Hamiltonian Ray Optics · Specular Reflection · Ergodic Caustics",
+    available: true,
+    desc: "Dynamical Hamiltonian billiard simulator based on classical geometric chaos. Particles traverse bounded tables (Bunimovich Stadium, Sinai Scatterer, Confocal Ellipse, Cardioid, Polygonal Wedge) undergoing elastic specular reflections. Boundary collisions trigger scale-quantized notes, impact velocities modulate dynamics, and segment flight paths control gate articulation.",
+    tags: ["Hamiltonian Optics", "Specular Reflection", "Bunimovich Stadium", "Sinai Scatterer", "8-Voice Polyphony", "Direct Slingshot"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="7" />
+      <circle cx="9" cy="12" r="2" fill="currentColor" />
+      <path d="M11 12l6-4m0 0l-2 5m2-5l-4-1" />
+    </svg>`
+  },
+  {
     id: "self_avoiding_walk",
     name: "Polymer Self-Avoiding Walk",
     kicker: "Lattice Self-Avoidance · Steric Jamming · Folding Cascades",
@@ -537,7 +551,8 @@ export const MODEL_TAG_MAP = {
   chladni: ["polyphonic", "grid-based", "physics", "autonomous"],
   brownian_ratchet: ["polyphonic", "physics", "stochastic", "autonomous"],
   tracy_ribbon: ["polyphonic", "grid-based", "autonomous"],
-  self_avoiding_walk: ["polyphonic", "grid-based", "stochastic", "biological"]
+  self_avoiding_walk: ["polyphonic", "grid-based", "stochastic", "biological"],
+  billiards: ["polyphonic", "physics", "autonomous"]
 };
 
 // Bind filter tags to each model definition
@@ -929,6 +944,8 @@ export function showLanding(updateHash = true) {
   if (modelTracyRibbon) modelTracyRibbon.style.display = "none";
   const modelSelfAvoidingWalk = document.getElementById("model-self_avoiding_walk");
   if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = "none";
+  const modelBilliards = document.getElementById("model-billiards");
+  if (modelBilliards) modelBilliards.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -975,6 +992,7 @@ export function showModel(id, updateHash = true) {
   const modelBrownianRatchet = document.getElementById("model-brownian_ratchet");
   const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
   const modelSelfAvoidingWalk = document.getElementById("model-self_avoiding_walk");
+  const modelBilliards = document.getElementById("model-billiards");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -989,7 +1007,7 @@ export function showModel(id, updateHash = true) {
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
   // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, Brownian Ratchet, Tracy Ribbon, and Self-Avoiding Walk are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "dxpatch" && id !== "librarian");
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "billiards" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -1060,6 +1078,7 @@ export function showModel(id, updateHash = true) {
     if (modelBrownianRatchet) modelBrownianRatchet.style.display = id === "brownian_ratchet" ? "block" : "none";
     if (modelTracyRibbon) modelTracyRibbon.style.display = id === "tracy_ribbon" ? "block" : "none";
     if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = id === "self_avoiding_walk" ? "block" : "none";
+    if (modelBilliards) modelBilliards.style.display = id === "billiards" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -1095,6 +1114,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "brownian_ratchet") modeTag.textContent = "Brownian Ratchet";
       else if (id === "tracy_ribbon") modeTag.textContent = "Tracy Ribbon";
       else if (id === "self_avoiding_walk") modeTag.textContent = "Self-Avoiding Walk";
+      else if (id === "billiards") modeTag.textContent = "Ballistic Billiards";
       modeTag.style.display = "inline-block";
     }
   }
@@ -1232,6 +1252,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "tracy_ribbon") showModel("tracy_ribbon", false);
     } else if (h === "#self_avoiding_walk" || h === "#saw" || h === "#polymer" || h === "#polymer-walk") {
       if (activeModelId !== "self_avoiding_walk") showModel("self_avoiding_walk", false);
+    } else if (h === "#billiards" || h === "#billiard" || h === "#bunimovich" || h === "#sinai") {
+      if (activeModelId !== "billiards") showModel("billiards", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -1302,6 +1324,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("tracy_ribbon", false);
   } else if (initialHash === "#self_avoiding_walk" || initialHash === "#saw" || initialHash === "#polymer" || initialHash === "#polymer-walk") {
     showModel("self_avoiding_walk", false);
+  } else if (initialHash === "#billiards" || initialHash === "#billiard" || initialHash === "#bunimovich" || initialHash === "#sinai") {
+    showModel("billiards", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

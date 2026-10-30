@@ -85,8 +85,8 @@ test("Each of the 8 tags is applicable to at least 3 models", () => {
   }
 });
 
-test("All 29 models are classified in MODEL_TAG_MAP with filterTags", () => {
-  assert.equal(MODELS.length, 29);
+test("All 30 models are classified in MODEL_TAG_MAP with filterTags", () => {
+  assert.equal(MODELS.length, 30);
   for (const m of MODELS) {
     const tags = MODEL_TAG_MAP[m.id];
     assert.ok(Array.isArray(tags) && tags.length > 0, `Model ${m.id} must have assigned filter tags`);
@@ -94,12 +94,12 @@ test("All 29 models are classified in MODEL_TAG_MAP with filterTags", () => {
   }
 });
 
-test("filterModelsByTags with no tags returns all 29 models", () => {
+test("filterModelsByTags with no tags returns all 30 models", () => {
   const all1 = filterModelsByTags([]);
-  assert.equal(all1.length, 29);
+  assert.equal(all1.length, 30);
 
   const all2 = filterModelsByTags();
-  assert.equal(all2.length, 29);
+  assert.equal(all2.length, 30);
 });
 
 test("filterModelsByTags with single tag filters accurately", () => {
@@ -109,7 +109,7 @@ test("filterModelsByTags with single tag filters accurately", () => {
   assert.deepEqual(monoIds.sort(), ["cellular", "mene311", "rungler", "turing"].sort());
 
   const poly = filterModelsByTags(["polyphonic"]);
-  assert.equal(poly.length, 25);
+  assert.equal(poly.length, 26);
   for (const m of poly) {
     assert.ok(MODEL_TAG_MAP[m.id].includes("polyphonic"));
   }
@@ -173,7 +173,7 @@ test("Filter tag selection state management and toggling", () => {
 import { MODEL_GUIDES } from "../js/model_guides.js";
 import { openModelGuide, closeModelGuide } from "../js/modes.js";
 
-test("MODEL_GUIDES contains comprehensive entries for all 29 models", () => {
+test("MODEL_GUIDES contains comprehensive entries for all 30 models", () => {
   for (const m of MODELS) {
     const guide = MODEL_GUIDES[m.id];
     assert.ok(guide, `Guide must exist for model ${m.id}`);

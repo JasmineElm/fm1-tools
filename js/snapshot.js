@@ -75,6 +75,7 @@ const PREFIX = {
   brownian_ratchet: /^ratchet[A-Z]/,
   tracy_ribbon: /^tracy[A-Z]/,
   self_avoiding_walk: /^saw[A-Z]/,
+  billiards: /^billiards[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

@@ -437,5 +437,22 @@ export const MODEL_GUIDES = {
       { name: "COLLAPSE VOICES", desc: "Number of voices triggered during steric jamming cascades (1–8)." },
       { name: "CANVAS OBSTACLES", desc: "Click to place static steric obstacles deflecting polymer growth." }
     ]
+  },
+  billiards: {
+    title: "Ballistic Billiards",
+    kicker: "Hamiltonian Ray Optics · Specular Reflection · Ergodic Caustics",
+    paragraphs: [
+      "Simulates classical Hamiltonian dynamical billiards where particles move at uniform speed within bounded planar tables (Bunimovich Stadium, Sinai Dispersing Billiard, Confocal Ellipse, Cardioid, and Triangular Wedge) undergoing specular elastic reflections.",
+      "Boundary impacts trigger scale-quantized notes respecting the M-VAVE FM-1 8-voice hardware polyphony limit. Normal impact impulses modulate note velocity, while free flight segment distances determine note gate duration and octave register. Drag directly on the canvas to slingshot billiard balls at custom angles and velocities."
+    ],
+    controls: [
+      { name: "TABLE PRESET", desc: "Selects table geometry (Stadium, Sinai Scatterer, Ellipse, Cardioid, Wedge)." },
+      { name: "BALLS", desc: "Number of concurrent billiard balls (1 to 8 hardware polyphony ceiling)." },
+      { name: "SPEED", desc: "Simulation ray traversal velocity multiplier." },
+      { name: "SPIN", desc: "Magnetic Lorentz force curvature turning straight rays into cyclotron Larmor arcs." },
+      { name: "DAMP", desc: "Restitution energy dissipation upon wall collisions." },
+      { name: "BALL COLL", desc: "Toggle hard-sphere elastic collisions between balls in mid-flight." },
+      { name: "CANVAS SLING", desc: "Click and drag on the table canvas to slingshot a ball with aim vector." }
+    ]
   }
 };

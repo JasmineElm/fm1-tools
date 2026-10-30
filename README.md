@@ -10,9 +10,9 @@ Browser-based generative MIDI workstation for the **M-VAVE FM-1** (6-operator FM
 
 FM-1 Pulses generates evolving musical phrases, continuous physical simulations, and polyphonic generative textures in real time for the M-VAVE FM-1 over MIDI, paired with a built-in browser FM synthesizer for cable-free auditioning. Sessions can be saved and restored deterministically (see **Session files** below).
 
-### Sequencer Models (29 Engines)
+### Sequencer Models (30 Engines)
 
-FM-1 Pulses includes **29 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
+FM-1 Pulses includes **30 algorithmic, physical, biological, and stochastic sequencing engines** accessible from the filterable model selection hub (`Monophonic`, `Polyphonic`, `Grid-based`, `Physics`, `Biological`, `Stochastic`, `Algorithmic`, `Autonomous`):
 
 #### Classic Modular & Shift-Register Generators
 - **Mene311 (Stochastic)**: An analog-inspired generative signal chain combining Sample & Hold, continuous LFO waveshaping, Gaussian distribution weighting, scale quantization, and a looping Deja-Vu buffer.
@@ -121,7 +121,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 - Unknown parameters are preserved through an import/export round trip.
 - Models register hidden state (shift registers, cellular/lattice grids, particle/agent coordinates, and seeds) from their own module.
 - Files from before this format load as Mene311 v1.
-- Run `node --test tests/` for the unit test suite across all 29 models and core modules.
+- Run `node --test tests/` for the unit test suite across all 30 models and core modules.
 
 ---
 
@@ -143,7 +143,8 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 ├── js/
 │   ├── rack.js               # Master UI coordinator & lifecycle wiring
 │   ├── modes.js              # Sequencer model & tools switcher, tag filters & modal guide
-│   ├── model_guides.js       # Contextual in-app guide content for all 29 models
+│   ├── billiards.js          # Ballistic dynamical billiards Hamiltonian collision model
+│   ├── model_guides.js       # Contextual in-app guide content for all 30 models
 │   ├── state.js              # Shared reactive application state & parameter defaults
 │   ├── poly.js               # 8-voice polyphony ceiling & voice allocation strategies
 │   ├── player.js             # Dual-clock lookahead scheduler & live note dispatch
@@ -198,7 +199,7 @@ A session is a JSON envelope that records the *recipe* for the exact browser sta
 │   ├── brownian_ratchet.js   # Feynman Brownian Thermal Ratchet & pawl model
 │   ├── tracy_ribbon.js       # Electroplankton Tracy multi-creature node-loop model
 │   └── self_avoiding_walk.js # Polymer Self-Avoiding Walk lattice folding model
-├── tests/                    # node --test unit suite (all 29 models & core modules)
+├── tests/                    # node --test unit suite (all 30 models & core modules)
 └── presets/
     └── scales.json           # Scale interval definitions
 ```

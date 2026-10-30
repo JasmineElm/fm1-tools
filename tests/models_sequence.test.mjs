@@ -137,6 +137,7 @@ import * as chladni from "../js/chladni.js";
 import * as brownian_ratchet from "../js/brownian_ratchet.js";
 import * as tracy_ribbon from "../js/tracy_ribbon.js";
 import * as self_avoiding_walk from "../js/self_avoiding_walk.js";
+import * as billiards from "../js/billiards.js";
 
 const MODEL_MODULE_MAP = {
   mene311,
@@ -167,11 +168,12 @@ const MODEL_MODULE_MAP = {
   chladni,
   brownian_ratchet,
   tracy_ribbon,
-  self_avoiding_walk
+  self_avoiding_walk,
+  billiards
 };
 
-test("MODELS array contains all 29 models with required metadata", () => {
-  assert.equal(MODELS.length, 29, "Expected exactly 29 models in MODELS registry");
+test("MODELS array contains all 30 models with required metadata", () => {
+  assert.equal(MODELS.length, 30, "Expected exactly 30 models in MODELS registry");
   for (const m of MODELS) {
     assert.ok(typeof m.id === "string" && m.id.length > 0, `Model ${m.id} has valid id`);
     assert.ok(typeof m.name === "string" && m.name.length > 0, `Model ${m.id} has name`);
@@ -184,7 +186,7 @@ test("MODELS array contains all 29 models with required metadata", () => {
 });
 
 test("POLYPHONIC_MODELS set contains expected models", () => {
-  assert.equal(POLYPHONIC_MODELS.size, 25, "Expected 25 polyphonic models");
+  assert.equal(POLYPHONIC_MODELS.size, 26, "Expected 26 polyphonic models");
   assert.ok(!POLYPHONIC_MODELS.has("mene311"), "mene311 is monophonic");
   assert.ok(!POLYPHONIC_MODELS.has("turing"), "turing is monophonic");
   assert.ok(!POLYPHONIC_MODELS.has("cellular"), "cellular is monophonic");
@@ -257,7 +259,8 @@ test("Run each model in sequence: activation, stepping, polyphony check, and dea
       || mod.stepMonomer
       || mod.stepPendulumSimulation
       || mod.updateFlockSimulation
-      || mod.advanceMethodRow;
+      || mod.advanceMethodRow
+      || mod.stepBilliardsSimulation;
 
     if (stepFn) {
       for (let s = 0; s < 5; s++) {
@@ -305,7 +308,7 @@ test("Snapshot capture and restore round-trip across each registered model in se
   }
 });
 
-test("Workbench showModel switches active view through all 29 models sequentially", async () => {
+test("Workbench showModel switches active view through all 30 models sequentially", async () => {
   const { showModel, getActiveModel } = await import("../js/modes.js");
   for (const m of MODELS) {
     showModel(m.id, false);
