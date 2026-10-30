@@ -29,10 +29,25 @@ export const POLYPHONIC_MODELS = new Set([
   "brownian_ratchet",
   "tracy_ribbon",
   "self_avoiding_walk",
-  "billiards"
+  "billiards",
+  "nodal_graph"
 ]);
 
 export const MODELS = [
+  {
+    id: "nodal_graph",
+    name: "Nodal Directed Graph",
+    kicker: "Topological Automata · Weighted Branching · Aleatoric Pathways",
+    available: true,
+    desc: "Probabilistic directed state graph where autonomous walker tokens traverse topological network structures (Chordal Cycles, Binary Trees, Scale-Free Hubs, De Bruijn Shifts, Forward DAGs). Node arrivals trigger scale-quantized notes, in-degree connectivity modulates note velocity, and edge traversal durations determine gate articulation.",
+    tags: ["Graph Theory", "Directed Graph", "Topological Automata", "Chordal Cycles", "8-Voice Polyphony", "Draggable Nodes"],
+    icon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="8" r="2.5" />
+      <circle cx="12" cy="18" r="2.5" />
+      <path d="M8.5 6.5l7 1.2M7.5 8.5l3.5 7.5M16.5 10l-3.5 6" />
+    </svg>`
+  },
   {
     id: "mene311",
     name: "Mene311",
@@ -552,7 +567,8 @@ export const MODEL_TAG_MAP = {
   brownian_ratchet: ["polyphonic", "physics", "stochastic", "autonomous"],
   tracy_ribbon: ["polyphonic", "grid-based", "autonomous"],
   self_avoiding_walk: ["polyphonic", "grid-based", "stochastic", "biological"],
-  billiards: ["polyphonic", "physics", "autonomous"]
+  billiards: ["polyphonic", "physics", "autonomous"],
+  nodal_graph: ["polyphonic", "algorithmic", "autonomous", "stochastic"]
 };
 
 // Bind filter tags to each model definition
@@ -946,6 +962,8 @@ export function showLanding(updateHash = true) {
   if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = "none";
   const modelBilliards = document.getElementById("model-billiards");
   if (modelBilliards) modelBilliards.style.display = "none";
+  const modelNodalGraph = document.getElementById("model-nodal_graph");
+  if (modelNodalGraph) modelNodalGraph.style.display = "none";
   if (btnBack) btnBack.style.display = "none";
   if (modeTag) modeTag.style.display = "none";
   setPolyphonyControlsVisible(false);
@@ -993,6 +1011,7 @@ export function showModel(id, updateHash = true) {
   const modelTracyRibbon = document.getElementById("model-tracy_ribbon");
   const modelSelfAvoidingWalk = document.getElementById("model-self_avoiding_walk");
   const modelBilliards = document.getElementById("model-billiards");
+  const modelNodalGraph = document.getElementById("model-nodal_graph");
   const btnBack = document.getElementById("btn-back-landing");
   const modeTag = document.getElementById("brand-mode-tag");
   const seqBar = document.getElementById("sequence");
@@ -1007,7 +1026,7 @@ export function showModel(id, updateHash = true) {
   setPolyphonyControlsVisible(POLYPHONIC_MODELS.has(id));
 
   // Flocking, Pendulum, Krell, Hanenbow, Sandpile, Orbital, Percolation, DLA, Epidemic, Changes, Physarum, Reaction-Diffusion, Kuramoto, FitzHugh-Nagumo, Ripple Tank, Convection, Markov Matrix, Genetic Breeder, Chladni, Brownian Ratchet, Tracy Ribbon, and Self-Avoiding Walk are unlinked free models: hide discrete step sequencer bars
-  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "billiards" && id !== "dxpatch" && id !== "librarian");
+  const isStepModel = (id !== "flock" && id !== "pendulum" && id !== "krell" && id !== "hanenbow" && id !== "sandpile" && id !== "orbital" && id !== "percolation" && id !== "dla" && id !== "epidemic" && id !== "changes" && id !== "physarum" && id !== "reaction_diffusion" && id !== "kuramoto" && id !== "fitzhugh_nagumo" && id !== "ripple_tank" && id !== "convection" && id !== "markov_matrix" && id !== "genetic_breeder" && id !== "chladni" && id !== "brownian_ratchet" && id !== "tracy_ribbon" && id !== "self_avoiding_walk" && id !== "billiards" && id !== "nodal_graph" && id !== "dxpatch" && id !== "librarian");
   if (seqBar) seqBar.style.display = isStepModel ? "block" : "none";
   if (rhythmBar) rhythmBar.style.display = isStepModel ? "block" : "none";
   if (grooveBar) grooveBar.style.display = isStepModel ? "flex" : "none";
@@ -1079,6 +1098,7 @@ export function showModel(id, updateHash = true) {
     if (modelTracyRibbon) modelTracyRibbon.style.display = id === "tracy_ribbon" ? "block" : "none";
     if (modelSelfAvoidingWalk) modelSelfAvoidingWalk.style.display = id === "self_avoiding_walk" ? "block" : "none";
     if (modelBilliards) modelBilliards.style.display = id === "billiards" ? "block" : "none";
+    if (modelNodalGraph) modelNodalGraph.style.display = id === "nodal_graph" ? "block" : "none";
     if (btnBack) {
       btnBack.textContent = "‹ Models";
       btnBack.title = "Return to Sequencer Models";
@@ -1115,6 +1135,7 @@ export function showModel(id, updateHash = true) {
       else if (id === "tracy_ribbon") modeTag.textContent = "Tracy Ribbon";
       else if (id === "self_avoiding_walk") modeTag.textContent = "Self-Avoiding Walk";
       else if (id === "billiards") modeTag.textContent = "Ballistic Billiards";
+      else if (id === "nodal_graph") modeTag.textContent = "Nodal Directed Graph";
       modeTag.style.display = "inline-block";
     }
   }
@@ -1254,6 +1275,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
       if (activeModelId !== "self_avoiding_walk") showModel("self_avoiding_walk", false);
     } else if (h === "#billiards" || h === "#billiard" || h === "#bunimovich" || h === "#sinai") {
       if (activeModelId !== "billiards") showModel("billiards", false);
+    } else if (h === "#nodal_graph" || h === "#nodal-graph" || h === "#nodal" || h === "#graph") {
+      if (activeModelId !== "nodal_graph") showModel("nodal_graph", false);
     } else if (h === "#dxpatch" || h === "#dxpatchgen" || h === "#patch-generator") {
       if (activeModelId !== "dxpatch") showModel("dxpatch", false);
     } else if (h === "#librarian" || h === "#sync" || h === "#export") {
@@ -1326,6 +1349,8 @@ export function initModes({ onEnterModel, onLeaveModel } = {}) {
     showModel("self_avoiding_walk", false);
   } else if (initialHash === "#billiards" || initialHash === "#billiard" || initialHash === "#bunimovich" || initialHash === "#sinai") {
     showModel("billiards", false);
+  } else if (initialHash === "#nodal_graph" || initialHash === "#nodal-graph" || initialHash === "#nodal" || initialHash === "#graph") {
+    showModel("nodal_graph", false);
   } else if (initialHash === "#dxpatch" || initialHash === "#dxpatchgen" || initialHash === "#patch-generator") {
     showModel("dxpatch", false);
   } else if (initialHash === "#librarian" || initialHash === "#sync" || initialHash === "#export") {

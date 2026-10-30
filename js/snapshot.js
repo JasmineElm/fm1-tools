@@ -76,6 +76,7 @@ const PREFIX = {
   tracy_ribbon: /^tracy[A-Z]/,
   self_avoiding_walk: /^saw[A-Z]/,
   billiards: /^billiards[A-Z]/,
+  nodal_graph: /^nodalGraph[A-Z]/,
 };
 
 export function ownsKey(modelId, key) {

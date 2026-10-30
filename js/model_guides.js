@@ -455,4 +455,22 @@ export const MODEL_GUIDES = {
       { name: "CANVAS SLING", desc: "Click and drag on the table canvas to slingshot a ball with aim vector." }
     ]
   }
+,
+  nodal_graph: {
+    title: "Nodal Directed Graph",
+    kicker: "Topological Automata · Weighted Branching · Aleatoric Pathways",
+    paragraphs: [
+      "Simulates a probabilistic directed state graph where multiple autonomous walker tokens traverse topological network structures including Chordal Cycles, Binary Branching Trees, Barabási–Albert Scale-Free Hubs, De Bruijn Shift Registers, and Directed Acyclic Graphs.",
+      "When walker tokens arrive at nodes, they trigger scale-quantized notes routed through the M-VAVE FM-1 8-voice hardware polyphony manager. In-degree node connectivity modulates note velocity, while edge traversal durations determine note gate lengths. Click and drag nodes directly on the canvas to sculpt custom topological geometry in real time."
+    ],
+    controls: [
+      { name: "TOPO PRESET", desc: "Selects graph architecture (Chordal Cycles, Branching Tree, Hub Network, De Bruijn Shift, Forward DAG)." },
+      { name: "WALKERS", desc: "Number of concurrent walker tokens traversing the graph (1 to 8 hardware polyphony limit)." },
+      { name: "SPEED", desc: "Traversal velocity multiplier governing how swiftly tokens travel along directed edges." },
+      { name: "ENTROPY", desc: "Branching temperature; higher values favor probabilistic exploration of secondary leap edges." },
+      { name: "DENSITY", desc: "Temporal pacing and edge traversal duration scaling." },
+      { name: "OCTAVE", desc: "Global octave transposition offset (-2 to +2 octaves)." },
+      { name: "CANVAS DRAG", desc: "Directly click and drag network nodes to rearrange visual topology and spatial intervals." }
+    ]
+  }
 };
