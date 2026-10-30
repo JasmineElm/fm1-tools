@@ -229,3 +229,4 @@ test("randomizeNodalGraph updates parameters and registers as model randomizer",
   deactivateNodalGraphModel();
   assert.equal(getCurrentModelRandomizer(), null);
 });
+
