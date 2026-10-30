@@ -14,9 +14,9 @@ import {
   setModelGenerator, setModelRandomizer
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, liveNoteOn, liveNoteOff, panicPreview, setModelTransportHandler } from "./player.js?v=1";
+import { isLive, liveNoteOn, liveNoteOff, panicPreview, setModelTransportHandler } from "./player.js";
 import * as audio from "./audio.js";
-import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, getRootMidi, getActiveScaleIntervals, quantize, midiName, SCALES } from "./scale.js?v=1";
+import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, getRootMidi, getActiveScaleIntervals, quantize, midiName, SCALES } from "./scale.js";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { registerModel } from "./snapshot.js";

@@ -57,7 +57,7 @@ import {
 } from "../js/convection.js";
 import { getModelDef } from "../js/snapshot.js";
 import { getCurrentModelRandomizer } from "../js/state.js";
-import { toggleLive, stopLive, isLive } from "../js/player.js?v=1";
+import { toggleLive, stopLive, isLive } from "../js/player.js";
 
 test("CONVECTION_PRESETS contains required atmospheric thermodynamic regimes", () => {
   assert.equal(CONVECTION_PRESETS.length, 5);

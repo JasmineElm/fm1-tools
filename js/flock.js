@@ -10,7 +10,7 @@ import { SCALES, quantize, midiName } from "./generator.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
-import { liveNoteOn, liveNoteOff, panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
+import { liveNoteOn, liveNoteOff, panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js";
 import { getRootMidi, getActiveScaleIntervals } from "./scale.js";
 
 // ---- Swarm & Physics State ----

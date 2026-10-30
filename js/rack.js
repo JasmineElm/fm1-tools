@@ -8,30 +8,30 @@ import {
 
 export { refreshLoopInfo };
 import { knob, dropdown, fader, seedControl, toggleBtn, actionBtn } from "./controls.js";
-import { renderBuffer, applyLocks, refreshLockCount, fitSteps, buildEditor, onSelectSlot } from "./grid.js?v=1";
-import { buildAudioControls, toggleLive, stopLive, playOnce, isLive, onPlayStartSync } from "./player.js?v=1";
+import { renderBuffer, applyLocks, refreshLockCount, fitSteps, buildEditor, onSelectSlot } from "./grid.js";
+import { buildAudioControls, toggleLive, stopLive, playOnce, isLive, onPlayStartSync } from "./player.js";
 import { syncDeviceTempo, scheduleTempoProbe, initMidi } from "./device.js";
 import { exportState, importState, onSyncRack } from "./storage.js";
 import { buildTheme } from "./themes.js";
 import { initScope, renderScope } from "./scope.js";
 import { initModes, getActiveModel } from "./modes.js";
 import { SCALES, LFO_WAVES, midiName, classicName } from "./generator.js";
-import { createNotesSection } from "./scale.js?v=1";
-import { createHumaniseSection } from "./humanise.js?v=1";
-import { createVelocitySection } from "./velocity.js?v=1";
-import { initCellular, activateCellularModel, deactivateCellularModel } from "./cellular.js?v=1";
-import { initTuring, activateTuringModel, deactivateTuringModel } from "./turing.js?v=1";
-import { initParticles, activateParticlesModel, deactivateParticlesModel } from "./particles.js?v=1";
-import { initPendulum, activatePendulumModel, deactivatePendulumModel } from "./pendulum.js?v=1";
-import { initFlock, activateFlockModel, deactivateFlockModel } from "./flock.js?v=1";
-import { initRungler, activateRunglerModel, deactivateRunglerModel } from "./rungler.js?v=3";
-import { initKrell, activateKrellModel, deactivateKrellModel } from "./krell.js?v=1";
-import { initLsystem, activateLsystemModel, deactivateLsystemModel, syncLsystemFromRegen } from "./lsystem.js?v=1";
-import { initLotkaVolterra, activateLotkaVolterraModel, deactivateLotkaVolterraModel, syncLotkaVolterraFromRegen, updateLotkaVolterraScaleAndOctave } from "./lotka_volterra.js?v=1";
-import { initOrbital, activateOrbitalModel, deactivateOrbitalModel, syncOrbitalFromRegen } from "./orbital.js?v=1";
-import { initHanenbow, activateHanenbowModel, deactivateHanenbowModel, syncHanenbowFromRegen } from "./hanenbow.js?v=1";
-import { initSandpile, activateSandpileModel, deactivateSandpileModel, syncSandpileFromRegen } from "./sandpile.js?v=1";
-import { initPercolation, activatePercolationModel, deactivatePercolationModel, syncPercolationFromRegen } from "./percolation.js?v=1";
+import { createNotesSection } from "./scale.js";
+import { createHumaniseSection } from "./humanise.js";
+import { createVelocitySection } from "./velocity.js";
+import { initCellular, activateCellularModel, deactivateCellularModel } from "./cellular.js";
+import { initTuring, activateTuringModel, deactivateTuringModel } from "./turing.js";
+import { initParticles, activateParticlesModel, deactivateParticlesModel } from "./particles.js";
+import { initPendulum, activatePendulumModel, deactivatePendulumModel } from "./pendulum.js";
+import { initFlock, activateFlockModel, deactivateFlockModel } from "./flock.js";
+import { initRungler, activateRunglerModel, deactivateRunglerModel } from "./rungler.js";
+import { initKrell, activateKrellModel, deactivateKrellModel } from "./krell.js";
+import { initLsystem, activateLsystemModel, deactivateLsystemModel, syncLsystemFromRegen } from "./lsystem.js";
+import { initLotkaVolterra, activateLotkaVolterraModel, deactivateLotkaVolterraModel, syncLotkaVolterraFromRegen, updateLotkaVolterraScaleAndOctave } from "./lotka_volterra.js";
+import { initOrbital, activateOrbitalModel, deactivateOrbitalModel, syncOrbitalFromRegen } from "./orbital.js";
+import { initHanenbow, activateHanenbowModel, deactivateHanenbowModel, syncHanenbowFromRegen } from "./hanenbow.js";
+import { initSandpile, activateSandpileModel, deactivateSandpileModel, syncSandpileFromRegen } from "./sandpile.js";
+import { initPercolation, activatePercolationModel, deactivatePercolationModel, syncPercolationFromRegen } from "./percolation.js";
 import { initDla, activateDlaModel, deactivateDlaModel } from "./dla.js";
 import { initEpidemic, activateEpidemicModel, deactivateEpidemicModel } from "./epidemic.js";
 import { initChanges, activateChangesModel, deactivateChangesModel } from "./changes.js";
@@ -52,9 +52,9 @@ import { initNodalGraph, activateNodalGraphModel, deactivateNodalGraphModel } fr
 import { initShiftRegister2d, activateShiftRegister2dModel, deactivateShiftRegister2dModel } from "./shift_register_2d.js";
 import { initCellularBug, activateCellularBugModel, deactivateCellularBugModel } from "./cellular_bug.js";
 import { initBooleanEuclidean, activateBooleanEuclideanModel, deactivateBooleanEuclideanModel } from "./boolean_euclidean.js";
-import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js?v=2";
-import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js?v=2";
-import { initRhythm, syncRhythmGrid } from "./rhythm.js?v=1";
+import { initDxPatch, activateDxPatch, deactivateDxPatch } from "./dxpatch.js";
+import { initLibrarian, activateLibrarian, deactivateLibrarian } from "./librarian.js";
+import { initRhythm, syncRhythmGrid } from "./rhythm.js";
 import * as midi from "./midi.js";
 import * as audio from "./audio.js";
 
@@ -264,93 +264,30 @@ export function buildNotesBar() {
     isFullWidth: true,
     badgeText: "Key & Scale",
     onChange: () => {
-      // Mirror to ca*, turing*, particle*, flock*, and pendulum*
-      state.caScale = state.scale;
-      state.turingScale = state.scale;
-      state.particleScale = state.scale;
-      state.flockScale = state.scale;
-      state.pendulumScale = state.scale;
-      state.runglerScale = state.scale;
-      state.krellScale = state.scale;
-      state.caCustomScale = state.customScale;
-      state.turingCustomScale = state.customScale;
-      state.particleCustomScale = state.customScale;
-      state.flockCustomScale = state.customScale;
-      state.pendulumCustomScale = state.customScale;
-      state.runglerCustomScale = state.customScale;
-      state.krellCustomScale = state.customScale;
-      state.caRoot = state.root;
-      state.turingRoot = state.root;
-      state.particleRoot = state.root;
-      state.flockRoot = state.root;
-      state.pendulumRoot = state.root;
-      state.runglerRoot = state.root;
-      state.krellRoot = state.root;
-      state.caRootNote = state.rootNote;
-      state.turingRootNote = state.rootNote;
-      state.particleRootNote = state.rootNote;
-      state.flockRootNote = state.rootNote;
-      state.pendulumRootNote = state.rootNote;
-      state.runglerRootNote = state.rootNote;
-      state.krellRootNote = state.rootNote;
-      state.caRootOctave = state.rootOctave;
-      state.turingRootOctave = state.rootOctave;
-      state.particleRootOctave = state.rootOctave;
-      state.flockRootOctave = state.rootOctave;
-      state.pendulumRootOctave = state.rootOctave;
-      state.runglerRootOctave = state.rootOctave;
-      state.krellRootOctave = state.rootOctave;
-      state.caPitchSpan = state.pitchSpan;
-      state.caOctaves = state.pitchSpan;
-      state.turingSpan = state.pitchSpan;
-      state.particleOctaves = state.pitchSpan;
-      state.pendulumPitchSpan = state.pitchSpan;
-      state.pendulumOctaves = state.pitchSpan;
-      state.krellSpan = state.pitchSpan;
-      state.lsystemSpan = state.pitchSpan;
-      state.lvSpan = state.pitchSpan;
-      state.physarumSpan = state.pitchSpan;
-      state.kuramotoSpan = state.pitchSpan;
-      state.fhnSpan = state.pitchSpan;
-      if (refs.turingSpan?.setValue) refs.turingSpan.setValue(state.pitchSpan, false);
-      if (refs.krellSpan?.setValue) refs.krellSpan.setValue(state.pitchSpan, false);
-      if (refs.lsystemSpan?.setValue) refs.lsystemSpan.setValue(state.pitchSpan, false);
-      state.caQuantSteps = state.quantSteps;
-      state.turingQuantSteps = state.quantSteps;
-      state.particleQuantSteps = state.quantSteps;
-      state.lsystemQuantSteps = state.quantSteps;
-      state.caOctave = state.octave;
-      state.turingOctave = state.octave;
-      state.particleOctave = state.octave;
-      state.lsystemOctave = state.octave;
-      state.caOctaveMode = state.octaveMode;
-      state.turingOctaveMode = state.octaveMode;
-      state.particleOctaveMode = state.octaveMode;
-      state.lsystemOctaveMode = state.octaveMode;
-      state.lsystemScale = state.scale;
-      state.lsystemCustomScale = state.customScale;
-      state.lsystemRoot = state.root;
-      state.lsystemRootNote = state.rootNote;
-      state.lsystemRootOctave = state.rootOctave;
-      state.lvScale = state.scale;
-      state.lvCustomScale = state.customScale;
-      state.lvRoot = state.root;
-      state.lvRootNote = state.rootNote;
-      state.lvRootOctave = state.rootOctave;
-      state.sandpileScale = state.scale;
-      state.sandpileCustomScale = state.customScale;
-      state.sandpileRoot = state.root;
-      state.sandpileRootNote = state.rootNote;
-      state.sandpileRootOctave = state.rootOctave;
-      state.sandpileSpan = state.pitchSpan;
-      if (refs.sandpileSpan?.setValue) refs.sandpileSpan.setValue(state.pitchSpan, false);
-      state.percolationScale = state.scale;
-      state.percolationCustomScale = state.customScale;
-      state.percolationRoot = state.root;
-      state.percolationRootNote = state.rootNote;
-      state.percolationRootOctave = state.rootOctave;
-      state.percolationSpan = state.pitchSpan;
-      if (refs.percolationSpan?.setValue) refs.percolationSpan.setValue(state.pitchSpan, false);
+      // Mirror global scale & root settings to legacy model-prefixed keys
+      for (const p of ["ca", "turing", "particle", "flock", "pendulum", "rungler", "krell", "lsystem", "lv", "sandpile", "percolation"]) {
+        state[`${p}Scale`] = state.scale;
+        state[`${p}CustomScale`] = state.customScale;
+        state[`${p}Root`] = state.root;
+        state[`${p}RootNote`] = state.rootNote;
+        state[`${p}RootOctave`] = state.rootOctave;
+      }
+      for (const k of [
+        "caPitchSpan", "caOctaves", "turingSpan", "particleOctaves",
+        "pendulumPitchSpan", "pendulumOctaves", "krellSpan", "lsystemSpan",
+        "lvSpan", "physarumSpan", "kuramotoSpan", "fhnSpan",
+        "sandpileSpan", "percolationSpan"
+      ]) {
+        state[k] = state.pitchSpan;
+      }
+      for (const k of ["turingSpan", "krellSpan", "lsystemSpan", "sandpileSpan", "percolationSpan"]) {
+        if (refs[k]?.setValue) refs[k].setValue(state.pitchSpan, false);
+      }
+      for (const p of ["ca", "turing", "particle", "lsystem"]) {
+        state[`${p}QuantSteps`] = state.quantSteps;
+        state[`${p}Octave`] = state.octave;
+        state[`${p}OctaveMode`] = state.octaveMode;
+      }
 
       if (getActiveModel() === "lotka_volterra") {
         updateLotkaVolterraScaleAndOctave();
@@ -585,83 +522,51 @@ buildTransport();
 buildEditor();
 initScope();
 initRhythm(document.getElementById("rhythm-bar"), document.getElementById("sequence"));
-initCellular();
-initTuring();
-initParticles();
-initPendulum();
-initFlock();
-initRungler();
-initKrell();
-initLsystem();
-initLotkaVolterra();
-initOrbital();
-initHanenbow();
-initSandpile();
-initPercolation();
-initDla();
-initEpidemic();
-initChanges();
-initPhysarum();
-initReactionDiffusion();
-initKuramoto();
-initFitzhughNagumo();
-initRippleTank();
-initConvection();
-initMarkovMatrix();
-initGeneticBreeder();
-initChladni();
-initBrownianRatchet();
-initTracyRibbon();
-initSelfAvoidingWalk();
-initBilliards();
-initNodalGraph();
-initShiftRegister2d();
-initCellularBug();
-initBooleanEuclidean();
-initDxPatch();
-initLibrarian();
+
+const initializedModels = new Set();
+
 const MODEL_LIFECYCLE = {
   mene311: { activate: () => { renderBuffer(); fitSteps(); renderScope(); syncRhythmGrid(); } },
-  cellular: { activate: activateCellularModel, deactivate: deactivateCellularModel },
-  turing: { activate: activateTuringModel, deactivate: deactivateTuringModel },
-  particles: { activate: activateParticlesModel, deactivate: deactivateParticlesModel },
-  pendulum: { activate: activatePendulumModel, deactivate: deactivatePendulumModel },
-  flock: { activate: activateFlockModel, deactivate: deactivateFlockModel },
-  rungler: { activate: activateRunglerModel, deactivate: deactivateRunglerModel },
-  krell: { activate: activateKrellModel, deactivate: deactivateKrellModel },
-  lsystem: { activate: activateLsystemModel, deactivate: deactivateLsystemModel, syncStepUi: true },
-  lotka_volterra: { activate: activateLotkaVolterraModel, deactivate: deactivateLotkaVolterraModel, syncStepUi: true },
-  orbital: { activate: activateOrbitalModel, deactivate: deactivateOrbitalModel, syncStepUi: true },
-  hanenbow: { activate: activateHanenbowModel, deactivate: deactivateHanenbowModel, syncStepUi: true },
-  sandpile: { activate: activateSandpileModel, deactivate: deactivateSandpileModel, syncStepUi: true },
-  percolation: { activate: activatePercolationModel, deactivate: deactivatePercolationModel, syncStepUi: true },
-  dla: { activate: activateDlaModel, deactivate: deactivateDlaModel, syncStepUi: true },
-  epidemic: { activate: activateEpidemicModel, deactivate: deactivateEpidemicModel, syncStepUi: true },
-  changes: { activate: activateChangesModel, deactivate: deactivateChangesModel, syncStepUi: true },
-  physarum: { activate: activatePhysarumModel, deactivate: deactivatePhysarumModel, syncStepUi: true },
-  reaction_diffusion: { activate: activateReactionDiffusionModel, deactivate: deactivateReactionDiffusionModel, syncStepUi: true },
-  kuramoto: { activate: activateKuramotoModel, deactivate: deactivateKuramotoModel, syncStepUi: true },
-  fitzhugh_nagumo: { activate: activateFitzhughNagumoModel, deactivate: deactivateFitzhughNagumoModel, syncStepUi: true },
-  ripple_tank: { activate: activateRippleTankModel, deactivate: deactivateRippleTankModel, syncStepUi: true },
-  convection: { activate: activateConvectionModel, deactivate: deactivateConvectionModel, syncStepUi: true },
-  markov_matrix: { activate: activateMarkovMatrixModel, deactivate: deactivateMarkovMatrixModel, syncStepUi: true },
-  genetic_breeder: { activate: activateGeneticBreederModel, deactivate: deactivateGeneticBreederModel, syncStepUi: true },
-  chladni: { activate: activateChladniModel, deactivate: deactivateChladniModel, syncStepUi: true },
-  brownian_ratchet: { activate: activateBrownianRatchetModel, deactivate: deactivateBrownianRatchetModel, syncStepUi: true },
-  tracy_ribbon: { activate: activateTracyRibbonModel, deactivate: deactivateTracyRibbonModel, syncStepUi: true },
-  self_avoiding_walk: { activate: activateSelfAvoidingWalkModel, deactivate: deactivateSelfAvoidingWalkModel, syncStepUi: true },
-  billiards: { activate: activateBilliardsModel, deactivate: deactivateBilliardsModel, syncStepUi: true },
-  nodal_graph: { activate: activateNodalGraphModel, deactivate: deactivateNodalGraphModel, syncStepUi: true },
-  shift_register_2d: { activate: activateShiftRegister2dModel, deactivate: deactivateShiftRegister2dModel, syncStepUi: true },
-  cellular_bug: { activate: activateCellularBugModel, deactivate: deactivateCellularBugModel, syncStepUi: true },
-  boolean_euclidean: { activate: activateBooleanEuclideanModel, deactivate: deactivateBooleanEuclideanModel, syncStepUi: true },
-  dxpatch: { activate: activateDxPatch, deactivate: deactivateDxPatch },
-  librarian: { activate: activateLibrarian, deactivate: deactivateLibrarian }
+  cellular: { init: initCellular, activate: activateCellularModel, deactivate: deactivateCellularModel },
+  turing: { init: initTuring, activate: activateTuringModel, deactivate: deactivateTuringModel },
+  particles: { init: initParticles, activate: activateParticlesModel, deactivate: deactivateParticlesModel },
+  pendulum: { init: initPendulum, activate: activatePendulumModel, deactivate: deactivatePendulumModel },
+  flock: { init: initFlock, activate: activateFlockModel, deactivate: deactivateFlockModel },
+  rungler: { init: initRungler, activate: activateRunglerModel, deactivate: deactivateRunglerModel },
+  krell: { init: initKrell, activate: activateKrellModel, deactivate: deactivateKrellModel },
+  lsystem: { init: initLsystem, activate: activateLsystemModel, deactivate: deactivateLsystemModel, syncStepUi: true },
+  lotka_volterra: { init: initLotkaVolterra, activate: activateLotkaVolterraModel, deactivate: deactivateLotkaVolterraModel, syncStepUi: true },
+  orbital: { init: initOrbital, activate: activateOrbitalModel, deactivate: deactivateOrbitalModel, syncStepUi: true },
+  hanenbow: { init: initHanenbow, activate: activateHanenbowModel, deactivate: deactivateHanenbowModel, syncStepUi: true },
+  sandpile: { init: initSandpile, activate: activateSandpileModel, deactivate: deactivateSandpileModel, syncStepUi: true },
+  percolation: { init: initPercolation, activate: activatePercolationModel, deactivate: deactivatePercolationModel, syncStepUi: true },
+  dla: { init: initDla, activate: activateDlaModel, deactivate: deactivateDlaModel, syncStepUi: true },
+  epidemic: { init: initEpidemic, activate: activateEpidemicModel, deactivate: deactivateEpidemicModel, syncStepUi: true },
+  changes: { init: initChanges, activate: activateChangesModel, deactivate: deactivateChangesModel, syncStepUi: true },
+  physarum: { init: initPhysarum, activate: activatePhysarumModel, deactivate: deactivatePhysarumModel, syncStepUi: true },
+  reaction_diffusion: { init: initReactionDiffusion, activate: activateReactionDiffusionModel, deactivate: deactivateReactionDiffusionModel, syncStepUi: true },
+  kuramoto: { init: initKuramoto, activate: activateKuramotoModel, deactivate: deactivateKuramotoModel, syncStepUi: true },
+  fitzhugh_nagumo: { init: initFitzhughNagumo, activate: activateFitzhughNagumoModel, deactivate: deactivateFitzhughNagumoModel, syncStepUi: true },
+  ripple_tank: { init: initRippleTank, activate: activateRippleTankModel, deactivate: deactivateRippleTankModel, syncStepUi: true },
+  convection: { init: initConvection, activate: activateConvectionModel, deactivate: deactivateConvectionModel, syncStepUi: true },
+  markov_matrix: { init: initMarkovMatrix, activate: activateMarkovMatrixModel, deactivate: deactivateMarkovMatrixModel, syncStepUi: true },
+  genetic_breeder: { init: initGeneticBreeder, activate: activateGeneticBreederModel, deactivate: deactivateGeneticBreederModel, syncStepUi: true },
+  chladni: { init: initChladni, activate: activateChladniModel, deactivate: deactivateChladniModel, syncStepUi: true },
+  brownian_ratchet: { init: initBrownianRatchet, activate: activateBrownianRatchetModel, deactivate: deactivateBrownianRatchetModel, syncStepUi: true },
+  tracy_ribbon: { init: initTracyRibbon, activate: activateTracyRibbonModel, deactivate: deactivateTracyRibbonModel, syncStepUi: true },
+  self_avoiding_walk: { init: initSelfAvoidingWalk, activate: activateSelfAvoidingWalkModel, deactivate: deactivateSelfAvoidingWalkModel, syncStepUi: true },
+  billiards: { init: initBilliards, activate: activateBilliardsModel, deactivate: deactivateBilliardsModel, syncStepUi: true },
+  nodal_graph: { init: initNodalGraph, activate: activateNodalGraphModel, deactivate: deactivateNodalGraphModel, syncStepUi: true },
+  shift_register_2d: { init: initShiftRegister2d, activate: activateShiftRegister2dModel, deactivate: deactivateShiftRegister2dModel, syncStepUi: true },
+  cellular_bug: { init: initCellularBug, activate: activateCellularBugModel, deactivate: deactivateCellularBugModel, syncStepUi: true },
+  boolean_euclidean: { init: initBooleanEuclidean, activate: activateBooleanEuclideanModel, deactivate: deactivateBooleanEuclideanModel, syncStepUi: true },
+  dxpatch: { init: initDxPatch, activate: activateDxPatch, deactivate: deactivateDxPatch },
+  librarian: { init: initLibrarian, activate: activateLibrarian, deactivate: deactivateLibrarian }
 };
 
 function deactivateAllModels(exceptId = null) {
   for (const [id, entry] of Object.entries(MODEL_LIFECYCLE)) {
-    if (id !== exceptId && entry.deactivate) {
+    if (id !== exceptId && initializedModels.has(id) && entry.deactivate) {
       try {
         entry.deactivate();
       } catch (e) {
@@ -683,6 +588,12 @@ initModes({
     deactivateAllModels(modelId);
 
     const entry = MODEL_LIFECYCLE[modelId];
+    if (entry?.init && !initializedModels.has(modelId)) {
+      initializedModels.add(modelId);
+      entry.init();
+    } else {
+      initializedModels.add(modelId);
+    }
     if (entry?.activate) {
       entry.activate();
     }

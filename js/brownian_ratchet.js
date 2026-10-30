@@ -27,13 +27,13 @@ import {
   setModelGenerator, setModelRandomizer, RATE_NAMES
 } from "./state.js";
 import { knob, dropdown, actionBtn } from "./controls.js";
-import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
+import { isLive, setModelStepHandler, setModelTransportHandler } from "./player.js";
 import { liveNoteOn, liveNoteOff, panicPreview } from "./player.js";
 import {
   SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS,
   mapNormalizedToNote, getRootMidi, getActiveScaleIntervals,
   computeOctaveShift, quantize
-} from "./scale.js?v=1";
+} from "./scale.js";
 import { syncRhythmGrid } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { midiName, SCALES } from "./generator.js";

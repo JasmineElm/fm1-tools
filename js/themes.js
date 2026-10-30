@@ -6,9 +6,14 @@ export const THEMES = [
   { id: "light", name: "Light", icon: "☀️", accent: "#2563eb" },
 ];
 
+let cachedPalette = null;
+let cachedThemeId = null;
+
 export function applyTheme(id) {
   const themeId = id === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = themeId;
+  cachedPalette = null;
+  cachedThemeId = null;
   localStorage.setItem("fm1p.theme", themeId);
   document.querySelectorAll(".theme-btn, .swatch").forEach((s) => {
     const isActive = s.dataset.id === themeId;
@@ -45,11 +50,16 @@ export function buildTheme() {
  * with safe dark-workbench fallbacks for headless / Node test environments.
  */
 export function getThemePalette() {
+  const currentTheme = (typeof document !== "undefined" && document.documentElement?.dataset?.theme) || "dark";
+  if (cachedPalette && cachedThemeId === currentTheme) {
+    return cachedPalette;
+  }
   const style = (typeof getComputedStyle === "function" && typeof document !== "undefined" && document.documentElement)
     ? getComputedStyle(document.documentElement)
     : null;
   const get = (prop, fallback) => (style ? style.getPropertyValue(prop).trim() : "") || fallback;
-  return {
+  cachedThemeId = currentTheme;
+  cachedPalette = {
     bg: get("--bg", "#111215"),
     panel: get("--panel", "#18191f"),
     panel2: get("--panel2", "#22252e"),
@@ -62,4 +72,5 @@ export function getThemePalette() {
     ok: get("--ok", "#22c55e"),
     err: get("--err", "#ef4444"),
   };
+  return cachedPalette;
 }

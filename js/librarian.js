@@ -52,10 +52,10 @@ import {
 import { WebAudioPlayer } from "./dxaudio.js";
 import { midiName } from "./generator.js";
 import { getBank, getSelected, setSelected, locks, state } from "./state.js";
-import { renderBuffer, refreshLockCount } from "./grid.js?v=1";
-import { syncRhythmGrid } from "./rhythm.js?v=1";
+import { renderBuffer, refreshLockCount } from "./grid.js";
+import { syncRhythmGrid } from "./rhythm.js";
 import { showModel } from "./modes.js";
-import { loadExternalDxPatch } from "./dxpatch.js?v=2";
+import { loadExternalDxPatch } from "./dxpatch.js";
 import * as midi from "./midi.js";
 
 let initialized = false;

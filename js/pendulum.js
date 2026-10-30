@@ -7,7 +7,7 @@
 // Users can toggle sectors directly by clicking/painting on the canvas ring or via rack buttons.
 
 import { state, refs, status, setModelGenerator, setModelRandomizer, onRegen } from "./state.js";
-import { liveNoteOn, liveNoteOff, panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js?v=1";
+import { liveNoteOn, liveNoteOff, panicPreview, setModelStepHandler, setModelTransportHandler } from "./player.js";
 import { registerModel } from "./snapshot.js";
 import { getActiveModel } from "./modes.js";
 import { SCALES, quantize, midiName } from "./generator.js";

@@ -9,8 +9,8 @@ import {
   setModelGenerator, setModelRandomizer, RATE_NAMES, RATE_QUARTERS
 } from "./state.js";
 import { fader, dropdown, actionBtn } from "./controls.js";
-import { isLive, setModelStepHandler } from "./player.js?v=1";
-import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals } from "./scale.js?v=1";
+import { isLive, setModelStepHandler } from "./player.js";
+import { SCALE_LABELS, ROOT_NOTE_OPTIONS, ROOT_OCTAVE_OPTIONS, mapNormalizedToNote, getRootMidi, getActiveScaleIntervals } from "./scale.js";
 import { syncRhythmGrid, randomizeRhythm } from "./rhythm.js";
 import { getActiveModel } from "./modes.js";
 import { registerModel } from "./snapshot.js";

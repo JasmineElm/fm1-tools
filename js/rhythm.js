@@ -5,9 +5,9 @@ import {
 import {
   euclid, classicName, quantize, midiName
 } from "./generator.js";
-import { getRootMidi, getActiveScaleIntervals } from "./scale.js?v=1";
-import { renderBuffer, onBufferRender, selectStep, getEditStep } from "./grid.js?v=1";
-import { onStep } from "./player.js?v=1";
+import { getRootMidi, getActiveScaleIntervals } from "./scale.js";
+import { renderBuffer, onBufferRender, selectStep, getEditStep } from "./grid.js";
+import { onStep } from "./player.js";
 
 // Classic Euclidean Rhythm Presets (N hits over M steps with optional rotation)
 export const EUCLID_PRESETS = [
@@ -92,8 +92,8 @@ export function syncRhythmGrid() {
     btn.classList.toggle("is-off-length", !isWithinLen);
     btn.classList.toggle("is-edit", i === getEditStep());
 
-    const noteEl = btn.querySelector(".r-step-note");
-    const velBarEl = btn.querySelector(".r-step-vel-bar");
+    const noteEl = btn._noteEl || btn.querySelector(".r-step-note");
+    const velBarEl = btn._velBarEl || btn.querySelector(".r-step-vel-bar");
 
     if (hasNotes) {
       const n0 = st.notes[0];
@@ -110,7 +110,11 @@ export function syncRhythmGrid() {
       if (velBarEl) {
         velBarEl.style.width = `${velPct}%`;
       }
-      btn.title = `Step ${i + 1}: ${st.notes.map((n) => `${midiName(n.note)} v${n.vel}`).join("  ")}`;
+      const nextTitle = `Step ${i + 1}: ${st.notes.map((n) => `${midiName(n.note)} v${n.vel}`).join("  ")}`;
+      if (btn._lastTitle !== nextTitle) {
+        btn._lastTitle = nextTitle;
+        btn.title = nextTitle;
+      }
     } else {
       btn.style.removeProperty("--vel-alpha");
 
@@ -120,7 +124,11 @@ export function syncRhythmGrid() {
       if (velBarEl) {
         velBarEl.style.width = "0%";
       }
-      btn.title = `Step ${i + 1}`;
+      const nextTitle = `Step ${i + 1}`;
+      if (btn._lastTitle !== nextTitle) {
+        btn._lastTitle = nextTitle;
+        btn.title = nextTitle;
+      }
     }
   }
 
@@ -986,6 +994,9 @@ export function initRhythm(containerEl, sequenceContainerEl) {
       velBar.className = "r-step-vel-bar";
       velWrap.appendChild(velBar);
 
+      btn._noteEl = noteSpan;
+      btn._velBarEl = velBar;
+      btn._lastTitle = btn.title;
       btn.append(btnHeader, noteSpan, velWrap);
 
       btn.addEventListener("click", () => {

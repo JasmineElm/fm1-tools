@@ -55,7 +55,7 @@ import {
 } from "../js/markov_matrix.js";
 import { getModelDef } from "../js/snapshot.js";
 import { getCurrentModelRandomizer } from "../js/state.js";
-import { toggleLive, stopLive, isLive } from "../js/player.js?v=1";
+import { toggleLive, stopLive, isLive } from "../js/player.js";
 import { state } from "../js/state.js";
 
 test("MARKOV_PRESETS contains required musical transition corpora", () => {
